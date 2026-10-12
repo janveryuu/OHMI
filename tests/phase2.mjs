@@ -1,0 +1,158 @@
+import assert from 'node:assert/strict';
+import { join } from 'node:path';
+
+export async function testPhase2(page, screenshots) {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const mascot = page.locator('.ohmi-mascot');
+  const start = await mascot.boundingBox();
+  await page.mouse.move(start.x + 44, start.y + 44);
+  await page.mouse.down();
+  await page.mouse.move(68, 732, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForFunction(() => Number.parseFloat(document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-mascot').style.top) > 650);
+  const panel = page.locator('.ohmi-panel');
+  const content = page.locator('.ohmi-panel-content');
+  const capture = async (name) => {
+    await content.evaluate((element) => { element.scrollTop = 0; });
+    await panel.screenshot({ path: join(screenshots, `phase-2-${name}.png`) });
+  };
+
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await capture('home');
+  await page.screenshot({ path: join(screenshots, 'phase-2-desktop.png') });
+  await page.getByRole('button', { name: 'Ask OHMI', exact: true }).click();
+  assert.equal(await content.getAttribute('data-section'), 'chat');
+  assert.equal(await content.evaluate((element) => element.getRootNode().activeElement === element), true, 'Navigation focuses new content');
+  const question = page.getByRole('textbox', { name: 'Your demo question' });
+  assert.equal(await page.getByRole('button', { name: 'Send demo', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'Use sample attachment', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove sample attachment', exact: true }).waitFor();
+  await question.fill('What does a resistor do?');
+  await question.press('Enter');
+  await page.getByText('Loading a sample reply…', { exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Send demo', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await page.getByRole('button', { name: 'Ask OHMI', exact: true }).click();
+  await page.locator('.ohmi-message-ohmi').waitFor();
+  assert.match(await page.locator('.ohmi-message-ohmi').innerText(), /resistor limits current/);
+  assert.match(await page.locator('.ohmi-message-user').innerText(), /led-lab.pdf \(sample\)/);
+  await capture('chat');
+
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await page.getByRole('button', { name: 'Assignments', exact: true }).click();
+  assert.equal(await page.locator('.ohmi-upload').count(), 1, 'Assignment empty state');
+  assert.equal(await page.getByRole('button', { name: 'Choose file — unavailable', exact: true }).isDisabled(), true);
+  await page.locator('.ohmi-upload').dispatchEvent('drop');
+  await page.getByRole('alert').waitFor();
+  assert.match(await page.getByRole('alert').innerText(), /Real uploads aren’t connected/);
+  await page.getByRole('button', { name: 'Dismiss notice', exact: true }).click();
+  await page.getByRole('button', { name: 'Use sample assignment', exact: true }).click();
+  await page.getByText('Loading the built-in assignment preview…', { exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Light your first LED', exact: true }).waitFor();
+  assert.equal(await page.locator('ohmi-companion input[type="file"]').count(), 0, 'No real file inputs');
+  await capture('assignments');
+  await page.getByRole('button', { name: 'Open sample guide', exact: true }).click();
+  const previous = page.getByRole('button', { name: 'Previous', exact: true });
+  const next = page.getByRole('button', { name: 'Next step', exact: true });
+  const progress = page.getByRole('progressbar', { name: 'Sample guide progress' });
+  assert.equal(await previous.isDisabled(), true, 'Guide starts at first step');
+  for (let step = 0; step < 5; step++) {
+    await page.getByRole('button', { name: 'Mark step done', exact: true }).click();
+    assert.equal(await progress.getAttribute('value'), String(step + 1));
+    if (step === 1) await capture('guide');
+    if (step < 4) await next.click();
+  }
+  assert.equal(await next.isDisabled(), true, 'Guide ends at last step');
+  await page.getByText('Sample guide complete. You practiced explaining each connection.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+  assert.equal(await page.locator('.ohmi-message').count(), 2, 'Conversation survives navigation');
+  await page.getByRole('button', { name: 'Guide section', exact: true }).click();
+  assert.equal(await progress.getAttribute('value'), '5', 'Guide completion survives navigation');
+  await page.getByRole('button', { name: 'Restart sample guide', exact: true }).click();
+  assert.equal(await progress.getAttribute('value'), '0');
+  assert.equal(await previous.isDisabled(), true);
+
+  const more = page.getByRole('button', { name: 'More sections', exact: true });
+  await more.click();
+  await page.keyboard.press('Escape');
+  assert.equal(await more.getAttribute('aria-expanded'), 'false', 'Escape dismisses More');
+  assert.equal(await mascot.getAttribute('aria-expanded'), 'true', 'More dismissal does not minimize assistant');
+  assert.equal(await more.evaluate((button) => button.getRootNode().activeElement === button), true, 'More returns focus');
+  await more.click();
+  await page.getByRole('region', { name: 'More OHMI sections' }).getByRole('button', { name: 'Check My Circuit', exact: true }).click();
+  await page.getByRole('button', { name: 'Use sample circuit', exact: true }).click();
+  await page.getByText('Loading illustrative circuit notes…', { exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Add a current-limiting resistor', exact: true }).waitFor();
+  assert.match(await page.locator('.ohmi-result').innerText(), /No circuit was analyzed or electrically verified/);
+  await capture('check');
+
+  await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+  await page.getByLabel('Explanation language', { exact: true }).selectOption('filipino');
+  await page.getByLabel('Appearance', { exact: true }).selectOption('dark');
+  assert.equal(await page.locator('.ohmi-root').getAttribute('data-appearance'), 'dark');
+  await capture('settings-dark');
+  await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+  await question.fill('Paano gumagana ang resistor?');
+  await page.getByRole('button', { name: 'Send demo', exact: true }).click();
+  await page.waitForFunction(() => [...document.querySelector('ohmi-companion').shadowRoot.querySelectorAll('.ohmi-message-ohmi')].some((element) => element.textContent.includes('Nililimitahan')));
+  await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+  await page.getByLabel('Explanation language', { exact: true }).selectOption('taglish');
+  await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+  await question.fill('Explain current in Taglish.');
+  await page.getByRole('button', { name: 'Send demo', exact: true }).click();
+  await page.waitForFunction(() => [...document.querySelector('ohmi-companion').shadowRoot.querySelectorAll('.ohmi-message-ohmi')].some((element) => element.textContent.includes('nagli-limit')));
+
+  await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.getByRole('button', { name: 'Happy', exact: true }).click();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-mascot img')).animationName === 'ohmi-happy');
+  await page.getByRole('button', { name: 'Thinking', exact: true }).click();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-mascot img')).animationName === 'ohmi-think');
+  await page.getByRole('button', { name: 'Idle', exact: true }).click();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-mascot img')).animationName === 'ohmi-float');
+  await page.getByLabel('Animate OHMI', { exact: true }).uncheck();
+  assert.equal(await mascot.locator('img').evaluate((image) => getComputedStyle(image).animationName), 'none', 'Animation preference stops motion');
+  await page.reload();
+  await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+  assert.equal(await page.getByLabel('Explanation language', { exact: true }).inputValue(), 'taglish');
+  assert.equal(await page.getByLabel('Appearance', { exact: true }).inputValue(), 'dark');
+  assert.equal(await page.getByLabel('Animate OHMI', { exact: true }).isChecked(), false, 'Preferences survive reload');
+  await page.getByLabel('Animate OHMI', { exact: true }).check();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-mascot img')).animationName === 'none');
+  assert.equal(await mascot.evaluate((element) => getComputedStyle(element, '::before').animationName), 'none', 'Reduced motion disables antenna glow');
+
+  await page.getByLabel('Appearance', { exact: true }).selectOption('light');
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await page.setViewportSize({ width: 320, height: 400 });
+  await page.waitForFunction(() => document.querySelector('ohmi-companion').shadowRoot.querySelector('.ohmi-panel').getBoundingClientRect().right <= 320);
+  const smallMascot = await mascot.boundingBox();
+  await page.mouse.move(smallMascot.x + 44, smallMascot.y + 44);
+  await page.mouse.down();
+  await page.mouse.move(160, 200, { steps: 8 });
+  await page.mouse.up();
+  assert.ok((await panel.boundingBox()).height >= 250, 'Centered small-screen drag must preserve usable panel height');
+  await more.click();
+  await page.getByRole('region', { name: 'More OHMI sections' }).getByRole('button', { name: 'Settings', exact: true }).click();
+  assert.equal(await content.getAttribute('data-section'), 'settings', 'More controls remain reachable after centered drag');
+  for (const section of ['home', 'chat', 'guide', 'settings']) {
+    if (section === 'home') await page.getByRole('button', { name: 'Home', exact: true }).click();
+    if (section === 'chat') await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+    if (section === 'guide') await page.getByRole('button', { name: 'Guide section', exact: true }).click();
+    if (section === 'settings') await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+    assert.equal(await content.evaluate((element) => element.scrollWidth <= element.clientWidth), true, `${section}: no horizontal overflow`);
+    assert.equal(await page.getByRole('button', { name: 'Minimize OHMI', exact: true }).isVisible(), true);
+    assert.equal(await more.isVisible(), true, 'Navigation remains reachable');
+  }
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await page.screenshot({ path: join(screenshots, 'phase-2-small.png') });
+  await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+  await question.focus();
+  await question.fill('Can I use this demo on a small screen?');
+  await page.getByRole('button', { name: 'Send demo', exact: true }).click();
+  await page.locator('.ohmi-message-ohmi').waitFor();
+  await question.focus();
+  await panel.screenshot({ path: join(screenshots, 'phase-2-small-chat.png') });
+  console.log('PASS Phase 2: six sections, sample chat/attachment/results, unavailable-upload notice, guide bounds/progress, navigation focus/More Escape, three languages, theme/motion/persistence, responsive content, antenna reduced motion.');
+}

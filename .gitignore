@@ -1,0 +1,10 @@
+node_modules/
+.wxt/
+.output/
+coverage/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
