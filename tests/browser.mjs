@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join, dirname, basename } from 'node:path';
 import { chromium } from 'playwright';
 import { testPhase2 } from './phase2.mjs';
+import { testPhase3 } from './phase3.mjs';
 
 const extension = resolve('.output/chrome-mv3');
 const screenshots = resolve('docs/screenshots');
@@ -135,6 +136,7 @@ try {
   await mascot.click();
   await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
   await testPhase2(page, screenshots);
+  await testPhase3(context, page, screenshots);
   assert.deepEqual(errors, [], 'No browser page errors');
   console.log('PASS: image, host pointer/keyboard and style isolation, open/close/focus/Escape, keyboard movement, mouse/touch drag and cancellation, reload persistence, responsive bounds and no overlap, reduced motion, SPA leave/return, browser errors.');
   console.log('Screenshots are from a simulated editor URL, not a logged-in Tinkercad session.');

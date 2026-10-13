@@ -131,6 +131,22 @@
 .ohmi-secondary:hover:not(:disabled) { background: var(--ohmi-tint); border-color: var(--ohmi-teal); }
 .ohmi-text-button { min-height: 44px; padding: 7px 0; border: 0; background: transparent; color: var(--ohmi-teal); font-size: 12px; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
 .ohmi-full-width { width: 100%; }
+.ohmi-private { margin-bottom: 18px; }
+.ohmi-private-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ohmi-private-heading h4, .ohmi-saved-steps h4 { font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+.ohmi-private > .ohmi-full-width { margin-top: 10px; }
+.ohmi-empty-copy { margin-top: 12px !important; color: var(--ohmi-muted); font-size: 13px; }
+.ohmi-file-list, .ohmi-step-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.ohmi-file-list > li { margin-bottom: 10px; padding: 12px; border: 1px solid var(--ohmi-border); border-radius: 12px; background: var(--ohmi-card); overflow-wrap: anywhere; }
+.ohmi-file-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.ohmi-file-actions .ohmi-button { padding-inline: 10px; }
+.ohmi-step-list > li { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--ohmi-border); }
+.ohmi-step-list label { display: flex; flex: 1; align-items: flex-start; gap: 8px; min-height: 44px; padding-top: 10px; overflow-wrap: anywhere; cursor: pointer; }
+.ohmi-step-list input { flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--ohmi-teal); }
+.ohmi-saved-steps > .ohmi-muted { margin-block: 8px 16px; }
+.ohmi-step-form { display: grid; gap: 8px; margin-top: 16px; }
+.ohmi-step-form textarea { width: 100%; padding: 10px; border: 1px solid var(--ohmi-muted); border-radius: 9px; background: var(--ohmi-card); resize: vertical; }
+.ohmi-sample-divider { margin: 18px 0 12px !important; padding-top: 16px; border-top: 1px solid var(--ohmi-border); color: var(--ohmi-muted); font-size: 12px; }
 .ohmi-notice, .ohmi-success { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; padding: 10px; border-radius: 10px; background: var(--ohmi-gold); color: var(--ohmi-on-gold); font-size: 12px; }
 .ohmi-notice p, .ohmi-success p { flex: 1; }
 .ohmi-notice > svg { margin-top: 3px; }

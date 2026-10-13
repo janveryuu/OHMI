@@ -1,7 +1,7 @@
 {
   "name": "ohmi-circuit-buddy",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -12,6 +12,7 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

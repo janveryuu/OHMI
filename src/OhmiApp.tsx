@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { browser } from 'wxt/browser';
+import { request } from './bridge';
 import { clampMascot, fitMascotForPanel, MASCOT_SIZE, panelRect, type Point, type SavedState } from './placement';
 import { AssistantPanel } from './AssistantPanel';
 import type { Motion, Preferences } from './preview';
+import { useAccount } from './useAccount';
 
 const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
 const directions: Record<string, readonly [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -21,6 +22,18 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
   const [motion, setMotion] = useState<Motion>('idle');
   const [systemReducedMotion, setSystemReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const motionTimer = useRef<number | undefined>(undefined);
+  const account = useAccount();
+
+  useEffect(() => {
+    const language = account.state.profile?.language;
+    if (!language) return;
+    setPreferences((current) => {
+      if (current.language === language) return current;
+      const next = { ...current, language };
+      void request('local.preferences', next).catch(() => setPreferenceError(true));
+      return next;
+    });
+  }, [account.state.user?.id, account.state.profile?.language]);
 
   const reactTo = useCallback((next: Motion) => {
     window.clearTimeout(motionTimer.current);
@@ -42,11 +55,14 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
   const savePreferences = (next: Preferences) => {
     setPreferences(next);
     setPreferenceError(false);
-    void browser.storage.local.set({ ohmiPreferences: next }).catch(() => setPreferenceError(true));
+    void request('local.preferences', next).catch(() => setPreferenceError(true));
+    if (account.state.user && next.language !== account.state.profile?.language) {
+      void request('profile.language', { accountId: account.state.user.id, language: next.language }).then(() => account.refresh()).catch(() => setPreferenceError(true));
+    }
   };
 
   const save = (next: SavedState) => {
-    void browser.storage.local.set({ ohmi: next }).catch((error: unknown) => console.warn('OHMI could not save its position:', error));
+    void request('local.position', next).catch((error: unknown) => console.warn('OHMI could not save its position:', error));
   };
 
   useEffect(() => {
@@ -141,7 +157,7 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
           }}
           style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, maxHeight: rect.height }}
         >
-          <AssistantPanel imageUrl={imageUrl} preferences={preferences} onPreferencesChange={savePreferences} onMotion={reactTo} onClose={() => setPanelOpen(false)} closeRef={closeRef} open={open} systemReducedMotion={systemReducedMotion} preferenceError={preferenceError} />
+          <AssistantPanel imageUrl={imageUrl} preferences={preferences} onPreferencesChange={savePreferences} onMotion={reactTo} onClose={() => setPanelOpen(false)} closeRef={closeRef} open={open} systemReducedMotion={systemReducedMotion} preferenceError={preferenceError} account={account} />
         </section>
 
       <button

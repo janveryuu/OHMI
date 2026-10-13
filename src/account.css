@@ -1,0 +1,23 @@
+html, body, #root { margin: 0; min-height: 100%; }
+.ohmi-root.ohmi-account-root { position: relative; inset: auto; z-index: auto; min-height: 100vh; padding: 32px 16px; background: var(--ohmi-mint); pointer-events: auto; }
+.ohmi-account-card { width: 100%; max-width: 480px; margin: 0 auto; padding: 28px; border: 1px solid var(--ohmi-border); border-radius: 20px; background: var(--ohmi-surface); box-shadow: 0 12px 36px #12363818; }
+.ohmi-account-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.ohmi-account-brand strong { color: var(--ohmi-teal); font-size: 22px; font-weight: 800; }
+.ohmi-account-brand p { color: var(--ohmi-muted); }
+.ohmi-account-card h1 { margin: 0 0 7px; font-size: 26px; letter-spacing: -.025em; line-height: 1.2; }
+.ohmi-account-card h2 { margin-bottom: 8px; font-size: 18px; }
+.ohmi-account-card > .ohmi-muted { margin-bottom: 20px; }
+.ohmi-account-card > .ohmi-notice, .ohmi-account-card > .ohmi-success { margin-top: 14px; }
+.ohmi-account-card > .ohmi-full-width { margin-bottom: 18px; }
+.ohmi-account-form { display: grid; gap: 8px; margin-top: 18px; }
+.ohmi-account-form label, .ohmi-account-upload > label { font-weight: 650; }
+.ohmi-account-form input { min-width: 0; width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--ohmi-muted); border-radius: 10px; background: var(--ohmi-card); }
+.ohmi-account-form .ohmi-button { margin-top: 8px; }
+.ohmi-account-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.ohmi-account-email { margin-top: 12px !important; overflow-wrap: anywhere; }
+.ohmi-account-upload { display: grid; gap: 10px; padding-block: 22px; margin-top: 14px; border-top: 1px solid var(--ohmi-border); }
+.ohmi-account-upload input[type="file"] { min-width: 0; width: 100%; padding: 8px; border: 1px solid var(--ohmi-muted); border-radius: 9px; }
+.ohmi-account-upload input::file-selector-button { min-height: 40px; margin-right: 8px; border: 0; border-radius: 7px; background: var(--ohmi-mint); color: var(--ohmi-teal); padding: 7px 10px; font: inherit; }
+.ohmi-upload-progress progress { width: 100%; accent-color: var(--ohmi-teal); }
+.ohmi-account-footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--ohmi-border); color: var(--ohmi-muted); font-size: 12px; }
+@media (max-width: 380px) { .ohmi-root.ohmi-account-root { padding: 12px; } .ohmi-account-card { padding: 20px 16px; } }

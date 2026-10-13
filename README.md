@@ -1,95 +1,79 @@
 # OHMI — Your Circuit Buddy
 
-Phase 2, version **0.2.0**: the approved pixel-art OHMI companion and six interactive frontend sections for Tinkercad Circuits. All conversations and results are clearly labeled local samples.
+Phase 3, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed. AI and circuit checking still use samples.
 
-## Load in Chrome
+## Load or update
 
-1. Use Node.js **22.12 or newer**. This workspace was verified with Node.js 24.16.0.
-2. Open a terminal in this project folder and run:
+1. Use Node.js 22.12+ (verified with 24.16.0). Copy `.env.example` to ignored `.env` for a new checkout. See [Phase 3 setup](docs/PHASE_3_SETUP.md). Use only the project URL and publishable key.
+2. Run `npm ci`, then `npm run build`.
+3. In `chrome://extensions`, enable Developer mode and load `.output/chrome-mv3`. For the existing installation, click **Reload** and confirm **0.3.0**. Keep the original absolute build path to retain the registered extension ID.
+4. Refresh your [Tinkercad Circuits](https://www.tinkercad.com) editor. Open OHMI → Settings → **Sign in to OHMI** → **Continue with Google**.
 
-   ```powershell
-   npm ci
-   npm run build
-   ```
+Authentication and real uploads use an extension-owned Account page. Passwords and upload authorization never enter Tinkercad. After source changes, rebuild, reload the extension, and refresh the editor. `npm run dev` is available.
 
-3. In Chrome, open `chrome://extensions` and enable **Developer mode**.
-4. Click **Load unpacked** and select `.output/chrome-mv3` inside this project.
-5. Sign in to [Tinkercad](https://www.tinkercad.com), then open one of your designs in the **Circuits editor**. Refresh an editor tab that was already open when the extension was loaded.
-6. OHMI starts near the lower left. Drag it to a free area, or focus it with Tab and use arrow keys to move it. Hold Shift for 1-pixel steps. Enter or Space opens and minimizes the panel; its close button and Escape also minimize it.
+## Phase 3 features
 
-After changing source files, rebuild, click the extension's **Reload** button in `chrome://extensions`, and refresh the Tinkercad tab. `npm run dev` is also available for WXT development.
+- Google sign-in/sign-out, display name, persistent session, and on-demand expired-session refresh.
+- Private PDF/PNG/JPG uploads up to **10 MiB**, actual byte progress, 60-second signed retrieval links, confirmed deletion, and recoverable incomplete uploads.
+- Student-written assignment steps and completion saved in Supabase. No AI generation.
+- Account language synchronization. Appearance, animations, mascot placement/open state remain device-local.
+- Existing confirmed email accounts can sign in. New email confirmation and reset actions remain gated until SMTP is ready.
 
-**Updating an already loaded extension:** the current build is ready in `.output/chrome-mv3`. Click OHMI's **Reload** button, confirm version **0.2.0**, then refresh your Circuits editor tab. Click the floating mascot to open Home.
+Find real files in **Assignments**, above the sample analysis flow. **Upload assignment** opens Account. Sample upload areas do not analyze real files; use the private assignment controls to save documents.
 
-## What Phase 2 adds
+## Preserved Phase 1/2 behavior
 
-- **Home:** four quick-access actions and sample-guide continuation.
-- **Ask OHMI:** message bubbles, keyboard-friendly composer, built-in sample attachment, loading feedback, and fixed localized replies. Enter sends; Shift+Enter adds a line.
-- **Assignments:** empty upload interface, built-in assignment card, sample analysis, and an entry into the guide. Real upload controls explain why they are unavailable.
-- **Guide Me:** five sample steps, previous/next controls, completion tracking, undo, and restart.
-- **Check My Circuit:** screenshot-upload interface, illustrative circuit, and predefined diagnostic notes. No actual circuit is inspected or electrically verified.
-- **Settings:** English, Filipino, or Taglish sample explanations; light or deep teal appearance; animation toggle; reaction previews.
+- Appears only on HTTPS `www.tinkercad.com/things/<design>/editel`, including query strings/trailing slashes. SPA navigation mounts/removes one companion.
+- Exact approved front PNG; turnaround remains a reference asset.
+- Shadow DOM isolation; host pointer/keyboard actions remain usable.
+- Mouse/touch drag, arrow-key movement (Shift for one-pixel steps), viewport clamping, open/minimize, Escape, and focus return.
+- Responsive panel with independent scrolling, fixed header/navigation, and accessible mascot placement.
+- Home, Ask, Assignments, Guide, Check My Circuit, Settings; sample conversations/results/guide progress.
+- Idle, hover, happy, and thinking motions respect the animation toggle and system reduced motion.
 
-Use the bottom navigation for Home, Ask, and Guide. **More** opens Assignments, Check My Circuit, and Settings. The header gear also opens Settings. Escape closes More first, then minimizes the assistant.
+Permissions: `storage`, `identity`, Tinkercad, and the configured Supabase host. Chrome 116+. No screenshot capture, undocumented Tinkercad integration, AI credential, or Autodesk affiliation.
 
-Preferences, mascot position, and panel open state are stored on this device. Conversations, sample results, and guide progress survive section navigation but reset when the page reloads or OHMI unmounts. Interface labels remain English; the language preference changes sample replies.
-
-## Preserved extension foundation
-
-- Shows an 88 CSS pixel mascot on HTTPS `www.tinkercad.com/things/<design>/editel` routes, including query strings and a trailing slash. Client-side navigation mounts or removes OHMI.
-- Uses the exact approved front PNG, copied into the built extension from `assets/mascot/ohmi-pixel-front.png`. The turnaround sheet stays a reference asset.
-- Uses Shadow DOM for styles and isolates interaction events within OHMI. The rest of the page remains available to pointer and keyboard input.
-- Supports mouse and touch pointer dragging, viewport clamping, keyboard movement, and local extension storage for position and open state.
-- Places the panel above, below, or beside the mascot. Content scrolls independently of the fixed header and bottom navigation. On narrow screens, opening or releasing a drag may move the mascot toward an edge to preserve usable panel space.
-- Provides idle floating, hover feedback, happy bouncing, thinking movement, subtle antenna light effects, and opening/closing/navigation transitions. The animation toggle and operating-system reduced-motion setting disable movement and light effects.
-
-The extension requests only `storage`, with its content script and public assets restricted to `https://www.tinkercad.com/*`. It has no background worker and sends no student data to a backend. Phase 2 adds no dependencies or permissions.
-
-## Checks
+## Automated checks
 
 ```powershell
-npm run typecheck
 npm test
+npm run typecheck
 npm run build
-```
-
-To repeat the isolated browser test, install Playwright's Chromium browser once, then run:
-
-```powershell
-npx playwright install chromium
 npm run test:browser
 ```
 
-The test loads the built extension into a temporary Chromium profile and serves a labeled simulated editor page. It checks the extension foundation plus all six sections, sample flows, guide progress, navigation focus, language/theme/motion persistence, and centered dragging at 320×400. It writes screenshots to `docs/screenshots`. If Chromium is already installed elsewhere, set `OHMI_CHROMIUM_PATH` to its executable path before running the test. No linter is configured yet.
+Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots go to `docs/screenshots`. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
 
-## Manual check in your signed-in Tinkercad session
+With Docker Desktop:
 
-1. On the homepage, dashboard, circuit gallery, and 3D editor, confirm OHMI is absent.
-2. Open an actual Circuits design; confirm OHMI appears once. Drag it away from any controls you use, and verify that a drag does not open the panel.
-3. Place components, wire them, use the code editor, and run/stop simulation. Check that OHMI does not intercept these actions outside its own controls.
-4. Open/minimize using the mascot, Enter/Space, the close control, and Escape. Check that focus returns to the mascot after minimizing.
-5. Reload with the panel open and closed, and check that position and state persist.
-6. Resize the browser and test Chrome zoom at 80%, 125%, and 200%. Confirm the mascot remains reachable and the panel fits, scrolling vertically if needed.
-7. Navigate to another Tinkercad page and back using both site links and browser history. Check that there is one mascot only in the Circuits editor.
-8. Enable the operating system's reduced-motion preference and confirm OHMI's motion is disabled.
-9. Open each Home action and the More menu. Send a sample chat question, attach the built-in sample, load the assignment and circuit examples, and complete/restart the guide. Check that section navigation preserves your sample state.
-10. In Settings, try all three explanation languages, both appearances, and each reaction. Turn animations off; reload and confirm preferences persist. Actual file upload, capture, and AI remain unavailable.
+```powershell
+npx --yes supabase@2.120.0 start
+node tests/backend.mjs
+```
 
-## Scope and remaining verification
+Local tests discover localhost credentials in memory and clean disposable users/files. Guarded live checks create temporary fixtures in existing OHMI; see [setup](docs/PHASE_3_SETUP.md) and [actual verification](docs/PHASE_3_VERIFICATION.md).
 
-Live editing and placement relative to Tinkercad's current controls need the manual check above. A public editor link redirected to Tinkercad login during verification. Route detection uses the public `/editel` convention; an Autodesk route change may require an update. Default placement is a starting point, not a guarantee of avoiding every circuit or toolbar.
+## Manual checks
 
-Blinking, talking, confused, and sleepy expressions need separately approved transparent animation frames. Current motion moves the entire approved image without fabricating facial artwork. AI, real uploads, PDF/image analysis, screenshot capture, authentication, and backend integration remain outside this phase.
+1. Reload 0.3.0 and refresh Circuits. Check one mascot; none on dashboards or the 3D editor.
+2. Sign in with Google, save a name, restart Chrome, and verify account/files return.
+3. Upload PDF/PNG/JPG, open the file, save/check steps, and delete it. Another account must not see it.
+4. Cancel Google login and retry. Check account switching in two open Account pages.
+5. Place/wire components, edit code, and run/stop simulation with OHMI open. Host controls must remain usable.
+6. Check keyboard navigation, reduced motion, language/theme, six sample sections, and actual Chrome zoom at 80%, 125%, and 200%.
 
-Phase 2 automated checks and visual review are complete. Signed-in Tinkercad, physical touch hardware, actual Chrome zoom, and screen-reader behavior still require the manual check above. Extremely short viewports cannot accommodate the same panel space as a desktop editor. Phase 3 has not started.
+## Limits
 
-## Project references
+Email verification is **not disabled**. Keep `WXT_EMAIL_DELIVERY_READY=false` until custom SMTP and prepared OTP templates are verified. Rotate privileged keys previously exposed in chat; this implementation never used or committed them. Other machines need the original registered extension's public manifest key for stable identity.
+
+Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload; real assignment steps persist. Facial animation frames still need owner approval. Phase 4 has not started.
+
+## References
 
 - [Project context](docs/PROJECT_CONTEXT.md)
-- [Approved mascot specification](docs/OHMI_MASCOT.md)
+- [Approved mascot](docs/OHMI_MASCOT.md)
 - [Design references](docs/DESIGN_REFERENCES.md)
-- [Phase 1 plan](docs/PHASE_1_PLAN.md)
-- [Phase 1 verification record](docs/PHASE_1_VERIFICATION.md)
-- [Phase 2 design and scope](docs/PHASE_2_DESIGN.md)
-- [Phase 2 implementation plan](docs/superpowers/plans/2026-10-12-phase-2.md)
-- [Phase 2 verification and screenshots](docs/PHASE_2_VERIFICATION.md)
+- [Phase 1 verification](docs/PHASE_1_VERIFICATION.md)
+- [Phase 2 design](docs/PHASE_2_DESIGN.md) and [verification](docs/PHASE_2_VERIFICATION.md)
+- [Phase 3 design](docs/superpowers/specs/2026-10-12-phase-3-design.md) and [plan](docs/superpowers/plans/2026-10-12-phase-3.md)
+- [Phase 3 setup](docs/PHASE_3_SETUP.md) and [verification](docs/PHASE_3_VERIFICATION.md)

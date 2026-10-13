@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type Ref } from 'react';
 import { Icon } from './Icon';
 import { demoReply, GUIDE_STEPS, readPreferences, type Motion, type Preferences, type Section } from './preview';
+import { PrivateAssignments } from './PrivateAssignments';
+import { AssignmentSteps } from './AssignmentSteps';
+import { request } from './bridge';
+import type { useAccount } from './useAccount';
+import type { Assignment } from './backend/contracts';
 
 type SampleState = 'empty' | 'loading' | 'ready';
 type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language'] };
@@ -14,6 +19,7 @@ type Props = {
   open: boolean;
   systemReducedMotion: boolean;
   preferenceError: boolean;
+  account: ReturnType<typeof useAccount>;
 };
 
 const titles: Record<Section, string> = {
@@ -45,7 +51,7 @@ function UploadPreview({ kind, state, onSample, onUnavailable }: { kind: 'assign
   </div>;
 }
 
-export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onMotion, onClose, closeRef, open, systemReducedMotion, preferenceError }: Props) {
+export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onMotion, onClose, closeRef, open, systemReducedMotion, preferenceError, account }: Props) {
   const [section, setSection] = useState<Section>('home');
   const [more, setMore] = useState(false);
   const [notice, setNotice] = useState('');
@@ -57,6 +63,8 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [circuit, setCircuit] = useState<SampleState>('empty');
   const [step, setStep] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
+  const [savedAssignment, setSavedAssignment] = useState<Assignment | null>(null);
+  useEffect(() => { setSavedAssignment(null); }, [account.state.user?.id]);
   const messageId = useRef(0);
   const contentRef = useRef<HTMLElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
@@ -143,7 +151,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
 
     <main key={section} ref={contentRef} tabIndex={-1} className="ohmi-panel-content" data-section={section} aria-label={titles[section]}>
       <div className={`ohmi-screen-heading${section === 'home' ? ' ohmi-welcome' : ''}`}>
-        <div><h3>{titles[section]}</h3><p>{subtitles[section]}</p></div>
+        <div><h3>{section === 'guide' && savedAssignment ? 'Saved assignment steps' : titles[section]}</h3><p>{section === 'guide' && savedAssignment ? savedAssignment.original_name : subtitles[section]}</p></div>
         {section === 'home' && <img src={imageUrl} alt="" width={64} height={64} />}
       </div>
       {notice && <div className="ohmi-notice" role="alert"><Icon name="info" /><p>{notice}</p><button type="button" className="ohmi-icon-button" aria-label="Dismiss notice" onClick={() => setNotice('')}><Icon name="close" size={16} /></button></div>}
@@ -179,15 +187,18 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </div>}
 
       {section === 'assignments' && <>
+        <PrivateAssignments {...account} refresh={account.refresh} onGuide={(item) => { setSavedAssignment(item); navigate('guide'); }} />
+        <p className="ohmi-sample-divider">Local demonstration — separate from your saved files</p>
         {assignment !== 'ready' ? <UploadPreview kind="assignment" state={assignment} onUnavailable={unavailable} onSample={() => { setAssignment('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
           <div className="ohmi-sample-file"><span className="ohmi-feature-icon"><Icon name="assignments" /></span><div><strong>led-lab.pdf</strong><p>Built-in sample assignment</p></div><button type="button" className="ohmi-icon-button" aria-label="Remove sample assignment" onClick={() => setAssignment('empty')}><Icon name="close" size={16} /></button></div>
           <div className="ohmi-result"><span className="ohmi-badge">Sample analysis</span><h4>Light your first LED</h4><p>Build a simple series circuit and explain how the resistor controls current.</p><h5>What you’ll need</h5><div className="ohmi-parts"><span>LED</span><span>220 Ω resistor</span><span>Breadboard</span><span>5 V source</span></div><h5>Your learning goals</h5><ul><li>Trace a complete current path.</li><li>Identify LED polarity.</li><li>Explain why the resistor matters.</li></ul><p className="ohmi-muted">This example is predefined. No PDF was read.</p></div>
-          <button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => navigate('guide')}><Icon name="guide" size={18} />Open sample guide</button>
+          <button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => { setSavedAssignment(null); navigate('guide'); }}><Icon name="guide" size={18} />Open sample guide</button>
         </>}
         {assignment === 'loading' && <p className="ohmi-loading" role="status">Loading the built-in assignment preview…</p>}
       </>}
 
-      {section === 'guide' && <>
+      {section === 'guide' && savedAssignment && account.state.user && <AssignmentSteps key={account.state.user.id + savedAssignment.id} accountId={account.state.user.id} assignment={savedAssignment} onBack={() => navigate('assignments')} />}
+      {section === 'guide' && !savedAssignment && <>
         <div className="ohmi-guide-progress"><div><span>{completed.length} of 5 done</span><span>Step {step + 1} of 5</span></div><progress aria-label="Sample guide progress" value={completed.length} max={5} /></div>
         <div className="ohmi-guide-step"><span className="ohmi-step-number" aria-hidden="true">{step + 1}</span><h4>{currentStep.title}</h4><p>{currentStep.text}</p><div className="ohmi-tip"><Icon name="spark" size={18} /><p>{currentStep.tip}</p></div></div>
         <button type="button" className={`ohmi-button ohmi-full-width ${completed.includes(step) ? 'ohmi-secondary' : 'ohmi-primary'}`} onClick={() => {
@@ -209,11 +220,12 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </>}
 
       {section === 'settings' && <div className="ohmi-settings">
-        <div className="ohmi-setting"><label htmlFor="ohmi-language">Explanation language</label><select id="ohmi-language" value={preferences.language} onChange={(event) => onPreferencesChange(readPreferences({ ...preferences, language: event.target.value }))}><option value="english">English</option><option value="filipino">Filipino</option><option value="taglish">Taglish</option></select><p>Used by local sample replies. Interface labels stay in English.</p></div>
+        <div className="ohmi-setting"><h4>Account</h4><p>{account.loading ? 'Loading account…' : account.state.user ? account.state.user.email : 'Sign in for private assignments and saved progress.'}</p>{account.error && <p className="ohmi-notice" role="alert">{account.error}</p>}<button type="button" className="ohmi-button ohmi-secondary ohmi-full-width" onClick={() => { void request('account.open').catch((failure: Error) => setNotice(failure.message)); }}>{account.state.user ? 'Manage OHMI account' : 'Sign in to OHMI'}</button></div>
+        <div className="ohmi-setting"><label htmlFor="ohmi-language">Explanation language</label><select id="ohmi-language" disabled={account.loading} value={preferences.language} onChange={(event) => onPreferencesChange(readPreferences({ ...preferences, language: event.target.value }))}><option value="english">English</option><option value="filipino">Filipino</option><option value="taglish">Taglish</option></select><p>Used by local sample replies. Interface labels stay in English.</p></div>
         <div className="ohmi-setting"><label htmlFor="ohmi-appearance">Appearance</label><select id="ohmi-appearance" value={preferences.appearance} onChange={(event) => onPreferencesChange(readPreferences({ ...preferences, appearance: event.target.value }))}><option value="light">Warm light</option><option value="dark">Deep teal</option></select></div>
         <div className="ohmi-setting"><label className="ohmi-motion-toggle" htmlFor="ohmi-animations"><span>Animate OHMI</span><input id="ohmi-animations" type="checkbox" checked={preferences.animations} onChange={(event) => onPreferencesChange({ ...preferences, animations: event.target.checked })} /></label><p>Gentle idle movement and brief reactions. Turn off anytime.</p>{systemReducedMotion && <p className="ohmi-preference-note">Your system requests reduced motion. OHMI stays still.</p>}</div>
         <div className="ohmi-setting"><h4>Preview a reaction</h4><div className="ohmi-motion-previews"><button type="button" className="ohmi-button ohmi-secondary" disabled={!motionAvailable} onClick={() => onMotion('happy')}>Happy</button><button type="button" className="ohmi-button ohmi-secondary" disabled={!motionAvailable} onClick={() => onMotion('thinking')}>Thinking</button><button type="button" className="ohmi-button ohmi-secondary" disabled={!motionAvailable} onClick={() => onMotion('idle')}>Idle</button></div></div>
-        <p className="ohmi-muted">Preferences are stored on this device. Sample conversations and guide progress last for this page session.</p>
+        <p className="ohmi-muted">{account.state.user ? 'Language is saved to your account. Appearance and motion stay on this device.' : 'Preferences stay on this device until you sign in.'} Sample conversations and sample guide progress last for this page session.</p>
         {preferenceError && <p className="ohmi-notice" role="alert">Couldn’t save preferences. Change the setting again to retry.</p>}
       </div>}
     </main>
@@ -229,6 +241,6 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       <button type="button" aria-current={section === 'guide' ? 'page' : undefined} aria-label="Guide section" onClick={() => navigate('guide')}><Icon name="guide" /><span>Guide</span></button>
       <button ref={moreRef} type="button" aria-current={['assignments', 'check', 'settings'].includes(section) ? 'page' : undefined} aria-label="More sections" aria-expanded={more} aria-controls="ohmi-more" onClick={() => setMore((current) => !current)}><Icon name="more" /><span>More</span></button>
     </nav>
-    <footer className="ohmi-preview-note"><span className={`ohmi-status-dot${pendingReply !== null || assignment === 'loading' || circuit === 'loading' ? ' ohmi-status-busy' : ''}`} /><span>Local demo. No AI or uploads connected.</span></footer>
+    <footer className="ohmi-preview-note"><span className={`ohmi-status-dot${pendingReply !== null || assignment === 'loading' || circuit === 'loading' ? ' ohmi-status-busy' : ''}`} /><span>{account.state.user ? 'Private account. AI features remain samples.' : 'Sign in for storage. AI features remain samples.'}</span></footer>
   </div>;
 }
