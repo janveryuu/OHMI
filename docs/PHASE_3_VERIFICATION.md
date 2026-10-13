@@ -72,3 +72,7 @@ All test-editor images are explicitly simulated; fixture emails are disposable, 
 - [Interrupted-upload error](screenshots/phase-3-upload-error.png)
 
 For reproducible setup and guarded test commands, see [Phase 3 setup](PHASE_3_SETUP.md).
+
+## Git handoff
+
+Implementation commit `f189335c3527d35362ef214242f476c1491375f0` was fast-forwarded to `main` and pushed to `https://github.com/janveryuu/OHMI.git`. `git ls-remote` confirmed that exact implementation commit. The merged tree's 24 unit tests passed. Final live inspection confirmed **zero** disposable Phase 3 test users remaining, **three** RLS-protected tables, and a **private** bucket. A documentation follow-up records this completed handoff; Phase 4 remains unstarted.
