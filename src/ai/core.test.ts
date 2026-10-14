@@ -55,7 +55,7 @@ describe('bounded provider requests', () => {
     let calls=0;
     await expect(generate('test-key',{...input,analysis:true},async()=>{
       calls++;return calls===1?Response.json({totalTokens:10}):Response.json({error:{status:'INVALID_ARGUMENT',message:'Schema rejected PRIVATE_PROMPT',details:[{fieldViolations:[{field:'generationConfig.responseFormat.text.mimeType',description:'PRIVATE_KEY'}]}]}},{status:400});
-    })).rejects.toThrow(/gemini-3.8-flash.*HTTP 400/);
+    })).rejects.toThrow(/gemini-3.6-flash.*HTTP 400/);
     expect(calls).toBe(2);
   });
   it('uses the compatible structured-output fields for the 3.6 fallback',async()=>{
@@ -67,7 +67,7 @@ describe('bounded provider requests', () => {
     const requests: string[] = [];
     const fetcher = async (url: string | URL | Request) => { requests.push(String(url)); return Response.json(requests.length === 1 ? { totalTokens: 20 } : { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Resistance limits current.' }] } }], usageMetadata: { promptTokenCount: 20, totalTokenCount: 40 } }); };
     expect(await generate('test-key', input, fetcher)).toEqual({ text: 'Resistance limits current.', inputTokens: 20, outputTokens: 20 });
-    expect(requests[0]).toMatch(/:countTokens$/); expect(requests[1]).toMatch(/gemini-3.8-flash:generateContent$/);
+    expect(requests[0]).toMatch(/:countTokens$/); expect(requests[1]).toMatch(/gemini-3.6-flash:generateContent$/);
   });
   it('rejects excessive input before making a paid generation call', async () => {
     let calls = 0;

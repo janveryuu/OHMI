@@ -40,7 +40,7 @@ export function pdfContents(context:PdfContext):Content[] {
   for(const image of images)parts.push({text:`Rendered PDF page ${image.page}:`},{inlineData:{mimeType:'image/jpeg',data:image.data}});
   return [{role:'user',parts}];
 }
-export function validatePdfReferences(analysis:Analysis,context:PdfContext):Analysis {
+export function validatePdfReferences(analysis:Analysis,context:PdfContext,nativePdf=false):Analysis {
   const source=context.pages.map(page=>page.text).join('\n');
   const volts=[...source.matchAll(/(\d+(?:\.\d+)?)\s*(?:V\b|volts?\b)/gi)].map(match=>Number(match[1]));
   const ohms=[...source.matchAll(/(\d+(?:\.\d+)?)\s*(?:Ω|ohms?\b)/gi)].map(match=>Number(match[1]));
@@ -59,6 +59,6 @@ export function validatePdfReferences(analysis:Analysis,context:PdfContext):Anal
   }
   if(analysis.status==='ready'&&([...analysis.components.map(component=>component.details),...analysis.steps.map(step=>[step.instruction,step.why,step.check].join(' '))].some(value=>! /\bpage\s+\d+\b/i.test(value))))throw new Error('AI omitted PDF page references. Retry with clearer source pages.');
   if(context.pages.some(page=>!page.text.trim())&&analysis.uncertainties.length<30)analysis.uncertainties.push('Some PDF pages are scanned or image-only. Confirm the visual reading of labels and values before building.');
-  if(analysis.assumptions.length<30)analysis.assumptions.push(`Source: ${context.totalPages}-page PDF; images supplied for pages ${pdfVisionImages(context).map(image=>image.page).join(', ')||'none'}, other pages use extracted text. Extraction and AI interpretation may be imperfect; no circuit was electrically verified.`);
+  if(analysis.assumptions.length<30)analysis.assumptions.push(nativePdf?`Source: original ${context.totalPages}-page PDF supplied to Gemini; local extraction used for source validation. AI interpretation may be imperfect; no circuit was electrically verified.`:`Source: ${context.totalPages}-page PDF; images supplied for pages ${pdfVisionImages(context).map(image=>image.page).join(', ')||'none'}, other pages use extracted text. Extraction and AI interpretation may be imperfect; no circuit was electrically verified.`);
   return analysis;
 }

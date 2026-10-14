@@ -23,11 +23,11 @@ Find real files in **Assignments**, above the sample analysis flow. **Upload ass
 
 ## Phase 4 candidate
 
-- Gemini `gemini-3.8-flash` is tried first on every request. `gemini-3.6-flash` is the first fallback; Groq `qwen/qwen3.8-27b` is the second fallback for chat and PNG/JPG, not raw PDF.
+- Gemini `gemini-3.6-flash` is the only active provider for new chat, image and native PDF requests. Gemini 3.8 and Groq integrations remain in source, with automatic fallbacks disabled. Existing saved tutorials remain available.
 - Ask saves private conversations. Assignments provides explicit Analyze controls and cached analyses. Guide restores owned step position/completion; step questions use owned assignment context. Guest samples remain available.
-- Keys exist only in Supabase secrets. Provider accounts were confirmed free by the owner; OHMI does not enable billing. Free-tier Google inputs may be used to improve Google products.
+- Provider keys remain server-side in Supabase secrets and ignored local environment files used for diagnostics; none are bundled in the extension. Provider accounts were confirmed free by the owner; OHMI does not enable billing. Free-tier Google inputs may be used to improve Google products.
 - The Edge Function requires a verified account. Server protections: six requests/user/minute, one active/user, bounded input/output and retries. No internal daily project token or request cap; provider free-tier quotas apply. Reservations estimate the actual request, while successful token usage remains separately recorded.
-- Connection failures and transient HTTP errors use bounded fallback attempts; unsafe/invalid responses are rejected. Failed-attempt estimates remain separate from provider-reported successful usage and do not impose a daily cap. Availability and AI accuracy are not guaranteed.
+- Provider failures return without automatic retries or fallback calls; unsafe/invalid responses are rejected. Failed-attempt estimates remain separate from provider-reported successful usage and do not impose a daily cap. Availability and AI accuracy are not guaranteed.
 
 ## Preserved Phase 1/2 behavior
 

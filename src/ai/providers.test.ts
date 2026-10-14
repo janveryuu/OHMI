@@ -3,6 +3,23 @@ import { generateWithFallback, generateGroq, estimateRequestTokens } from '../..
 const input = {contents:[{role:'user' as const,parts:[{text:'Why use a resistor?'}]}],language:'english',analysis:false};
 const keys = {gemini:'test-google',groq:'test-groq',geminiFree:true,groqFree:true};
 const answer = {candidates:[{finishReason:'STOP',content:{parts:[{text:'It limits current.'}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}};
+it('routes active text, image and native PDF requests exclusively to Gemini 3.6',async()=>{
+  for(const parts of [input.contents[0]!.parts,[{inlineData:{mimeType:'image/png',data:'iVBORw=='}}],[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]]){
+    const calls:string[]=[];
+    const result=await generateWithFallback({...keys,groqFree:false},{...input,contents:[{role:'user',parts}],analysis:parts!==input.contents[0]!.parts},async url=>{calls.push(String(url));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:answer);},{primaryOnly:true});
+    expect(result.model).toBe('gemini-3.6-flash');expect(result.accountedTokens).toBe(20);
+    expect(calls).toHaveLength(2);expect(calls.every(url=>url.includes('gemini-3.6-flash'))).toBe(true);
+  }
+});
+it.each([400,403,404,429,500,502,503])('never retries or falls back after active Gemini HTTP %s',async status=>{
+  const calls:string[]=[];const quota:string[]=[];
+  await expect(generateWithFallback(keys,input,async url=>{calls.push(String(url));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:{},{status:String(url).endsWith('countTokens')?200:status});},{primaryOnly:true,onQuota:async model=>{quota.push(model);}})).rejects.toThrow();
+  expect(calls).toHaveLength(2);expect(calls.every(url=>url.includes('gemini-3.6-flash'))).toBe(true);
+  expect(quota).toEqual(status===429?['gemini-3.6-flash']:[]);
+});
+it('honors the active Gemini cooldown without calling preserved providers',async()=>{
+  await expect(generateWithFallback(keys,input,async()=>{throw new Error('Must not call');},{primaryOnly:true,backoffs:{'gemini-3.6-flash':new Date(Date.now()+60000).toISOString()}})).rejects.toThrow(/quota.*Reset/);
+});
 it('prefers Gemini 3.8 on every new request and does not call a fallback on success',async()=>{
   const calls:string[]=[];
   const result=await generateWithFallback(keys,input,async url=>{calls.push(String(url));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:answer);});

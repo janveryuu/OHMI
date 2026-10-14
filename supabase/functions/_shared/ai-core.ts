@@ -1,5 +1,5 @@
 import {parsePdfContext} from './ai-pdf.ts';
-export const MODEL = 'gemini-3.8-flash';
+export const MODEL = 'gemini-3.6-flash';
 export type Analysis = { title: string; status: 'ready' | 'needs_clarification'; summary: string; objectives: string[]; components: { name: string; quantity: string; details: string }[]; expectedResults: string[]; assumptions: string[]; uncertainties: string[]; steps: { title: string; instruction: string; why: string; check: string; code: string }[] };
 export type AiRequest = { kind: 'chat' | 'analyze'; accountId: string; requestId: string; conversationId?: string; assignmentId?: string; message?: string; stepIndex?: number; pdfContext?:import('./ai-pdf.ts').PdfContext };
 export type Content = { role: 'user' | 'model'; parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] };

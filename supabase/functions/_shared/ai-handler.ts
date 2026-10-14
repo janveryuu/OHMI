@@ -36,7 +36,7 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
     let input: AiRequest;
     try { input = parseAiRequest(await body(request)); if (input.accountId !== scope.userId) throw new Error('Account changed. Refresh before continuing.'); }
     catch (error) { return json({ ok: false, error: error instanceof Error && !(error instanceof SyntaxError) ? error.message : 'Invalid AI request.' }, 400); }
-    if (!scope.key&&!scope.groqKey) return json({ ok: false, error: 'AI setup is pending. Ask the owner to configure Gemini.' }, 503);
+    if (!scope.key) return json({ ok: false, error: 'AI setup is pending. Ask the owner to configure Gemini.' }, 503);
 
     // Return headers promptly; whitespace keeps a valid JSON body while the model works.
     const stream = new ReadableStream<Uint8Array>({
@@ -84,7 +84,7 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
             for (const message of history.reverse()) contents.push({ role: message.role === 'assistant' ? 'model' : 'user', parts: [{ text: message.content }] });
             contents.push({ role: 'user', parts: [{ text: input.message! }] });
           }
-          if (!(pdfRoute?scope.groqFree:scope.geminiFree)) throw new Error('AI is paused until the owner confirms free-tier access. No paid billing is enabled by OHMI.');
+          if (!scope.geminiFree) throw new Error('AI is paused until the owner confirms free-tier access. No paid billing is enabled by OHMI.');
           const reservation = await scope.admin.rpc('ohmi_reserve_ai', {...reserveArgs,p_estimated_tokens:estimateRequestTokens(input.pdfContext?pdfContents(input.pdfContext):contents,input.kind==='analyze',input.pdfContext?undefined:assignment)});
           if (reservation.error) {
             const message = String(reservation.error.message ?? '');
@@ -102,7 +102,8 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
               if(!input.pdfContext)throw new Error('PDF analysis requires local preparation. Reload the updated OHMI extension.');
               const digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(byte=>byte.toString(16).padStart(2,'0')).join('');
               if(digest!==input.pdfContext.sha256)throw new Error('PDF source changed. Prepare the original assignment again.');
-              contents.push(...pdfContents(input.pdfContext));
+              let binary = ''; for (let offset=0; offset<bytes.length; offset+=8192) binary += String.fromCharCode(...bytes.subarray(offset, offset+8192));
+              contents.push({role:'user',parts:[{text:'Analyze the original PDF assignment. Cite PDF page N in every component detail and teaching step. Read all pages; preserve stated counts, values and pin labels.'},{inlineData:{mimeType:'application/pdf',data:btoa(binary)}}]});
             }else{
               if(input.pdfContext)throw new Error('PDF context cannot be attached to an image assignment.');
               let binary = ''; for (let offset=0; offset<bytes.length; offset+=8192) binary += String.fromCharCode(...bytes.subarray(offset, offset+8192));
@@ -111,7 +112,7 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
           }
           const rows=db(await scope.admin.from('ohmi_ai_provider_backoffs').select('model,blocked_until').gt('blocked_until',new Date().toISOString()).abortSignal(AbortSignal.timeout(5000)), 'Provider availability could not be checked. Retry.');
           const backoffs=Object.fromEntries(rows.map((row:{model:string;blocked_until:string})=>[row.model,row.blocked_until]));
-          const generated = await generateWithFallback({gemini:scope.key,groq:scope.groqKey,geminiFree:scope.geminiFree===true,groqFree:scope.groqFree===true}, { contents, language, analysis: input.kind === 'analyze',pdf:pdfRoute },fetch,{backoffs,groqOnly:pdfRoute,onQuota:async(model,seconds)=>{
+          const generated = await generateWithFallback({gemini:scope.key,groq:scope.groqKey,geminiFree:scope.geminiFree===true,groqFree:scope.groqFree===true}, { contents, language, analysis: input.kind === 'analyze',pdf:pdfRoute },fetch,{backoffs,primaryOnly:true,onQuota:async(model,seconds)=>{
             const saved=await scope.admin.rpc('ohmi_defer_ai_provider',{p_model:model,p_retry_after:seconds}).abortSignal(AbortSignal.timeout(5000));
             if(saved.error)throw new Error('Provider quota state could not be saved.');
           }});
@@ -121,7 +122,7 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
           const parsed=input.kind==='analyze'?JSON.parse(generated.text):undefined;
           const components=input.pdfContext?pdfSourceComponents(input.pdfContext):undefined;
           if(components&&parsed&&typeof parsed==='object'&&!Array.isArray(parsed))parsed.components=components;
-          const prepared=input.pdfContext?validatePdfReferences(parseAnalysis(parsed),input.pdfContext):parsed;
+          const prepared=input.pdfContext?validatePdfReferences(parseAnalysis(parsed),input.pdfContext,true):parsed;
           const output = input.kind === 'chat' ? { message: input.message, answer: generated.text } : resolveAnalysisCurrents(prepared);
           const saved = db(await scope.admin.rpc('ohmi_complete_ai', { p_request_id: input.requestId, p_output: output, p_input_tokens: generated.inputTokens, p_output_tokens: generated.outputTokens, p_model:generated.model, p_accounted_tokens:generated.accountedTokens }), 'AI answered but could not save. Retry the same request to check history.');
           write(JSON.stringify({ ok: true, data: await result(scope, input, saved.id), cached: false }));

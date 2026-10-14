@@ -2,6 +2,30 @@
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
+## Gemini 3.6-only routing — 15 October 2026 (Asia/Manila)
+
+**Current routing is deployed; Phase 4 remains incomplete. No generated result passed acceptance.** This section supersedes the older provider-routing descriptions below.
+
+- Authenticated model lookup returned HTTP 200 for `models/gemini-3.6-flash`, with `generateContent` and `countTokens` support. Hosted secret metadata matched the digest of the existing local Gemini key. No new key, secret update, billing change or database migration was needed.
+- `MODEL` is now `gemini-3.6-flash`. The authenticated handler explicitly selects primary-only routing for chat, image, PDF and PDF follow-ups. Gemini 3.8/Groq integrations and their secrets are preserved but cannot receive automatic production fallback calls. Existing saved tutorials/cache remain accessible.
+- Native PDFs are sent as `inlineData` with `mimeType: application/pdf` after ownership, metadata, signature and SHA-256 checks. Existing local PDF preparation and source/reference/quantity validation remain. Provenance correctly describes native PDF input. Existing Gemini OpenAPI structured-output fields are unchanged; this run does not establish successful live schema generation. Reference: [Google generateContent API](https://ai.google.dev/api/generate-content).
+- One Edge Function deployment. No automatic HTTP 503/429 retry. Provider quota persistence, bounded requests, verified accounts, RLS, private storage and usage history remain.
+- Initial hosted preflight stopped at the historical model cooldown without calling Gemini. The exact 3.6 cooldown row had been seeded in the previous-key session; the key was updated afterward. Removed only that exact stale row, leaving other providers' cooldowns and all usage records intact. No actual Google quota was reset or changed.
+
+| Real hosted test | Actual result |
+| --- | --- |
+| Electronics, series-current calculation, complete D9 Arduino sketch and tutoring | Gemini generateContent HTTP 503; no answer generated. |
+| JPG circuit diagram rendered from page 2 of the existing LED Blink assignment | Gemini generateContent HTTP 503; no component/connection analysis generated. |
+| Original two-page Arduino LED Blink PDF, 50,618 bytes | Gemini generateContent HTTP 503; no tutorial generated. |
+
+Each test sent one initial generation request through the authenticated deployed `ohmi-ai` backend. There were no generation retries or calls to Gemini 3.8/Groq. All three returned the exact bounded application error: `Gemini generateContent is unavailable (HTTP 503). Retry later.` Hosted transport is a streamed JSON response; HTTP 503 refers to the Gemini failure reported within it. The PDF context matched the original file's SHA-256. The source is explicitly a synthetic educational assignment, not a teacher-issued assignment or electrically tested hardware.
+
+Verification: **92 unit tests passed** in 11 files; TypeScript and production extension build passed. New tests cover primary-only text/image/PDF routing, disabled retries/fallbacks on HTTP 400/403/404/429/500/502/503, cooldowns, native media preservation and retained accounting after rejected output. A hosted request without JWT returned HTTP 401. Credential scan found zero server-secret matches across 130 tracked files and 198 build files; the new live harness contains no credentials. The guarded cleanup removed only recorded disposable test accounts/files; usage history was preserved.
+
+No AI output was available to verify quantities, wiring, complete code or calculations. Saved Gemini tutorial progress, browser refresh and follow-up checks were deliberately not run because all three generation gates failed. No main merge, Phase 5 or phase-completion push. Resume the focused harness when Gemini is available; do not count historical Groq/mock fixtures as a Gemini pass.
+
+Focused reproduction uses `OHMI_GEMINI_36_TEST=1`, `OHMI_PDF_ASSIGNMENT_PATH` for the existing LED PDF, and optional `OHMI_GEMINI_IMAGE_PATH` for the rendered diagram, then `node tests/backend-live.mjs`. Its ignored local PDF context must match the source hash; it refuses the progress gate unless all three real generation/technical checks pass. Results stay in ignored `.local-tests/gemini-36/` and are not student data committed to Git.
+
 ## New Gemini key smoke test — 15 October 2026 (Asia/Manila)
 
 **This session stopped at the requested basic-generation gate.**

@@ -1,4 +1,4 @@
-import { ANALYSIS_INSTRUCTION, ANALYSIS_SCHEMA, generate, providerDiagnostic, ProviderError, tutorPrompt, type Content } from './ai-core.ts';
+import { MODEL, ANALYSIS_INSTRUCTION, ANALYSIS_SCHEMA, generate, providerDiagnostic, ProviderError, tutorPrompt, type Content } from './ai-core.ts';
 
 export type ProviderKeys = { gemini: string; groq?: string; geminiFree: boolean; groqFree: boolean };
 type Input = { contents: Content[]; language: string; analysis: boolean; pdf?:boolean };
@@ -47,8 +47,8 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
   return {text:choice.message.content.trim(),inputTokens,outputTokens:total-inputTokens};
 }
 
-export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch, options: {backoffs?:Record<string,string>;groqOnly?:boolean;onQuota?:(model:string,seconds:number)=>Promise<void>} = {}) {
-  if (!options.groqOnly&&!keys.geminiFree) throw new Error('Confirm the Gemini project uses the free tier before enabling OHMI AI.');
+export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch, options: {backoffs?:Record<string,string>;groqOnly?:boolean;primaryOnly?:boolean;onQuota?:(model:string,seconds:number)=>Promise<void>} = {}) {
+  if ((options.primaryOnly||!options.groqOnly)&&!keys.geminiFree) throw new Error('Confirm the Gemini project uses the free tier before enabling OHMI AI.');
   const signal = AbortSignal.timeout(input.analysis?90000:70000); const outputAllowance = input.analysis ? 8192 : 2048;
   let uncertainTokens = 0; let lastError: unknown;
   const deferred=(model:string)=>{
@@ -61,18 +61,18 @@ export async function generateWithFallback(keys: ProviderKeys, input: Input, fet
       try{await options.onQuota(model,error.retryAfterSeconds??60);}catch{console.warn(JSON.stringify({model,quotaStateSaveFailed:true}));}
     }
   };
-  for (const model of (options.groqOnly?[]:['gemini-3.8-flash','gemini-3.6-flash']) as ('gemini-3.8-flash'|'gemini-3.6-flash')[]) {
+  for (const model of (options.primaryOnly?[MODEL]:options.groqOnly?[]:['gemini-3.8-flash','gemini-3.6-flash']) as ('gemini-3.8-flash'|'gemini-3.6-flash')[]) {
     if(deferred(model))continue;
     let attempts = 0; let allowance = estimateRequestTokens(input.contents,input.analysis)/4;
     const countedFetch: typeof fetch = (url,options) => { if (String(url).endsWith(':generateContent')) attempts++; return fetcher(url,options); };
     try {
-      const modelSignal = AbortSignal.any([signal,AbortSignal.timeout(model==='gemini-3.8-flash'?(input.analysis?40000:30000):(input.analysis?30000:20000))]);
-      const generated = await generate(keys.gemini,input,countedFetch,{model,signal:modelSignal,retry503:model==='gemini-3.8-flash',onCount:count=>{allowance=count+outputAllowance;}});
+      const modelSignal = AbortSignal.any([signal,AbortSignal.timeout(options.primaryOnly?45000:model==='gemini-3.8-flash'?(input.analysis?40000:30000):(input.analysis?30000:20000))]);
+      const generated = await generate(keys.gemini,input,countedFetch,{model,signal:modelSignal,retry503:!options.primaryOnly&&model==='gemini-3.8-flash',onCount:count=>{allowance=count+outputAllowance;}});
       return {...generated,model,accountedTokens:uncertainTokens + Math.max(0,attempts-1)*allowance + generated.inputTokens + generated.outputTokens};
-    } catch (error) { await recordQuota(model,error); if (!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
+    } catch (error) { await recordQuota(model,error); if (options.primaryOnly||!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
   }
   const groqCompatible=input.contents.every(content=>content.parts.every(part=>'text' in part||['image/png','image/jpeg'].includes(part.inlineData.mimeType)));
-  if (keys.groq && keys.groqFree && groqCompatible && !signal.aborted && !deferred('qwen/qwen3.8-27b')) {
+  if (!options.primaryOnly && keys.groq && keys.groqFree && groqCompatible && !signal.aborted && !deferred('qwen/qwen3.8-27b')) {
     try {
       const generated = await generateGroq(keys.groq,input,fetcher,signal);
       return {...generated,model:'qwen/qwen3.8-27b',accountedTokens:uncertainTokens+generated.inputTokens+generated.outputTokens};

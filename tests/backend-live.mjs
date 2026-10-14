@@ -1,4 +1,5 @@
 import {testPdfLive} from './pdf-live.mjs';
+import {testGemini36Live} from './gemini-36-live.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, unlink, mkdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -52,13 +53,14 @@ try {
     assert.equal(result.error, null, result.error?.message); assert.equal(result.data.user.id, user.id);
     clients.push(client);
   }
-  if(process.env.OHMI_PDF_LIVE==='1')await testPdfLive(env,clients,fixtures);
+  if(process.env.OHMI_GEMINI_36_TEST==='1')await testGemini36Live(env,clients,fixtures);
+  else if(process.env.OHMI_PDF_LIVE==='1')await testPdfLive(env,clients,fixtures);
   else if(process.env.OHMI_AI_SAVED_TUTOR==='1')await testSavedTutorLive(env,clients,fixtures,query);
   else if(process.env.OHMI_AI_FILE_TYPE)await testAssignmentLive(env,clients,fixtures);
   else if (process.env.OHMI_AI_TEST === '1') await testAiLive(env, clients, fixtures);
   else { await testPrivacy(env.WXT_SUPABASE_URL, env.WXT_SUPABASE_PUBLISHABLE_KEY, clients, fixtures.map(user => user.id)); await testExtensionBackend(fixtures); }
   verified = true;
-  console.log(process.env.OHMI_PDF_LIVE==='1'||process.env.OHMI_AI_SAVED_TUTOR==='1'||process.env.OHMI_AI_FILE_TYPE||process.env.OHMI_AI_TEST==='1'?'PASS selected live AI workflow; individual checks reported above.':'PASS LIVE two-user isolation and owner CRUD: profiles, preferences, assignment rows/files, signed URLs, steps, cross-owner/anonymous read-write-delete denial.');
+  console.log(process.env.OHMI_GEMINI_36_TEST==='1'||process.env.OHMI_PDF_LIVE==='1'||process.env.OHMI_AI_SAVED_TUTOR==='1'||process.env.OHMI_AI_FILE_TYPE||process.env.OHMI_AI_TEST==='1'?'PASS selected live AI workflow; individual checks reported above.':'PASS LIVE two-user isolation and owner CRUD: profiles, preferences, assignment rows/files, signed URLs, steps, cross-owner/anonymous read-write-delete denial.');
 } finally {
   if (verified) {
     const removed = await query(`with removed as (delete from auth.users where id in (${ids}) and raw_user_meta_data->>'ohmi_phase3_test'='true' and email like 'ohmi-phase3-%@example.test' returning id) select count(*) as removed from removed;`);
