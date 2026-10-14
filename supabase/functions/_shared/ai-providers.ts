@@ -48,6 +48,7 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
 }
 
 export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch, options: {backoffs?:Record<string,string>;groqOnly?:boolean;primaryOnly?:boolean;onQuota?:(model:string,seconds:number)=>Promise<void>} = {}) {
+  if (options.groqOnly&&(!keys.groq||!keys.groqFree)) throw new Error('Confirm free-tier Groq access and configure its server key before enabling OHMI AI.');
   if ((options.primaryOnly||!options.groqOnly)&&!keys.geminiFree) throw new Error('Confirm the Gemini project uses the free tier before enabling OHMI AI.');
   const signal = AbortSignal.timeout(input.analysis?90000:70000); const outputAllowance = input.analysis ? 8192 : 2048;
   let uncertainTokens = 0; let lastError: unknown;

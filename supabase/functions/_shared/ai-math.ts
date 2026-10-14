@@ -6,7 +6,7 @@ export function resolveAnalysisCurrents(payload:unknown) {
   const walk=(value:unknown,field='analysis'):unknown=>{
     if(typeof value==='string'){
       original.push({text:value,field});
-      const expanded=value.replace(/\{\{led_current_mA:\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\}\}/g,(_marker,supply,drop,resistance)=>{
+      const expanded=value.replace(/\{\{led_current_mA:\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\}\}(?:\s*mA\b)?/g,(_marker,supply,drop,resistance)=>{
         const volts=Number(supply),forward=Number(drop),ohms=Number(resistance);
         if(![volts,forward,ohms].every(Number.isFinite)||volts<0||volts>1000||forward<0||forward>volts||ohms<=0||ohms>1e9)throw new Error('AI current calculation has invalid or missing ratings. Retry with clear values.');
         const current=(volts-forward)/ohms*1000;

@@ -46,6 +46,17 @@ export function validatePdfReferences(analysis:Analysis,context:PdfContext,nativ
   const ohms=[...source.matchAll(/(\d+(?:\.\d+)?)\s*(?:Ω|ohms?\b)/gi)].map(match=>Number(match[1]));
   if(/arduino/i.test(source)&&/(?:write|provide)[^\n]{0,60}(?:sketch|program)/i.test(source)&&analysis.status==='ready'&&!analysis.steps.some(step=>/void\s+setup\s*\(/.test(step.code)&&/void\s+loop\s*\(/.test(step.code)))throw new Error('AI supplied incomplete Arduino code. A complete setup() and loop() sketch is required.');
   const pins=new Set([...source.matchAll(/\bD\d+\b/g)].map(match=>match[0]));
+  const on=source.match(/(\d+)\s*ms\s+HIGH/i),off=source.match(/(\d+)\s*ms\s+LOW/i);
+  if(analysis.status==='ready'&&/arduino/i.test(source)&&/blink/i.test(source)&&pins.size===1&&on&&off){
+    const pin=Number([...pins][0]!.slice(1));
+    const valid=analysis.steps.some(step=>{
+      let code=step.code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,'');
+      for(const match of code.matchAll(/\b(?:const\s+)?(?:int|byte|uint8_t|unsigned\s+long)\s+(\w+)\s*=\s*(\d+)\s*;/g))code=code.replace(new RegExp(`\\b${match[1]}\\b`,'g'),match[2]!);
+      // shortcut: validate the source's simple delay-based blink; use a compiler for more complex sketches.
+      return /void\s+setup\s*\(/.test(code)&&/void\s+loop\s*\(/.test(code)&&new RegExp(`pinMode\\s*\\(\\s*${pin}\\s*,\\s*OUTPUT\\s*\\)`).test(code)&&new RegExp(`digitalWrite\\s*\\(\\s*${pin}\\s*,\\s*HIGH\\s*\\)\\s*;\\s*delay\\s*\\(\\s*${on[1]}\\s*\\)\\s*;\\s*digitalWrite\\s*\\(\\s*${pin}\\s*,\\s*LOW\\s*\\)\\s*;\\s*delay\\s*\\(\\s*${off[1]}\\s*\\)`).test(code)&&[...code.matchAll(/(?:pinMode|digitalWrite)\s*\(\s*(\d+)\s*,/g)].every(call=>Number(call[1])===pin);
+    });
+    if(!valid)throw new Error('AI blink code does not match the source output pin and HIGH/LOW timing. No tutorial was saved.');
+  }
   for(const step of analysis.steps){
     for(const pin of step.instruction.matchAll(/\bD\d+\b/g))if(pins.size&&!pins.has(pin[0]))throw new Error('AI introduced a pin or node label absent from the extracted PDF. Clarify the diagram before building.');
     for(const value of step.instruction.matchAll(/(\d+(?:\.\d+)?)[-\s]*(?:Ω|ohms?\b)/gi))if(ohms.length&&!ohms.includes(Number(value[1])))throw new Error('AI changed a construction resistor value. Use the original PDF values.');

@@ -2,6 +2,35 @@
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
+## Groq restoration and real PDF gate — 15 October 2026 (Asia/Manila)
+
+**Current provider: Groq `qwen/qwen3.8-27b` only. Phase 4 remains incomplete.** This section supersedes previous current-routing descriptions below.
+
+- Before editing, saved the clean source checkpoint `6725afe` as local branch `codex/phase-4-before-groq-restore`; development stayed on `codex/phase-4`. Existing generated Graphify output was left untouched and untracked.
+- Restored Groq-only production routing for chat, circuit images, Arduino tutoring, PDF tutorials and assignment follow-ups. Both Gemini integrations and secrets are preserved but receive no automatic production requests. Groq requires its existing server key and confirmed free-tier flag. No keys, billing settings, quotas, RLS policies or migrations changed.
+- Kept the existing private PDF/offscreen extraction system, owned original-file read, MIME/signature/size/hash validation, component-table counts, relevant rendered diagram selection, source citations and calculation operand checks. Groq receives extracted text and JPEG diagrams, never a raw PDF.
+- Strengthened source-based blink validation: a complete sketch must configure the stated pin as OUTPUT and use the stated ordered HIGH/LOW delays. Supports literal pins and simple integer constants; this is bounded source validation, not a full Arduino compiler or hardware test.
+- Fixed the confirmed duplicated-unit output from the earlier PDF response: an explicit calculation marker followed by `mA` now renders exactly one unit. Regression confirms `(5 - 2) / 220 = 13.6364 mA`. The earlier saved diagnostic file is historical evidence, not a successful result from this run.
+
+### Actual focused workflow result
+
+The first browser preflight used installed branded Chrome, which did not load the extension service worker within 30 seconds. It made **zero provider requests**. Switched to existing Playwright Chromium without installing another browser. Two deployments total: initial Groq restoration and the confirmed calculation-unit correction; no deployment/debugging loop followed the real provider failure.
+
+The existing owner-selected Arduino LED Blink PDF uploaded through the actual extension Account UI to private Supabase storage. Metadata was ready with PDF MIME; a second account could not read the assignment. The Analyze control performed local extraction and invoked the authenticated hosted `ohmi-ai` function.
+
+**One live Groq analysis request answered but failed strict tutorial validation.** Recorded model: `qwen/qwen3.8-27b`; input tokens: **3,391**; output tokens: **1,047**; accounted tokens: **4,438**; request status: `failed`. Exact application error: `AI data is missing or too long.` This error covers an invalid string field (wrong type, blank, over limit or disallowed control character); the rejected field is not identified by the current parser. The evidence does not establish which condition occurred. No unsafe/invalid tutorial was saved, no HTTP 400/429/503 was reported in this run, and no provider retry was made.
+
+Per the owner's stop rule, follow-up generation, tutorial accuracy and progress-after-refresh checks were **not run** after this failure. A real saved tutorial is required first. Do not use the earlier Groq PDF diagnostic or mocked guides as proof of completion.
+
+### Essential checks
+
+- **96 unit tests passed** across 11 files. Includes Groq-only chat/image/PDF routing without Gemini fallback or retries, free-tier/key gates, no raw PDF forwarding, accounting after rejected output, source counts, blink pin/output/timing counterexamples and deterministic current/unit rendering.
+- TypeScript check passed. Production extension build passed, approximately 6.06 MB including existing local PDF assets. No visual redesign or new dependency.
+- Provider credential scan found zero matches in 131 tracked source files and 198 build files. A second pattern scan for Gemini/Groq key formats also found zero matches.
+- Actual hosted login/private PDF upload and cross-account read denial passed. Guarded cleanup removed only recorded disposable fixtures/files; real student data and provider usage history remained. Full local Docker/RLS and historical UI suites were not repeated for this narrow change.
+
+Changes remain on `codex/phase-4`. No phase-completion push, main merge or Phase 5. Remaining blocker: diagnose the rejected tutorial field with privacy-safe field diagnostics before another authorized live attempt; then pass source/code/current accuracy, follow-up and refresh persistence. Groq-only chat/image paths have unit coverage and historical live evidence, but were not independently re-tested live in this focused PDF run.
+
 ## Gemini 3.6-only routing — 15 October 2026 (Asia/Manila)
 
 **Current routing is deployed; Phase 4 remains incomplete. No generated result passed acceptance.** This section supersedes the older provider-routing descriptions below.

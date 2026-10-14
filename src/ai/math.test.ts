@@ -6,6 +6,10 @@ it('computes the stated LED series current on the server',()=>{
   expect(result.expectedResults).toEqual(['LED current 13.6364 mA.']);
   expect(result.steps[0]?.why).toBe('Expected LED current is 13.6364 mA.');
 });
+it('renders one mA unit when the provider appends units to a calculation marker',()=>{
+  const result=resolveAnalysisCurrents({...fixture,expectedResults:['LED current {{led_current_mA:5,2,220}} mA.']});
+  expect(result.expectedResults).toEqual(['LED current 13.6364 mA.']);
+});
 it('rejects the observed inconsistent 16.8mA current before publishing a guide',()=>{
   expect(()=>resolveAnalysisCurrents({...fixture,expectedResults:['LED operating current is approximately 16.8 mA.']})).toThrow(/current.*verified|current.*inconsistent/i);
 });

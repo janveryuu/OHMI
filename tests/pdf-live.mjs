@@ -35,9 +35,9 @@ export async function testPdfLive(env,clients,fixtures){
     const expected=[[/arduino|uno/i,'1'],[/\bled\b/i,'1'],[/resistor/i,'1'],[/breadboard/i,'1'],[/jumper|wire/i,'2']];
     for(const [name,quantity] of expected){const component=analysis.payload.components.find(component=>name.test(component.name));assert.ok(component,`Missing ${name}`);assert.equal(component.quantity,quantity,`Wrong ${name} count`);assert.match(component.details,/page\s+[12]/i);}
     assert.match(JSON.stringify(analysis.payload),/13[.,]6\d*\s*mA|0[.,]0136\d*\s*A/i);
-    assert.doesNotMatch(JSON.stringify(analysis.payload),/(?<![\d.])1\s*Hz|\b9\s*mA|\b16[.,]8\s*mA|external battery is required|600.pin/i);
+    assert.doesNotMatch(JSON.stringify(analysis.payload),/(?<![\d.])1\s*Hz|\b9\s*mA|\b16[.,]8\s*mA|\bmA\s+mA\b|external battery is required|600.pin/i);
     assert.ok(analysis.payload.steps.length>=3);assert.ok(analysis.payload.steps.every(step=>step.instruction&&step.why&&step.check));
-    const code=analysis.payload.steps.map(step=>step.code).join('\n');assert.match(code,/setup\s*\(/);assert.match(code,/loop\s*\(/);assert.match(code,/pinMode\s*\(\s*9\s*,\s*OUTPUT/);assert.match(code,/delay\s*\(\s*1000\s*\)/);
+    const code=analysis.payload.steps.map(step=>step.code).join('\n');assert.match(code,/void\s+setup\s*\(/);assert.match(code,/void\s+loop\s*\(/);assert.match(code,/pinMode\s*\([^,]+,\s*OUTPUT/);assert.match(code,/digitalWrite\s*\([^,]+,\s*HIGH/);assert.match(code,/digitalWrite\s*\([^,]+,\s*LOW/);assert.match(code,/delay\s*\(\s*1000\s*\)/);
     await guide.getByRole('button',{name:'Complete AI step',exact:true}).click();await guide.getByRole('button',{name:'Undo AI step',exact:true}).waitFor();
     const editor=await context.newPage();await editor.goto('https://www.tinkercad.com/things/pdf-lab-test/editel');await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).click();await editor.getByRole('button',{name:'Guide section',exact:true}).click();
     await editor.getByLabel('Saved AI tutorial',{exact:true}).selectOption(analysis.id);const tutor=editor.getByRole('region',{name:'AI assignment tutor',exact:true});await tutor.getByRole('button',{name:'Undo AI step',exact:true}).waitFor();
@@ -50,7 +50,9 @@ export async function testPdfLive(env,clients,fixtures){
     console.log('Respecting Groq free TPM: waiting one minute before the follow-up.');await new Promise(resolve=>setTimeout(resolve,60000));
     await tutor.getByRole('button',{name:'Ask about this step',exact:true}).click();
     await editor.getByRole('button',{name:'Send to OHMI',exact:true}).click();
-    const chat=editor.getByRole('log',{name:'AI conversation',exact:true});await chat.getByText(/13[.,]6|resistor|LED/i).waitFor({timeout:120000});await editor.getByText('OHMI is working…',{exact:true}).waitFor({state:'hidden',timeout:120000});
+    const chat=editor.getByRole('log',{name:'AI conversation',exact:true});
+    await Promise.race([chat.getByText(/13[.,]6|resistor|LED/i).waitFor({timeout:120000}),editor.getByRole('button',{name:'Retry AI request',exact:true}).waitFor({timeout:120000}).then(async()=>{throw new Error('Live follow-up failed; no retry attempted. '+await editor.getByRole('alert').innerText());})]);
+    await editor.getByText('OHMI is working…',{exact:true}).waitFor({state:'hidden',timeout:120000});
     const conversations=check(await a.from('ohmi_conversations').select('id').eq('analysis_id',analysis.id));assert.equal(conversations.length,1);
     const messages=check(await a.from('ohmi_messages').select('*').eq('conversation_id',conversations[0].id));assert.equal(messages.length,2);
     const answer=messages.find(message=>message.role==='assistant');assert.match(answer.content,/LED|resistor|polarity|anode|cathode/i);

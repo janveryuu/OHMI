@@ -3,6 +3,19 @@ import { generateWithFallback, generateGroq, estimateRequestTokens } from '../..
 const input = {contents:[{role:'user' as const,parts:[{text:'Why use a resistor?'}]}],language:'english',analysis:false};
 const keys = {gemini:'test-google',groq:'test-groq',geminiFree:true,groqFree:true};
 const answer = {candidates:[{finishReason:'STOP',content:{parts:[{text:'It limits current.'}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}};
+it('uses Groq only for chat and images, without a Gemini request on success or failure',async()=>{
+  for(const contents of [input.contents,[{role:'user' as const,parts:[{inlineData:{mimeType:'image/png',data:'iVBORw=='}}]}]]){
+    for(const status of [200,400,429,503]){
+      const calls:string[]=[];const fetcher:typeof fetch=async url=>{calls.push(String(url));return Response.json({choices:[{finish_reason:'stop',message:{content:'It limits current.'}}],usage:{prompt_tokens:10,total_tokens:20}},{status});};
+      const request=generateWithFallback({...keys,geminiFree:false},{...input,contents},fetcher,{groqOnly:true});
+      if(status===200)expect((await request).model).toBe('qwen/qwen3.8-27b');else await expect(request).rejects.toThrow();
+      expect(calls).toEqual(['https://api.groq.com/openai/v1/chat/completions']);
+    }
+  }
+});
+it('blocks Groq-only routing without a key or confirmed free tier',async()=>{
+  for(const config of [{...keys,groqFree:false},{...keys,groq:undefined}])await expect(generateWithFallback(config,input,async()=>{throw new Error('Must not call');},{groqOnly:true})).rejects.toThrow(/free-tier Groq/);
+});
 it('routes active text, image and native PDF requests exclusively to Gemini 3.6',async()=>{
   for(const parts of [input.contents[0]!.parts,[{inlineData:{mimeType:'image/png',data:'iVBORw=='}}],[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]]){
     const calls:string[]=[];

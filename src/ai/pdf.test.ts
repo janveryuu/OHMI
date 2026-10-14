@@ -60,3 +60,10 @@ it('requires a complete sketch when the source explicitly asks students to write
   expect(()=>validatePdfReferences(parseAnalysis(payload),source)).toThrow(/incomplete Arduino/);
   expect(validatePdfReferences(parseAnalysis({...payload,steps:[{...payload.steps[0],code:'void setup() { pinMode(9, OUTPUT); }\nvoid loop() { digitalWrite(9, HIGH); delay(1000); digitalWrite(9, LOW); delay(1000); }'}]}),source).status).toBe('ready');
 });
+it('validates the source blink pin, output mode and ordered HIGH/LOW timings',()=>{
+  const source={...context,pages:[{page:1,text:'Arduino: Write the Arduino sketch to blink D9 with 1000 ms HIGH then 1000 ms LOW.'},context.pages[1]!]};
+  const code='const int ledPin = 9;\nvoid setup() { pinMode(ledPin, OUTPUT); }\nvoid loop() { digitalWrite(ledPin, HIGH); delay(1000); digitalWrite(ledPin, LOW); delay(1000); }';
+  const payload={title:'Blink',status:'ready',summary:'PDF page 1',objectives:[],components:[],expectedResults:[],assumptions:[],uncertainties:[],steps:[{title:'Program',instruction:'Program D9 on PDF page 1',why:'Blink',check:'Observe',code}]};
+  expect(validatePdfReferences(parseAnalysis(payload),source).status).toBe('ready');
+  for(const bad of [code.replace('= 9','= 10'),code.replace('OUTPUT','INPUT'),code.replace('delay(1000)','delay(500)'),code.replace('ledPin, HIGH','ledPin, LOW')])expect(()=>validatePdfReferences(parseAnalysis({...payload,steps:[{...payload.steps[0],code:bad}]}),source)).toThrow(/blink code/);
+});

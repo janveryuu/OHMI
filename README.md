@@ -23,7 +23,7 @@ Find real files in **Assignments**, above the sample analysis flow. **Upload ass
 
 ## Phase 4 candidate
 
-- Gemini `gemini-3.6-flash` is the only active provider for new chat, image and native PDF requests. Gemini 3.8 and Groq integrations remain in source, with automatic fallbacks disabled. Existing saved tutorials remain available.
+- Groq `qwen/qwen3.8-27b` is the only active provider for chat, images, PDF tutorials and follow-up explanations. PDF text and relevant rendered diagrams are prepared locally; raw PDFs are never sent to Groq. Gemini 3.8/3.6 integrations remain in source, with automatic routing disabled. Existing saved tutorials remain available.
 - Ask saves private conversations. Assignments provides explicit Analyze controls and cached analyses. Guide restores owned step position/completion; step questions use owned assignment context. Guest samples remain available.
 - Provider keys remain server-side in Supabase secrets and ignored local environment files used for diagnostics; none are bundled in the extension. Provider accounts were confirmed free by the owner; OHMI does not enable billing. Free-tier Google inputs may be used to improve Google products.
 - The Edge Function requires a verified account. Server protections: six requests/user/minute, one active/user, bounded input/output and retries. No internal daily project token or request cap; provider free-tier quotas apply. Reservations estimate the actual request, while successful token usage remains separately recorded.
