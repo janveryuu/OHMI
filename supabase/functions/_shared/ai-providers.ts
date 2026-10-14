@@ -1,4 +1,4 @@
-import { ANALYSIS_INSTRUCTION, ANALYSIS_SCHEMA, generate, ProviderError, tutorPrompt, type Content } from './ai-core.ts';
+import { ANALYSIS_INSTRUCTION, ANALYSIS_SCHEMA, generate, providerDiagnostic, ProviderError, tutorPrompt, type Content } from './ai-core.ts';
 
 export type ProviderKeys = { gemini: string; groq?: string; geminiFree: boolean; groqFree: boolean };
 type Input = { contents: Content[]; language: string; analysis: boolean };
@@ -21,7 +21,12 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
   let response: Response;
   try { response = await fetcher('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body,signal}); }
   catch { throw new Error('AI connection timed out or failed. Retry; saved work is unchanged.'); }
-  if (!response.ok) throw new ProviderError(response.status,`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
+  if (!response.ok) {
+    let diagnostic: ReturnType<typeof providerDiagnostic> | undefined;
+    try { diagnostic=providerDiagnostic(await response.json()); } catch { /* Keep the HTTP status when the provider did not return JSON. */ }
+    console.warn(JSON.stringify({provider:'groq',model:'qwen/qwen3.8-27b',httpStatus:response.status,...diagnostic,images,maxOutput,format:input.analysis?'json_schema':'text'}));
+    throw new ProviderError(response.status,`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
+  }
   const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');
   const data = JSON.parse(raw); const choice = data.choices?.[0];
   if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string' || !choice.message.content.trim() || choice.message.content.length > (input.analysis ? 100000 : 18000)) throw new Error('AI response was blocked or incomplete. Try a shorter, clearer request.');

@@ -53,3 +53,24 @@ Run `npm test`, `npm run typecheck`, `npm run build`, `node tests/ai-backend.mjs
 Provider-only tests use an ignored temporary environment file and delete it in `finally`; every case reports its own success/error. The script finishing does not mean all models passed. Never commit or print those keys. Hosted secrets are `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_FREE_TIER_CONFIRMED`, and `GROQ_FREE_TIER_CONFIRMED`. The confirmation flags are operator assertions, not automatic billing detection.
 
 This checkpoint belongs on `codex/phase-4`; keep the verified Phase 3 `main` until the remaining live gates pass.
+
+## Continuation from 3a80e04
+
+On 14 October at 13:26 Philippine time, a fresh live read still showed 400,574 budgeted tokens. The daily allowance had **not reset**. No new model generation was attempted, and no limits or billing settings were changed. Next reset: 15 October at 08:00 Philippine time.
+
+Offline checks confirmed readable PDF instructions, valid PNG/JPG decoding, correct MIME signatures, and byte-for-byte base64 round trips using the Edge Function's encoding method. These checks rule out damaged test fixtures or encoding loss; they do not establish the cause of a provider HTTP 400.
+
+Deployed diagnostics now capture only allowlisted provider codes, error categories, known field paths, model/request format and media metadata. Raw messages, generated answers, document bytes, prompts and credentials are excluded. In particular, a Groq `json_validate_failed` response can now be distinguished from a rejected request parameter. Generic Gemini `INVALID_ARGUMENT` remains inconclusive without a more specific field/category.
+
+Targeted provider/parser regression tests: **16 passed**. TypeScript check passed. Existing successful UI/security checks were not repeated because this continuation changes server diagnostics and the live-test runner only.
+
+Run one format at a time after reset, using the guarded fixture harness:
+
+```powershell
+$env:OHMI_AI_FILE_TYPE='pdf' # then png or jpg, in separate runs
+node tests/backend-live.mjs
+```
+
+On the last successful format, set `OHMI_AI_LANGUAGES='1'` to verify Filipino/Taglish explanations of the saved current step without repeating earlier successful formats. English is checked by the assignment's initial language preference and generated teaching guide.
+
+The harness first reads UTC allowance and refuses an analysis that cannot fit, before creating test accounts or invoking AI. A successful format checks declared quantities, structured teaching steps, saved progress, cache reuse, UI and two-user isolation. Live generation, complete tutor accuracy and multilingual explanations remain unverified in this continuation; Phase 4 stays incomplete.

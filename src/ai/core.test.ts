@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { parseAnalysis, parseAiRequest, tutorPrompt, generate } from '../../supabase/functions/_shared/ai-core';
+import { parseAnalysis, parseAiRequest, tutorPrompt, generate, providerDiagnostic } from '../../supabase/functions/_shared/ai-core';
 
 const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const analysis = { title: 'LED exercise', status: 'ready', summary: 'Learn current limiting.', objectives: ['Explain LED polarity'], components: [{ name: 'LED', quantity: '1', details: 'Rating not specified' }], expectedResults: ['Observe LED behavior'], assumptions: [], uncertainties: ['Supply voltage not specified'], steps: [{ title: 'Read ratings', instruction: 'Find the LED data sheet.', why: 'Ratings determine safe current.', check: 'Do you know the rating?', code: '' }] };
 describe('AI trust boundaries', () => {
+  it('keeps provider diagnostics useful without logging private error payloads',()=>{
+    const diagnostic=providerDiagnostic({error:{code:'json_validate_failed',message:'Failed to generate JSON: PRIVATE_STUDENT_PROMPT',failed_generation:'PRIVATE_ANSWER',details:[{fieldViolations:[{field:'generationConfig.responseSchema.properties.title',description:'PRIVATE_KEY'},{field:'PRIVATE_FILENAME'}]}]}});
+    expect(diagnostic).toEqual({code:'json_validate_failed',reason:'invalid_generated_json',fields:['generationConfig.responseSchema']});
+    expect(JSON.stringify(diagnostic)).not.toMatch(/PRIVATE/);
+    expect(providerDiagnostic({error:{code:'PRIVATE_KEY',message:'PRIVATE_KEY'}}).code).toBeUndefined();
+    expect(providerDiagnostic({error:{details:[{fieldViolations:[{field:'generationConfig.PRIVATE_KEY'},{field:'contents.PRIVATE_STUDENT_NAME'}]}]}}).fields).toEqual([]);
+  });
   it('accepts bounded analysis and rejects missing reasoning or invalid structure', () => {
     expect(parseAnalysis(analysis)).toEqual(analysis);
     for (const bad of [{ ...analysis, steps: [] }, { ...analysis, steps: [{ ...analysis.steps[0], why: '' }] }, { ...analysis, components: 'invented' }, {...analysis,components:[{...analysis.components[0],quantity:'}, {'}]}, { ...analysis, summary: 'x'.repeat(5001) }]) expect(() => parseAnalysis(bad)).toThrow();

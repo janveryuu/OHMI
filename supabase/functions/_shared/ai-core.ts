@@ -53,6 +53,17 @@ export const ANALYSIS_INSTRUCTION = 'Analyze only the provided assignment. Retur
 export class ProviderError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
+export function providerDiagnostic(value: unknown) {
+  const error = value && typeof value==='object' ? (value as {error?:{status?:unknown;code?:unknown;message?:unknown;details?:unknown}}).error : undefined;
+  const code = error?.status ?? error?.code;
+  const allowed = ['INVALID_ARGUMENT','UNAVAILABLE','RESOURCE_EXHAUSTED','PERMISSION_DENIED','UNAUTHENTICATED','NOT_FOUND','INTERNAL','json_validate_failed','invalid_request_error','rate_limit_exceeded','model_not_found','context_length_exceeded'];
+  const message = typeof error?.message==='string' ? error.message : '';
+  const reason = /failed to generate.*json|json.*validat/i.test(message) ? 'invalid_generated_json' : /schema/i.test(message) ? 'schema_rejected' : /mime|image.*format|pdf.*format/i.test(message) ? 'media_format_rejected' : /unknown.*field|unknown.*name|unsupported.*parameter/i.test(message) ? 'unsupported_parameter' : undefined;
+  // Never log messages, failed_generation, prompts, credentials or document bytes.
+  const fields: string[]=[];
+  if(Array.isArray(error?.details))for(const detail of error.details){if(Array.isArray(detail?.fieldViolations))for(const violation of detail.fieldViolations){if(typeof violation.field==='string'){const field=violation.field.split('.').slice(0,2).join('.');if(/^(generationConfig|generation_config)\.(responseSchema|response_schema|responseFormat|response_format|responseMimeType|response_mime_type|responseJsonSchema|response_json_schema|thinkingConfig|thinking_config|maxOutputTokens|max_output_tokens)$|^(contents|messages)(\[\d+\])?(\.(parts|role|content)(\[\d+\])?)?$|^(response_format|max_completion_tokens|model)$/.test(field))fields.push(field);}}}
+  return {code:typeof code==='string'&&allowed.includes(code)?code:undefined,reason,fields:fields.slice(0,10)};
+}
 export async function generate(key: string, input: { contents: Content[]; language: string; analysis: boolean }, fetcher: typeof fetch = fetch, options: { model?: 'gemini-3.8-flash' | 'gemini-3.6-flash'; signal?: AbortSignal; retry503?: boolean } = {}) {
   const model = options.model ?? MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
@@ -71,9 +82,9 @@ export async function generate(key: string, input: { contents: Content[]; langua
     }
     catch { throw new ProviderError(signal.aborted?408:502,'AI connection timed out or failed. Retry; saved work is unchanged.'); }
     if (!response.ok) {
-      let providerStatus: unknown;
-      try { const failure = await response.json(); providerStatus = failure.error?.status; } catch { /* HTTP status remains sufficient for retry decisions. */ }
-      console.warn(JSON.stringify({provider:'gemini',model,method,httpStatus:response.status,code:typeof providerStatus==='string'&&/^[A-Z_]{1,64}$/.test(providerStatus)?providerStatus:undefined}));
+      let diagnostic: ReturnType<typeof providerDiagnostic> | undefined;
+      try { diagnostic=providerDiagnostic(await response.json()); } catch { /* HTTP status remains sufficient for retry decisions. */ }
+      console.warn(JSON.stringify({provider:'gemini',model,method,httpStatus:response.status,...diagnostic,media:input.contents.flatMap(content=>content.parts.flatMap(part=>'inlineData' in part?[part.inlineData.mimeType]:[])),format:input.analysis?(model==='gemini-3.6-flash'?'responseSchema':'responseFormat'):'text'}));
       throw new ProviderError(response.status, response.status === 429 ? 'Gemini is busy or provider quota is exhausted. Retry later.' : response.status === 400 || response.status === 403 ? `Gemini could not accept ${method} (HTTP ${response.status}). Ask the owner to check API access and document format.` : `Gemini ${method} is unavailable (HTTP ${response.status}). Retry later.`);
     }
     const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');

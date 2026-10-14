@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { testPrivacy } from './privacy.mjs';
 import { testExtensionBackend } from './extension-backend.mjs';
 import { testAiLive } from './ai-live.mjs';
+import { testAssignmentLive } from './ai-image-live.mjs';
 
 const target = 'vhmdgfydvoljzqztuxmu';
 assert.equal((await readFile('supabase/.temp/project-ref', 'utf8')).trim(), target, 'Refuse any other linked project');
@@ -17,7 +18,6 @@ const workspace = resolve('.superpowers/sdd/2026-10-12-phase-3');
 await mkdir(workspace, { recursive: true });
 const sqlFile = resolve(workspace, 'live-fixture.sql');
 const fixtureFile = resolve(workspace, `live-fixture-${fixtures[0].id}.json`);
-await writeFile(fixtureFile, JSON.stringify(fixtures));
 const query = async sql => {
   await writeFile(sqlFile, sql);
   const output = execFileSync('cmd.exe', ['/d', '/c', 'npx', '--yes', 'supabase@2.120.0', 'db', 'query', '--linked', '--file', sqlFile], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -25,10 +25,17 @@ const query = async sql => {
   if (result.error) throw new Error(result.error.message);
   return result.rows;
 };
+if(process.env.OHMI_AI_TEST==='1'||process.env.OHMI_AI_FILE_TYPE){
+  if(process.env.OHMI_AI_FILE_TYPE)assert.ok(['pdf','png','jpg'].includes(process.env.OHMI_AI_FILE_TYPE));
+  const [allowance]=await query(`select date_trunc('day',now() at time zone 'UTC') at time zone 'UTC' as utc_day_start,coalesce(sum(case when status='completed' then coalesce(accounted_tokens,input_tokens+output_tokens) else reserved_tokens end),0) as budget_tokens from public.ohmi_ai_requests where created_at>=date_trunc('day',now() at time zone 'UTC') at time zone 'UTC';`);
+  console.log(`AI allowance checked: UTC day ${allowance.utc_day_start}, ${allowance.budget_tokens} of 500000 conservatively used.`);
+  assert.ok(Number(allowance.budget_tokens)+160000<=500000,'Analysis allowance has not reset sufficiently. No test accounts or AI requests were created.');
+}
 const rows = fixtures.map(user => `('${user.id}'::uuid,'${user.email}','${user.password}')`).join(',');
 const ids = fixtures.map(user => `'${user.id}'::uuid`).join(',');
 let verified = false;
 try {
+  await writeFile(fixtureFile, JSON.stringify(fixtures));
   const inserted = await query(`with input(id,email,password) as (values ${rows}), created as (
     insert into auth.users (id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current,reauthentication_token,raw_app_meta_data,raw_user_meta_data)
     select id,'00000000-0000-0000-0000-000000000000','authenticated','authenticated',email,extensions.crypt(password,extensions.gen_salt('bf')),now(),now(),now(),'','','','','','',jsonb_build_object('provider','email','providers',jsonb_build_array('email')),jsonb_build_object('ohmi_phase3_test',true) from input returning id,email
@@ -44,10 +51,11 @@ try {
     assert.equal(result.error, null, result.error?.message); assert.equal(result.data.user.id, user.id);
     clients.push(client);
   }
-  if (process.env.OHMI_AI_TEST === '1') await testAiLive(env, clients, fixtures);
+  if(process.env.OHMI_AI_FILE_TYPE)await testAssignmentLive(env,clients,fixtures);
+  else if (process.env.OHMI_AI_TEST === '1') await testAiLive(env, clients, fixtures);
   else { await testPrivacy(env.WXT_SUPABASE_URL, env.WXT_SUPABASE_PUBLISHABLE_KEY, clients, fixtures.map(user => user.id)); await testExtensionBackend(fixtures); }
   verified = true;
-  console.log('PASS LIVE two-user isolation and owner CRUD: profiles, preferences, assignment rows/files, signed URLs, steps, cross-owner/anonymous read-write-delete denial.');
+  console.log(process.env.OHMI_AI_FILE_TYPE||process.env.OHMI_AI_TEST==='1'?'PASS selected live AI workflow; individual checks reported above.':'PASS LIVE two-user isolation and owner CRUD: profiles, preferences, assignment rows/files, signed URLs, steps, cross-owner/anonymous read-write-delete denial.');
 } finally {
   if (verified) {
     const removed = await query(`with removed as (delete from auth.users where id in (${ids}) and raw_user_meta_data->>'ohmi_phase3_test'='true' and email like 'ohmi-phase3-%@example.test' returning id) select count(*) as removed from removed;`);
