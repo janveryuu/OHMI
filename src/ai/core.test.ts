@@ -11,6 +11,10 @@ describe('AI trust boundaries', () => {
     expect(providerDiagnostic({error:{code:'PRIVATE_KEY',message:'PRIVATE_KEY'}}).code).toBeUndefined();
     expect(providerDiagnostic({error:{details:[{fieldViolations:[{field:'generationConfig.PRIVATE_KEY'},{field:'contents.PRIVATE_STUDENT_NAME'}]}]}}).fields).toEqual([]);
   });
+  it('reports only quota windows and bounded RetryInfo delay',()=>{
+    expect(providerDiagnostic({error:{status:'RESOURCE_EXHAUSTED',message:'Quota exhausted for requests per day PROJECT_SECRET',details:[{retryDelay:'45.2s'}]}})).toEqual({code:'RESOURCE_EXHAUSTED',reason:undefined,fields:[],quotaWindows:['day'],retryAfterSeconds:46});
+    expect(providerDiagnostic({error:{status:'RESOURCE_EXHAUSTED',details:[{retryDelay:'PRIVATE_KEY'}]}}).retryAfterSeconds).toBeUndefined();
+  });
   it('accepts bounded analysis and rejects missing reasoning or invalid structure', () => {
     expect(parseAnalysis(analysis)).toEqual(analysis);
     for (const bad of [{ ...analysis, steps: [] }, { ...analysis, steps: [{ ...analysis.steps[0], why: '' }] }, { ...analysis, components: 'invented' }, {...analysis,components:[{...analysis.components[0],quantity:'}, {'}]}, { ...analysis, summary: 'x'.repeat(5001) }]) expect(() => parseAnalysis(bad)).toThrow();
@@ -34,6 +38,26 @@ describe('AI trust boundaries', () => {
 });
 describe('bounded provider requests', () => {
   const input: Parameters<typeof generate>[1] = { contents: [{ role: 'user', parts: [{ text: 'Explain resistance.' }] }], language: 'english', analysis: false };
+  it('uses the REST JSON MIME type for primary structured output and preserves image bytes',async()=>{
+    let body:any;
+    const media={inlineData:{mimeType:'image/png',data:'iVBORw0KGgo='}};
+    await generate('test-key',{...input,analysis:true,contents:[{role:'user',parts:[media]}]},async(url,options)=>{
+      body=JSON.parse(String(options?.body));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:{candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(analysis)}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}});
+    });
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.responseSchema.type).toBe('OBJECT');
+    expect(body.generationConfig.responseFormat).toBeUndefined();
+    expect(body.generationConfig.responseSchema.properties.steps.maxItems).toBeUndefined();
+    expect(body.generationConfig.responseSchema.additionalProperties).toBeUndefined();
+    expect(body.contents[0].parts[0]).toEqual(media);
+  });
+  it('keeps HTTP 400 user errors bounded and never retries invalid requests',async()=>{
+    let calls=0;
+    await expect(generate('test-key',{...input,analysis:true},async()=>{
+      calls++;return calls===1?Response.json({totalTokens:10}):Response.json({error:{status:'INVALID_ARGUMENT',message:'Schema rejected PRIVATE_PROMPT',details:[{fieldViolations:[{field:'generationConfig.responseFormat.text.mimeType',description:'PRIVATE_KEY'}]}]}},{status:400});
+    })).rejects.toThrow(/gemini-3.8-flash.*HTTP 400/);
+    expect(calls).toBe(2);
+  });
   it('uses the compatible structured-output fields for the 3.6 fallback',async()=>{
     let body:any;
     await generate('test-key',{...input,analysis:true},async(url,options)=>{body=JSON.parse(String(options?.body));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:{candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(analysis)}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}});},{model:'gemini-3.6-flash'});

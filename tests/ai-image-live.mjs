@@ -16,12 +16,15 @@ try{
  const payload=result.data.payload;
  const components=new Set();for(const name of [/arduino|uno/i,/breadboard/i,/^.*\bled\b/i,/resistor/i]){const component=payload.components.find(component=>name.test(component.name));assert.ok(component,`Missing component ${name}`);assert.match(component.quantity,/^(1|one)(\b|$)/i,'Preserve the assignment quantity');components.add(component);}assert.equal(components.size,4,'List the four separate assigned components');
  assert.ok(payload.steps.length>=1&&payload.steps.length<=24);assert.ok(payload.steps.every(step=>step.instruction&&step.why&&step.check));
- assert.doesNotMatch(JSON.stringify(payload),/7\s*V|600.pin/i,'Do not invent fixture voltages or board sizes');
+ assert.match(JSON.stringify(payload),/13[.,]6\d{0,4}\s*mA|0[.,]0136\d{0,4}\s*A/i,'Compute (5V-2V)/220ohm = 13.6mA');
+ assert.doesNotMatch(JSON.stringify(payload),/7\s*V|600.pin|\b9\s*mA\b/i,'Do not invent fixture voltages or board sizes');
  await writeFile(`.superpowers/sdd/2026-10-14-phase-4/${ext}-edge-results.json`,JSON.stringify(result.data,null,2));
  const before=check(await a.from('ohmi_ai_requests').select('id')).length;const cached=check(await a.functions.invoke('ohmi-ai',{body:{...input,requestId:crypto.randomUUID()}}));assert.equal(cached.ok,true);assert.equal(cached.cached,true);assert.equal(cached.data.id,result.data.id);assert.equal(check(await a.from('ohmi_ai_requests').select('id')).length,before);
  const step=Math.min(1,payload.steps.length-1);check(await a.rpc('ohmi_save_tutorial_progress',{p_analysis_id:result.data.id,p_current_step:step,p_completed:[0]}));
  const progress=check(await a.from('ohmi_tutorial_progress').select('current_step,completed').eq('analysis_id',result.data.id).single());assert.equal(progress.current_step,step);assert.deepEqual(progress.completed,[0]);assert.equal(check(await b.from('ohmi_analyses').select('id')).length,0);
  const conversation=check(await a.from('ohmi_conversations').insert({user_id:fixtures[0].id}).select().single());
+ if(process.env.OHMI_AI_UI==='1')await testAiExtension(fixtures,{analysisId:result.data.id,conversationId:conversation.id,assignmentName:`led-lab.${ext}`,hasCode:false});
+ console.log(`PASS live ${result.data.model} private ${ext} analysis, quantities/current, free cache, saved tutor/progress and two-user isolation.`);
  if(process.env.OHMI_AI_LANGUAGES==='1'){
    const contextual=check(await a.from('ohmi_conversations').insert({user_id:fixtures[0].id,analysis_id:result.data.id}).select().single());const explanations=[];
    for(const language of ['filipino','taglish']){
@@ -31,7 +34,6 @@ try{
    }
    await writeFile(`.superpowers/sdd/2026-10-14-phase-4/${ext}-languages.json`,JSON.stringify(explanations,null,2));check(await a.from('ohmi_profiles').update({language:'english'}).eq('id',fixtures[0].id));
  }
- await testAiExtension(fixtures,{analysisId:result.data.id,conversationId:conversation.id,assignmentName:`led-lab.${ext}`,hasCode:false});
- console.log(`PASS live ${result.data.model} private ${ext} analysis, quantities, free cache, saved tutor/progress, UI and two-user isolation.`);
+
 }finally{check(await a.storage.from('ohmi-assignments').remove([path]));check(await a.from('ohmi_assignments').delete().eq('id',id));check(await a.from('ohmi_conversations').delete().eq('user_id',fixtures[0].id));}
 }

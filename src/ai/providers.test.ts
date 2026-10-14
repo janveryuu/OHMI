@@ -18,7 +18,7 @@ it('uses Groq only after both Gemini models fail; never forwards raw PDF',async(
   const fetcher:typeof fetch=async url=>{const value=String(url);calls.push(value);return value.includes('groq.com')?Response.json({choices:[{finish_reason:'stop',message:{content:'It limits current.'}}],usage:{prompt_tokens:10,total_tokens:20}}):Response.json(value.endsWith('countTokens')?{totalTokens:10}:{},{status:value.endsWith('countTokens')?200:503});};
   expect((await generateWithFallback(keys,input,fetcher)).model).toBe('qwen/qwen3.8-27b');
   calls.length=0;
-  await expect(generateWithFallback(keys,{...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]}]},fetcher)).rejects.toThrow(/PDF|Gemini/);
+  await expect(generateWithFallback(keys,{...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]}]},fetcher)).rejects.toThrow(/Gemini/);
   expect(calls.some(url=>url.includes('groq.com'))).toBe(false);
 });
 it('blocks unconfirmed plans and authentication errors without switching providers',async()=>{
@@ -61,4 +61,10 @@ it('reports exhausted free quotas when no eligible provider succeeds',async()=>{
   let calls=0;
   await expect(generateWithFallback(keys,input,async()=>{calls++;return Response.json({},{status:429});})).rejects.toThrow('quota is exhausted');
   expect(calls).toBe(3);
+});
+
+it('shows a provider Retry-After without retrying a quota-exhausted Groq request',async()=>{
+  let calls=0;
+  await expect(generateGroq('test',input,async()=>{calls++;return Response.json({error:{code:'rate_limit_exceeded'}},{status:429,headers:{'retry-after':'45'}});})).rejects.toThrow('Try again in 45 seconds');
+  expect(calls).toBe(1);
 });

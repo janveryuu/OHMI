@@ -91,3 +91,49 @@ Verification: **49 unit tests passed**, TypeScript check passed, production Chro
 Live requests ran one format at a time through the authenticated Edge Function: **PDF, PNG and JPG all passed the removed budget gate but failed Gemini generateContent with HTTP 400**. No successful assignment analysis was produced. Quantity accuracy, live saved tutorial/progress, and Filipino/Taglish step explanations remain blocked behind assignment generation; the harness correctly did not claim those checks passed. The dashboard log session requires sign-in, so this run did not obtain a more specific provider field/category. Do not infer the cause of the HTTP 400 from the generic error. Failed fixture files/accounts were cleaned through the guarded harness; their usage rows were retained.
 
 Phase 4 remains incomplete due to the live assignment provider error. Keep changes on `codex/phase-4`; do not merge into main or begin Phase 5.
+
+
+## Structured-output investigation from a1107ad — 14 October 2026
+
+Phase 4 is still blocked; the following results supersede the older file-analysis status above.
+
+### Evidence and changes
+
+- Read sanitized hosted Edge Function logs through the existing authorized Supabase CLI account's Management API access. No provider keys were exported, returned to clients or printed.
+- Gemini 3.8 returned HTTP 400 `INVALID_ARGUMENT`, category `media_format_rejected`, with field `generation_config.response_format`. The rejected setting concerns structured output; valid input MIME signatures, image/PDF decoding and base64 round trips passed. Lowercase output MIME alone did not resolve this rejection.
+- Gemini 3.6 returned generic HTTP 400 `INVALID_ARGUMENT` with no field details. Its exact original cause cannot be established from that response. Do not describe schema simplification as a confirmed fix for all Gemini errors.
+- Both Gemini models now use the simpler OpenAPI `responseMimeType: application/json` / `responseSchema` form, with uppercase type names. Provider schema conversion strips `additionalProperties` and `maxItems`; OHMI's strict parser still enforces component/list/step/string limits and clarification rules. The shared strict JSON Schema remains unchanged for Groq.
+- Diagnostic logs contain allowlisted codes/categories/field paths plus bounded numeric retry delays and quota-window labels. Product errors remain readable and do not include raw provider responses. No HTTP 400 retry was added.
+- Groq remains eligible for PNG/JPEG and text only. PDF now skips Groq and preserves the actual Gemini failure and retry hint, rather than replacing it with an unsupported-PDF message.
+- Review of the generated guide exposed incorrect arithmetic. Added an explicit current-calculation instruction and a fixture assertion for `(5 V - 2 V) / 220 ohms = approximately 13.6 mA`. This prompt correction has not yet passed a fresh live generation.
+
+### Actual live results
+
+| Check | Result |
+| --- | --- |
+| Small PNG, 69,083 bytes, 1100 x 760 | Groq `qwen/qwen3.8-27b` generated and saved a seven-step English tutorial after Gemini 3.8 quota exhaustion and Gemini 3.6 HTTP 503. Arduino Uno, red LED, 220-ohm resistor and breadboard quantities were each 1; jumper wires were as needed. Code contained setup()/loop(). |
+| PNG cache/progress/isolation | Passed: a cached request created no new usage row, saved progress returned the expected current/completed step, and a second account could not access the analysis. |
+| PNG accuracy review | Failed one current statement: expected results said approximately 9 mA, whereas the declared ratings imply 13.6 mA. Structural generation passing does not establish full tutor accuracy. Prompt/test tightened; correction unverified live. |
+| Filipino current-step explanation | Passed before later quota exhaustion. |
+| Taglish current-step explanation | Blocked: both Gemini models and Groq returned HTTP 429. |
+| JPG, 148,650 bytes, 1100 x 760 | Blocked: all three configured providers returned HTTP 429. No successful JPG result was produced. |
+| PDF, 1,812 bytes, one page | Blocked: both compatible Gemini models returned HTTP 429. Groq cannot accept raw PDF. |
+| Final Gemini structured generation | Not verified: latest calls encountered HTTP 429/503, so they do not prove the final schema format generates successfully. |
+| Real saved tutor UI flow | Not completed in this run. The language failure interrupted the first PNG harness before UI checks; subsequent formats did not generate. Existing mocked UI regressions remain the earlier evidence. |
+
+Gemini's PDF responses at 06:34:48–49 UTC included Retry-After values of 62,711/62,710 seconds: approximately **15 October 2026, 08:00 Philippine time**. Groq's reset was not established; do not assume it resets with Gemini. No further generation was attempted after confirming these limits. No quotas were raised or bypassed, and paid billing remained disabled as previously confirmed by the owner.
+
+Verification: **53 unit tests passed** across eight files, TypeScript passed and the production Chrome extension build passed. Fixture accounts/files were cleaned using the guarded harness; a live query confirmed zero disposable test accounts. Their usage history was retained. UI, mascot, auth, private storage, provider order and configurations were preserved; no database migration was needed.
+
+After provider quota becomes available, run one file at a time in this order:
+
+```powershell
+$env:OHMI_AI_FILE_TYPE='png' # then jpg, then pdf in separate runs
+$env:OHMI_AI_UI='1' # use once for the saved tutor UI checks
+$env:OHMI_AI_LANGUAGES='1' # use once for Filipino/Taglish current-step checks
+node tests/backend-live.mjs
+```
+
+The harness now rejects the known incorrect 9 mA statement and accepts the correct 13.6 mA value at reasonable precision. Clearing local counters or replacing provider keys is not a prerequisite and would not resolve provider restrictions. Keep this checkpoint on `codex/phase-4`; do not merge into main or begin Phase 5.
+
+References: [Google structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output), [Groq model/vision compatibility](https://console.groq.com/docs/model/qwen/qwen3.8-27b), [Groq structured output](https://console.groq.com/docs/structured-outputs), [Groq rate-limit headers](https://console.groq.com/docs/rate-limits), [Supabase log queries](https://supabase.com/docs/guides/observability/advanced-log-filtering).

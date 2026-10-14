@@ -33,8 +33,10 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
   if (!response.ok) {
     let diagnostic: ReturnType<typeof providerDiagnostic> | undefined;
     try { diagnostic=providerDiagnostic(await response.json()); } catch { /* Keep the HTTP status when the provider did not return JSON. */ }
-    console.warn(JSON.stringify({provider:'groq',model:'qwen/qwen3.8-27b',httpStatus:response.status,...diagnostic,images,maxOutput,format:input.analysis?'json_schema':'text'}));
-    throw new ProviderError(response.status,response.status===429?'The eligible free AI providers are busy or their quota is exhausted. Retry later; paid billing is off.':`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
+    const retryAfter=Number(response.headers.get('retry-after'));
+    const retryHint=retryAfter>0&&retryAfter<=172800?` Try again in ${Math.ceil(retryAfter)} seconds.`:'';
+    console.warn(JSON.stringify({retryAfterSeconds:retryAfter>0&&retryAfter<=172800?Math.ceil(retryAfter):undefined,provider:'groq',model:'qwen/qwen3.8-27b',httpStatus:response.status,...diagnostic,images,maxOutput,format:input.analysis?'json_schema':'text'}));
+    throw new ProviderError(response.status,response.status===429?`The eligible free AI providers are busy or their quota is exhausted.${retryHint||' Retry later.'}${diagnostic?.quotaWindows?' '+diagnostic.quotaWindows.join('/')+' quota.':''} Paid billing is off.`:`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
   }
   const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');
   const data = JSON.parse(raw); const choice = data.choices?.[0];
@@ -57,7 +59,8 @@ export async function generateWithFallback(keys: ProviderKeys, input: Input, fet
       return {...generated,model,accountedTokens:uncertainTokens + Math.max(0,attempts-1)*allowance + generated.inputTokens + generated.outputTokens};
     } catch (error) { if (!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
   }
-  if (keys.groq && keys.groqFree && !signal.aborted) {
+  const groqCompatible=input.contents.every(content=>content.parts.every(part=>'text' in part||['image/png','image/jpeg'].includes(part.inlineData.mimeType)));
+  if (keys.groq && keys.groqFree && groqCompatible && !signal.aborted) {
     const generated = await generateGroq(keys.groq,input,fetcher,signal);
     return {...generated,model:'qwen/qwen3.8-27b',accountedTokens:uncertainTokens+generated.inputTokens+generated.outputTokens};
   }
