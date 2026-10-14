@@ -1,7 +1,8 @@
 import { isCircuitEditorUrl } from '../editor-url';
+import { parseAiRequest } from '../../supabase/functions/_shared/ai-core';
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const actions = ['local.read', 'local.position', 'local.preferences', 'account.state', 'account.open', 'auth.signIn', 'auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover', 'auth.password', 'auth.google', 'auth.signOut', 'profile.language', 'profile.name', 'files.prepare', 'files.finish', 'files.open', 'files.delete', 'steps.list', 'steps.add', 'steps.update', 'steps.delete'] as const;
+const actions = ['local.read', 'local.position', 'local.preferences', 'account.state', 'account.open', 'auth.signIn', 'auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover', 'auth.password', 'auth.google', 'auth.signOut', 'profile.language', 'profile.name', 'files.prepare', 'files.finish', 'files.open', 'files.delete', 'steps.list', 'steps.add', 'steps.update', 'steps.delete', 'ai.chat', 'ai.analyze', 'ai.conversations', 'ai.conversation.create', 'ai.conversation.delete', 'ai.messages', 'ai.analyses', 'ai.analysis', 'ai.progress.save', 'ai.usage'] as const;
 export type Action = typeof actions[number];
 export type Request = { action: Action; payload: Record<string, unknown> };
 type Sender = { id?: string; url?: string; tab?: { id?: number }; frameId?: number };
@@ -29,7 +30,12 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   const action = request.action as Action;
   if (trustedOnly.has(action) && !trusted) throw new Error('Open OHMI Account to use this action.');
   const payload = object(request.payload ?? {});
-  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.')) uuid(payload.accountId);
+  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('ai.')) uuid(payload.accountId);
+  if (action === 'ai.chat' || action === 'ai.analyze') parseAiRequest({ ...payload, kind: action === 'ai.chat' ? 'chat' : 'analyze' });
+  if (['ai.messages','ai.conversation.delete'].includes(action)) uuid(payload.conversationId);
+  if (action === 'ai.conversation.create' && payload.analysisId !== undefined) uuid(payload.analysisId);
+  if (action === 'ai.analysis' || action === 'ai.progress.save') uuid(payload.analysisId);
+  if (action === 'ai.progress.save' && (!Number.isInteger(payload.currentStep) || Number(payload.currentStep)<0 || Number(payload.currentStep)>=24 || !Array.isArray(payload.completed) || payload.completed.length>24 || payload.completed.some(index=>!Number.isInteger(index)||index<0||index>=24))) throw new Error('Invalid tutorial progress.');
   if (action === 'local.position') {
     const position = object(payload.position);
     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || typeof payload.open !== 'boolean') throw new Error('Invalid mascot position.');

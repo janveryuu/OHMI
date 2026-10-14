@@ -1,0 +1,39 @@
+import { expect, it } from 'vitest';
+import { generateWithFallback, generateGroq } from '../../supabase/functions/_shared/ai-providers';
+const input = {contents:[{role:'user' as const,parts:[{text:'Why use a resistor?'}]}],language:'english',analysis:false};
+const keys = {gemini:'test-google',groq:'test-groq',geminiFree:true,groqFree:true};
+const answer = {candidates:[{finishReason:'STOP',content:{parts:[{text:'It limits current.'}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}};
+it('prefers Gemini 3.8 on every new request and does not call a fallback on success',async()=>{
+  const calls:string[]=[];
+  const result=await generateWithFallback(keys,input,async url=>{calls.push(String(url));return Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:answer);});
+  expect(result.model).toBe('gemini-3.8-flash');expect(calls).toHaveLength(2);expect(calls.every(url=>url.includes('gemini-3.8-flash'))).toBe(true);
+});
+it('uses 3.6 only after bounded 3.8 failure and accounts conservatively for failed attempts',async()=>{
+  const calls:string[]=[];
+  const result=await generateWithFallback(keys,input,async url=>{const value=String(url);calls.push(value);return Response.json(value.endsWith('countTokens')?{totalTokens:10}:value.includes('3.8')?{}:answer,{status:value.includes('3.8')&&value.endsWith('generateContent')?503:200});});
+  expect(result.model).toBe('gemini-3.6-flash');expect(calls.filter(url=>url.includes('3.8')&&url.endsWith('generateContent'))).toHaveLength(2);expect(result.accountedTokens).toBeGreaterThanOrEqual(32020);
+});
+it('uses Groq only after both Gemini models fail; never forwards raw PDF',async()=>{
+  const calls:string[]=[];
+  const fetcher:typeof fetch=async url=>{const value=String(url);calls.push(value);return value.includes('groq.com')?Response.json({choices:[{finish_reason:'stop',message:{content:'It limits current.'}}],usage:{prompt_tokens:10,total_tokens:20}}):Response.json(value.endsWith('countTokens')?{totalTokens:10}:{},{status:value.endsWith('countTokens')?200:503});};
+  expect((await generateWithFallback(keys,input,fetcher)).model).toBe('qwen/qwen3.8-27b');
+  calls.length=0;
+  await expect(generateWithFallback(keys,{...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]}]},fetcher)).rejects.toThrow(/PDF|Gemini/);
+  expect(calls.some(url=>url.includes('groq.com'))).toBe(false);
+});
+it('blocks unconfirmed plans and authentication errors without switching providers',async()=>{
+  let calls=0;
+  await expect(generateWithFallback({...keys,geminiFree:false,groqFree:false},input,async()=>{calls++;return Response.json({});})).rejects.toThrow('free');expect(calls).toBe(0);
+  await expect(generateWithFallback(keys,input,async()=>{calls++;return Response.json({}, {status:403});})).rejects.toThrow('403');expect(calls).toBe(1);
+});
+it('falls back after a provider connection failure while budgeting the abandoned attempt',async()=>{
+  const result=await generateWithFallback(keys,input,async url=>{const value=String(url);if(value.endsWith('countTokens'))return Response.json({totalTokens:10});if(value.includes('3.8'))throw new TypeError('network failed');return Response.json(answer);});
+  expect(result.model).toBe('gemini-3.6-flash');expect(result.accountedTokens).toBe(16020);
+});
+it('bounds free-plan image requests and validates Groq output before returning it',async()=>{
+  let calls=0;let body:Record<string,any>={};
+  await generateGroq('test', {...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'image/png',data:'iVBORw=='}}]}]},async(_url,options)=>{calls++;body=JSON.parse(String(options?.body));return Response.json({choices:[{finish_reason:'stop',message:{content:'{"test":true}'}}],usage:{prompt_tokens:2500,total_tokens:3000}});});
+  expect(body.messages[1].content[0].image_url.url).toBe('data:image/png;base64,iVBORw==');expect(body.max_completion_tokens).toBeLessThan(4096);expect(body.response_format.json_schema.strict).toBe(true);expect(body.store).toBe(false);
+  for(const result of [{choices:[{finish_reason:'length',message:{content:'Partial'}}],usage:{prompt_tokens:1,total_tokens:2}},{choices:[{finish_reason:'stop',message:{content:'Answer'}}],usage:{prompt_tokens:3,total_tokens:2}}]) await expect(generateGroq('test',input,async()=>Response.json(result))).rejects.toThrow();
+  expect(calls).toBe(1);
+});

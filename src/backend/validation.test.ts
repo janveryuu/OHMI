@@ -29,6 +29,11 @@ describe('trusted extension requests', () => {
     expect(validateRequest(message('profile.language', { language: 'taglish', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }), content, id).action).toBe('profile.language');
     expect(validateRequest(message('auth.confirm', { email: 'student@example.com', token: '12345678' }), account, id).action).toBe('auth.confirm');
   });
+  it('accepts scoped AI requests and rejects foreign files, invented roles, or oversized chat', () => {
+    const payload = { accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', requestId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', message: 'Explain this step.' };
+    expect(validateRequest(message('ai.chat', payload), content, id).action).toBe('ai.chat');
+    for (const bad of [{ ...payload, message: 'x'.repeat(6001) }, { ...payload, role: 'system' }, { ...payload, url: 'https://evil.example/file' }]) expect(() => validateRequest(message('ai.chat', bad), content, id)).toThrow();
+  });
 });
 
 describe('public configuration and OAuth callback', () => {

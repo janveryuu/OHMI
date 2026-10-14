@@ -10,7 +10,7 @@ export default defineConfig({
   manifest: {
     name: 'OHMI — Your Circuit Buddy',
     description: 'A friendly learning companion for Tinkercad Circuits.',
-    version: '0.3.0',
+    version: '0.4.0',
     minimum_chrome_version: '116',
     permissions: ['storage', 'identity'],
     host_permissions: ['https://www.tinkercad.com/*', ...(backendOrigin ? [`${backendOrigin}/*`] : [])],

@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { testPrivacy } from './privacy.mjs';
 import { testExtensionBackend } from './extension-backend.mjs';
+import { testAiLive } from './ai-live.mjs';
 
 const target = 'vhmdgfydvoljzqztuxmu';
 assert.equal((await readFile('supabase/.temp/project-ref', 'utf8')).trim(), target, 'Refuse any other linked project');
@@ -43,8 +44,8 @@ try {
     assert.equal(result.error, null, result.error?.message); assert.equal(result.data.user.id, user.id);
     clients.push(client);
   }
-  await testPrivacy(env.WXT_SUPABASE_URL, env.WXT_SUPABASE_PUBLISHABLE_KEY, clients, fixtures.map(user => user.id));
-  await testExtensionBackend(fixtures);
+  if (process.env.OHMI_AI_TEST === '1') await testAiLive(env, clients, fixtures);
+  else { await testPrivacy(env.WXT_SUPABASE_URL, env.WXT_SUPABASE_PUBLISHABLE_KEY, clients, fixtures.map(user => user.id)); await testExtensionBackend(fixtures); }
   verified = true;
   console.log('PASS LIVE two-user isolation and owner CRUD: profiles, preferences, assignment rows/files, signed URLs, steps, cross-owner/anonymous read-write-delete denial.');
 } finally {

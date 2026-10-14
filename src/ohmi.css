@@ -251,3 +251,14 @@
 .ohmi-static .ohmi-mascot img { scale: 1; }
 @media (prefers-reduced-motion: reduce) { .ohmi-root *, .ohmi-root *::before, .ohmi-root *::after { animation: none !important; transition: none !important; } .ohmi-mascot img { scale: 1; } }
 @media (max-width: 380px) { .ohmi-panel-content { padding: 12px; } .ohmi-panel-header { padding-left: 12px; } .ohmi-feature { padding-inline: 8px; } .ohmi-compose-actions > span { font-size: 10px; } }
+.ohmi-root .ohmi-code { white-space:pre-wrap; overflow-wrap:anywhere; overflow-x:auto; padding:12px; border:1px solid var(--ohmi-border); border-radius:12px; font:12px/1.6 ui-monospace,monospace; background:var(--ohmi-surface); color:var(--ohmi-ink); }
+.ohmi-root .ohmi-ai-history { display:grid; gap:8px; }
+.ohmi-root .ohmi-ai-history select,.ohmi-root .ohmi-saved-steps>select { width:100%; min-width:0; padding:10px; border:1px solid var(--ohmi-border); border-radius:10px; background:var(--ohmi-surface); color:var(--ohmi-ink); }
+.ohmi-root .ohmi-ai-details { padding:12px 0; }
+.ohmi-root .ohmi-ai-details summary { cursor:pointer; font-weight:600; }
+.ohmi-root .ohmi-guide-controls { display:flex; flex-wrap:wrap; gap:8px; }
+
+.ohmi-root .ohmi-ai-tutor { display: flex; flex-direction: column; gap: 12px; }
+.ohmi-root .ohmi-ai-tutor h4 { font-size: 16px; font-weight: 700; }
+.ohmi-root .ohmi-ai-tutor h5, .ohmi-root .ohmi-ai-tutor label { font-weight: 600; }
+.ohmi-root .ohmi-ai-tutor .ohmi-guide-card { display: flex; flex-direction: column; gap: 8px; }

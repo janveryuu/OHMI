@@ -3,6 +3,7 @@ import { createBackendClient, authStorage, AUTH_STORAGE_KEY } from './client';
 import { readPreferences } from '../preview';
 import { validateCallback, validateFile, type Request } from './validation';
 import type { AccountState, Assignment, AssignmentStep, Profile } from './contracts';
+import { handleAi } from './ai-service';
 
 const bucket = 'ohmi-assignments';
 const assignmentColumns = 'id,original_name,mime_type,size_bytes,status,created_at';
@@ -16,13 +17,14 @@ export async function initializeBackend() {
   await browser.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
   await browser.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
   try { backend = createBackendClient(); } catch { return; }
-  backend.client.auth.onAuthStateChange(() => { setTimeout(() => { void notifyAccount(); }, 0); });
+  backend.client.auth.onAuthStateChange((_event, session) => { setTimeout(() => { void notifyAccount(session?.user.id ?? null); }, 0); });
 }
 
-async function notifyAccount() {
-  await browser.runtime.sendMessage({ channel: 'ohmi', event: 'account.changed' }).catch(() => undefined);
+async function notifyAccount(accountId?: string | null) {
+  const message = { channel: 'ohmi', event: 'account.changed', accountId };
+  await browser.runtime.sendMessage(message).catch(() => undefined);
   const tabs = await browser.tabs.query({ url: 'https://www.tinkercad.com/*' }).catch(() => []);
-  await Promise.all(tabs.map((tab) => tab.id === undefined ? undefined : browser.tabs.sendMessage(tab.id, { channel: 'ohmi', event: 'account.changed' }).catch(() => undefined)));
+  await Promise.all(tabs.map((tab) => tab.id === undefined ? undefined : browser.tabs.sendMessage(tab.id, message).catch(() => undefined)));
 }
 
 async function currentUser() {
@@ -140,10 +142,11 @@ export async function handleRequest(request: Request): Promise<unknown> {
   // This is a stale-view guard, never an authority: ownership comes from verified Auth.
   if (authBusy || payload.accountId !== user.id) throw new Error('Account changed. Refresh your account before continuing.');
   const client = backend!.client;
+  if (action.startsWith('ai.')) return handleAi(client,user.id,request);
   if (action === 'profile.language' || action === 'profile.name') {
     const update = action === 'profile.language' ? { language: String(payload.language) } : { display_name: String(payload.name).trim() };
     fail((await client.from('ohmi_profiles').update(update).eq('id', user.id)).error);
-    void notifyAccount(); return state();
+    void notifyAccount(user.id); return state();
   }
   if (action === 'files.prepare') {
     const file = validateFile(payload);
@@ -172,7 +175,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
       fail((await client.storage.from(bucket).remove([assignment.object_path])).error);
       fail((await client.from('ohmi_assignments').delete().eq('id', assignment.id).eq('user_id', user.id)).error);
     }
-    void notifyAccount(); return null;
+    void notifyAccount(user.id); return null;
   }
   if (action.startsWith('steps.')) {
     if (action === 'steps.list') {
@@ -182,13 +185,14 @@ export async function handleRequest(request: Request): Promise<unknown> {
     if (action === 'steps.add') result = await client.from('ohmi_assignment_steps').insert({ assignment_id: String(payload.assignmentId), user_id: user.id, title: String(payload.title) });
     else if (action === 'steps.update') result = await client.from('ohmi_assignment_steps').update({ completed: Boolean(payload.completed) }).eq('id', String(payload.id)).eq('user_id', user.id);
     else result = await client.from('ohmi_assignment_steps').delete().eq('id', String(payload.id)).eq('user_id', user.id);
-    fail(result.error); void notifyAccount(); return null;
+    fail(result.error); void notifyAccount(user.id); return null;
   }
   throw new Error('Unknown request.');
 }
 
 export function publicError(error: unknown): string {
   const value = error as { code?: string; message?: string };
+  if (value?.code === 'AI_RETRY_NEW' || value?.code === 'AI_RETRY_SAME') return String(value.message).slice(0,220);
   if (value?.code === 'invalid_credentials') return 'Email or password is incorrect.';
   if (value?.code === 'email_not_confirmed') return 'Confirm your email using the code before signing in.';
   if (value?.code === 'otp_expired') return 'That code expired or is invalid. Request another code.';

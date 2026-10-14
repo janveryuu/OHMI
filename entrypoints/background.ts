@@ -11,7 +11,7 @@ export default defineBackground(() => {
         const request = validateRequest(message, sender, browser.runtime.id);
         await ready;
         respond({ ok: true, data: await handleRequest(request) });
-      } catch (error) { respond({ ok: false, error: publicError(error) }); }
+      } catch (error) { const code=(error as {code?:string})?.code; respond({ ok: false, error: publicError(error), ...(code==='AI_RETRY_NEW'||code==='AI_RETRY_SAME'?{code}:{}) }); }
     })();
     return true;
   });
