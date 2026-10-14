@@ -1,21 +1,23 @@
+import {parsePdfContext} from './ai-pdf.ts';
 export const MODEL = 'gemini-3.8-flash';
 export type Analysis = { title: string; status: 'ready' | 'needs_clarification'; summary: string; objectives: string[]; components: { name: string; quantity: string; details: string }[]; expectedResults: string[]; assumptions: string[]; uncertainties: string[]; steps: { title: string; instruction: string; why: string; check: string; code: string }[] };
-export type AiRequest = { kind: 'chat' | 'analyze'; accountId: string; requestId: string; conversationId?: string; assignmentId?: string; message?: string; stepIndex?: number };
+export type AiRequest = { kind: 'chat' | 'analyze'; accountId: string; requestId: string; conversationId?: string; assignmentId?: string; message?: string; stepIndex?: number; pdfContext?:import('./ai-pdf.ts').PdfContext };
 export type Content = { role: 'user' | 'model'; parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] };
 const record = (value: unknown) => { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid AI data.'); return value as Record<string, unknown>; };
-const text = (value: unknown, max: number, empty = false) => { if (typeof value !== 'string' || value.length > max || (!empty && !value.trim()) || /\x00/.test(value)) throw new Error('AI data is missing or too long.'); return value.trim(); };
+const text = (value: unknown, max: number, empty = false) => { if (typeof value !== 'string' || value.length > max || (!empty && !value.trim()) || /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)) throw new Error('AI data is missing or too long.'); return value.trim(); };
 const list = (value: unknown, max: number) => { if (!Array.isArray(value) || value.length > max) throw new Error('Invalid AI list.'); return value; };
 const uuid = (value: unknown) => { if (typeof value !== 'string' || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value)) throw new Error('Invalid AI record ID.'); return value; };
 export function parseAiRequest(value: unknown): AiRequest {
   const data = record(value);
-  if (Object.keys(data).some(key => !['kind', 'accountId', 'requestId', 'conversationId', 'assignmentId', 'message', 'stepIndex'].includes(key))) throw new Error('Unexpected AI input.');
+  if (Object.keys(data).some(key => !['kind', 'accountId', 'requestId', 'conversationId', 'assignmentId', 'message', 'stepIndex', 'pdfContext'].includes(key))) throw new Error('Unexpected AI input.');
   if (data.kind !== 'chat' && data.kind !== 'analyze') throw new Error('Invalid AI action.');
   const result: AiRequest = { kind: data.kind, accountId: uuid(data.accountId), requestId: uuid(data.requestId) };
   if (data.kind === 'chat') {
     result.conversationId = uuid(data.conversationId); result.message = text(data.message, 6000);
+    if(data.pdfContext!==undefined)throw new Error('PDF context is only for assignment analysis.');
     if (data.assignmentId !== undefined) throw new Error('Use the conversation assignment context.');
     if (data.stepIndex !== undefined) { if (!Number.isInteger(data.stepIndex) || Number(data.stepIndex) < 0 || Number(data.stepIndex) >= 24) throw new Error('Invalid tutorial step.'); result.stepIndex = Number(data.stepIndex); }
-  } else { result.assignmentId = uuid(data.assignmentId); if (data.message !== undefined || data.conversationId !== undefined || data.stepIndex !== undefined) throw new Error('Unexpected analysis input.'); }
+  } else { result.assignmentId = uuid(data.assignmentId); if(data.pdfContext!==undefined)result.pdfContext=parsePdfContext(data.pdfContext); if (data.message !== undefined || data.conversationId !== undefined || data.stepIndex !== undefined) throw new Error('Unexpected analysis input.'); }
   return result;
 }
 export function parseAnalysis(value: unknown): Analysis {

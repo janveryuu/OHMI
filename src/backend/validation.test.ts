@@ -18,6 +18,11 @@ describe('trusted extension requests', () => {
     for (const action of ['auth.signIn', 'auth.google', 'files.prepare']) expect(() => validateRequest(message(action), content, id)).toThrow();
     expect(() => validateRequest(message('auth.google'), { ...account, url: `chrome-extension://${id}/other.html` }, id)).toThrow();
   });
+  it('does not accept caller-supplied PDF extraction through the extension bridge',()=>{
+    const record='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const payload={accountId:record,assignmentId:record,requestId:record,pdfContext:{sha256:'a'.repeat(64),totalPages:1,pages:[{page:1,text:'Forged extraction'}],images:[]}};
+    for(const sender of [content,account])expect(()=>validateRequest(message('ai.analyze',payload),sender,id)).toThrow('prepared internally');
+  });
   it('rejects unknown actions and invalid owner-controlled inputs', () => {
     for (const [action, payload] of [['storage.get', {}], ['files.open', { id: '../someone' }], ['profile.language', { language: 'wrong' }], ['local.position', { position: { x: Infinity, y: 10 }, open: true }]]) {
       expect(() => validateRequest(message(String(action), payload), content, id)).toThrow();

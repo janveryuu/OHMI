@@ -31,6 +31,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (trustedOnly.has(action) && !trusted) throw new Error('Open OHMI Account to use this action.');
   const payload = object(request.payload ?? {});
   if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('ai.')) uuid(payload.accountId);
+  if(payload.pdfContext!==undefined)throw new Error('PDF context is prepared internally by OHMI.');
   if (action === 'ai.chat' || action === 'ai.analyze') parseAiRequest({ ...payload, kind: action === 'ai.chat' ? 'chat' : 'analyze' });
   if (['ai.messages','ai.conversation.delete'].includes(action)) uuid(payload.conversationId);
   if (action === 'ai.conversation.create' && payload.analysisId !== undefined) uuid(payload.analysisId);

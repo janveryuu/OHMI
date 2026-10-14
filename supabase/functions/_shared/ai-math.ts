@@ -40,7 +40,7 @@ export function resolveAnalysisCurrents(payload:unknown) {
       if(/(?:below|under|less than|within)\s*(?:the\s*)?$/i.test(before)&&currents.size&&[...currents.values()].every(value=>value<=claimed+tolerance))continue;
       if(![...currents.values()].some(value=>Math.abs(value-claimed)<=tolerance)){
         console.warn(JSON.stringify({validation:'analysis_current',field,reason:currents.size?'inconsistent_current':'missing_calculation',ratingNearby:/max|rating|rated|stated|required/i.test(before+after.slice(0,30)),calculationCount:currents.size,roleWords:(before+' '+after.slice(0,40)).match(/\b(?:max|maximum|rating|rated|stated|required|current|within|under|below|limit|of|at|nominal|LED|calculated|approx)\b/gi)?.slice(0,12)}));
-        throw new Error('AI current claim is inconsistent or could not be verified. Retry with clear voltage and resistance values.');
+        throw new Error(`AI current claim is inconsistent: ${Number(claimed.toPrecision(6))} mA; calculated ${[...currents.values()].slice(0,3).map(value=>Number(value.toPrecision(6))).join(', ')||'unavailable'} mA. Retry with clear source values.`);
       }
     }
   }

@@ -1,3 +1,4 @@
+import {renderPrivatePdf} from '../pdf/offscreen';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { browser } from 'wxt/browser';
 import type { Database } from './database.types';
@@ -11,6 +12,17 @@ export async function handleAi(client: SupabaseClient<Database>, userId: string,
     const body = parseAiRequest({ ...payload, kind: action === 'ai.chat' ? 'chat' : 'analyze' });
     const keepalive = setInterval(() => { void browser.runtime.getPlatformInfo().catch(() => undefined); }, 20000);
     try {
+      if(action==='ai.analyze'){
+        const assignment=check(await client.from('ohmi_assignments').select('object_path,mime_type,size_bytes,status').eq('id',body.assignmentId!).eq('user_id',userId).single());
+        if(!assignment||assignment.status!=='ready')throw new Error('Assignment is unavailable or incomplete.');
+        if(assignment.mime_type==='application/pdf'){
+          const file=check(await client.storage.from('ohmi-assignments').download(assignment.object_path));
+          if(!file||file.size!==assignment.size_bytes||file.size>10485760||file.type!=='application/pdf')throw new Error('Stored PDF does not match its metadata. Reupload it.');
+          body.pdfContext=await renderPrivatePdf(new Uint8Array(await file.arrayBuffer()));
+          const current=await client.auth.getUser();
+          if(current.error||current.data.user?.id!==userId)throw new Error('Account changed during PDF preparation. Sign in again.');
+        }
+      }
       const result = await client.functions.invoke('ohmi-ai', { body, signal: AbortSignal.timeout(110000) });
       if (result.error) throw new Error('AI connection failed. Check your internet/session and retry the same request.');
       if (!result.data?.ok) throw Object.assign(new Error(String(result.data?.error ?? 'AI request failed. Retry.').slice(0,220)), { code: result.data?.retryNew ? 'AI_RETRY_NEW' : 'AI_RETRY_SAME' });
