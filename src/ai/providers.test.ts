@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { generateWithFallback, generateGroq } from '../../supabase/functions/_shared/ai-providers';
+import { generateWithFallback, generateGroq, estimateRequestTokens } from '../../supabase/functions/_shared/ai-providers';
 const input = {contents:[{role:'user' as const,parts:[{text:'Why use a resistor?'}]}],language:'english',analysis:false};
 const keys = {gemini:'test-google',groq:'test-groq',geminiFree:true,groqFree:true};
 const answer = {candidates:[{finishReason:'STOP',content:{parts:[{text:'It limits current.'}]}}],usageMetadata:{promptTokenCount:10,totalTokenCount:20}};
@@ -11,7 +11,7 @@ it('prefers Gemini 3.8 on every new request and does not call a fallback on succ
 it('uses 3.6 only after bounded 3.8 failure and accounts conservatively for failed attempts',async()=>{
   const calls:string[]=[];
   const result=await generateWithFallback(keys,input,async url=>{const value=String(url);calls.push(value);return Response.json(value.endsWith('countTokens')?{totalTokens:10}:value.includes('3.8')?{}:answer,{status:value.includes('3.8')&&value.endsWith('generateContent')?503:200});});
-  expect(result.model).toBe('gemini-3.6-flash');expect(calls.filter(url=>url.includes('3.8')&&url.endsWith('generateContent'))).toHaveLength(2);expect(result.accountedTokens).toBeGreaterThanOrEqual(32020);
+  expect(result.model).toBe('gemini-3.6-flash');expect(calls.filter(url=>url.includes('3.8')&&url.endsWith('generateContent'))).toHaveLength(2);expect(result.accountedTokens).toBe(4136);
 });
 it('uses Groq only after both Gemini models fail; never forwards raw PDF',async()=>{
   const calls:string[]=[];
@@ -28,7 +28,7 @@ it('blocks unconfirmed plans and authentication errors without switching provide
 });
 it('falls back after a provider connection failure while budgeting the abandoned attempt',async()=>{
   const result=await generateWithFallback(keys,input,async url=>{const value=String(url);if(value.endsWith('countTokens'))return Response.json({totalTokens:10});if(value.includes('3.8'))throw new TypeError('network failed');return Response.json(answer);});
-  expect(result.model).toBe('gemini-3.6-flash');expect(result.accountedTokens).toBe(16020);
+  expect(result.model).toBe('gemini-3.6-flash');expect(result.accountedTokens).toBe(2078);
 });
 it('bounds free-plan image requests and validates Groq output before returning it',async()=>{
   let calls=0;let body:Record<string,any>={};
@@ -36,4 +36,29 @@ it('bounds free-plan image requests and validates Groq output before returning i
   expect(body.messages[1].content[0].image_url.url).toBe('data:image/png;base64,iVBORw==');expect(body.max_completion_tokens).toBeLessThan(4096);expect(body.response_format.json_schema.strict).toBe(true);expect(body.store).toBe(false);
   for(const result of [{choices:[{finish_reason:'length',message:{content:'Partial'}}],usage:{prompt_tokens:1,total_tokens:2}},{choices:[{finish_reason:'stop',message:{content:'Answer'}}],usage:{prompt_tokens:3,total_tokens:2}}]) await expect(generateGroq('test',input,async()=>Response.json(result))).rejects.toThrow();
   expect(calls).toBe(1);
+});
+
+it('estimates reservations from text and document size without a fixed analysis charge',()=>{
+  const small=estimateRequestTokens(input.contents,true,{mime_type:'application/pdf',size_bytes:1800});
+  expect(small).toBeLessThan(160000);
+  expect(estimateRequestTokens(input.contents,true,{mime_type:'application/pdf',size_bytes:18000})).toBeGreaterThan(small);
+  expect(estimateRequestTokens(input.contents,true,{mime_type:'image/png',size_bytes:100000})).toBe(estimateRequestTokens(input.contents,true,{mime_type:'image/jpeg',size_bytes:200000}));
+  expect(estimateRequestTokens(input.contents,true,{mime_type:'application/pdf',size_bytes:10485760})).toBe(160000);
+});
+
+it('uses an eligible free fallback on provider quota without retrying the exhausted model',async()=>{
+  const calls:string[]=[];
+  const result=await generateWithFallback(keys,input,async url=>{
+    const value=String(url);calls.push(value);
+    if(value.endsWith('countTokens'))return Response.json({totalTokens:10});
+    return value.includes('3.8')?Response.json({},{status:429}):Response.json(answer);
+  });
+  expect(result.model).toBe('gemini-3.6-flash');
+  expect(calls.filter(url=>url.includes('3.8')&&url.endsWith('generateContent'))).toHaveLength(1);
+});
+
+it('reports exhausted free quotas when no eligible provider succeeds',async()=>{
+  let calls=0;
+  await expect(generateWithFallback(keys,input,async()=>{calls++;return Response.json({},{status:429});})).rejects.toThrow('quota is exhausted');
+  expect(calls).toBe(3);
 });

@@ -367,6 +367,7 @@ export type Database = {
           p_hash: string
           p_kind: string
           p_language: string
+          p_estimated_tokens?: number
           p_request_id: string
           p_target: string
           p_user_id: string

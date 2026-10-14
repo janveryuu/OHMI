@@ -64,7 +64,7 @@ export function providerDiagnostic(value: unknown) {
   if(Array.isArray(error?.details))for(const detail of error.details){if(Array.isArray(detail?.fieldViolations))for(const violation of detail.fieldViolations){if(typeof violation.field==='string'){const field=violation.field.split('.').slice(0,2).join('.');if(/^(generationConfig|generation_config)\.(responseSchema|response_schema|responseFormat|response_format|responseMimeType|response_mime_type|responseJsonSchema|response_json_schema|thinkingConfig|thinking_config|maxOutputTokens|max_output_tokens)$|^(contents|messages)(\[\d+\])?(\.(parts|role|content)(\[\d+\])?)?$|^(response_format|max_completion_tokens|model)$/.test(field))fields.push(field);}}}
   return {code:typeof code==='string'&&allowed.includes(code)?code:undefined,reason,fields:fields.slice(0,10)};
 }
-export async function generate(key: string, input: { contents: Content[]; language: string; analysis: boolean }, fetcher: typeof fetch = fetch, options: { model?: 'gemini-3.8-flash' | 'gemini-3.6-flash'; signal?: AbortSignal; retry503?: boolean } = {}) {
+export async function generate(key: string, input: { contents: Content[]; language: string; analysis: boolean }, fetcher: typeof fetch = fetch, options: { model?: 'gemini-3.8-flash' | 'gemini-3.6-flash'; signal?: AbortSignal; retry503?: boolean; onCount?: (count: number) => void } = {}) {
   const model = options.model ?? MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
   const systemInstruction = { parts: [{ text: tutorPrompt(input.language) + (input.analysis ? '\n' + ANALYSIS_INSTRUCTION : '') }] };
@@ -93,6 +93,7 @@ export async function generate(key: string, input: { contents: Content[]; langua
   const counted = await call('countTokens', { generateContentRequest: { model: `models/${model}`, contents: input.contents, systemInstruction } }, 15000);
   const count = Number(counted.totalTokens);
   if (!Number.isInteger(count) || count < 0 || count > (input.analysis ? 24000 : 12000)) throw new Error('This context is too long. Start a new conversation or use a smaller assignment.');
+  options.onCount?.(count);
   const generated = await call('generateContent', { contents: input.contents, systemInstruction, generationConfig: { maxOutputTokens: input.analysis ? 8192 : 2048, thinkingConfig: { thinkingLevel: 'LOW' }, ...(input.analysis ? model==='gemini-3.6-flash'?{responseMimeType:'application/json',responseSchema:openApiSchema(ANALYSIS_SCHEMA)}:{ responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: ANALYSIS_SCHEMA } } } : {}) } }, 45000);
   const candidates = list(generated.candidates ?? [], 5);
   if (!candidates.length) throw new Error('AI could not answer this request. Rephrase the question or clarify the assignment.');

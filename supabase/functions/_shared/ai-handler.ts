@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { parseAiRequest, parseAnalysis, type AiRequest, type Content } from './ai-core.ts';
-import { generateWithFallback } from './ai-providers.ts';
+import { estimateRequestTokens, generateWithFallback } from './ai-providers.ts';
 export type ScopedAi = { userId: string; user: SupabaseClient; admin: SupabaseClient; key: string; groqKey?: string; geminiFree?: boolean; groqFree?: boolean };
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers });
@@ -77,7 +77,7 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
             contents.push({ role: 'user', parts: [{ text: input.message! }] });
           }
           if (!scope.geminiFree) throw new Error('AI is paused until the owner confirms free-tier access. No paid billing is enabled by OHMI.');
-          const reservation = await scope.admin.rpc('ohmi_reserve_ai', reserveArgs);
+          const reservation = await scope.admin.rpc('ohmi_reserve_ai', {...reserveArgs,p_estimated_tokens:estimateRequestTokens(contents,input.kind==='analyze',assignment)});
           if (reservation.error) {
             const message = String(reservation.error.message ?? '');
             throw new Error(/limit|budget|still running|replay/i.test(message) ? message.slice(0, 180) : 'AI request could not be reserved. Retry.');

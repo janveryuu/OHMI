@@ -74,3 +74,20 @@ node tests/backend-live.mjs
 On the last successful format, set `OHMI_AI_LANGUAGES='1'` to verify Filipino/Taglish explanations of the saved current step without repeating earlier successful formats. English is checked by the assignment's initial language preference and generated teaching guide.
 
 The harness first reads UTC allowance and refuses an analysis that cannot fit, before creating test accounts or invoking AI. A successful format checks declared quantities, structured teaching steps, saved progress, cache reuse, UI and two-user isolation. Live generation, complete tutor accuracy and multilingual explanations remain unverified in this continuation; Phase 4 stays incomplete.
+
+
+## Usage policy update — 14 October 2026
+
+The owner explicitly authorized removing OHMI's internal daily token cap. This supersedes the earlier allowance/reset gate above. Migration `20261014055307_request_based_ai_usage.sql` is applied to the existing live project; `ohmi-ai` is redeployed. No usage rows were deleted or reset by the migration.
+
+- Removed the 500,000-token daily project cap and internal daily request-count gates (30/account, 100/project), so those artificial daily gates cannot block available free-provider quota.
+- Preserved verified authentication, service-only AI RPCs, RLS, ownership, replay protection, six requests/account/minute, one active request/account, stale-request recovery, request/file/context bounds, timeouts and bounded retries.
+- Reservations now estimate text bytes, document MIME/size, output allowance and eligible attempts. The fixture PDF estimates 29,460 tokens; PNG/JPG estimate 45,056, replacing the fixed 160,000 charge. Estimates are telemetry rather than limits on valid actual usage. Gemini countTokens supplies the estimate for uncertain fallback attempts; successful provider-reported input/output usage remains separately recorded.
+- Retained per-request estimate/accounting ceilings (64,000 chat; 160,000 analysis) and actual-result validation. No provider settings, keys, paid billing or official quotas changed. HTTP 429 moves to an eligible confirmed-free fallback without retrying the exhausted model; exhausted eligible providers report a quota error. HTTP 400 is not treated as quota exhaustion.
+- Updated AI usage copy, database types, README and live harness; no visual redesign or mascot changes.
+
+Verification: **49 unit tests passed**, TypeScript check passed, production Chrome extension build passed. Local two-account database tests passed, including admission above the former daily token/count gates, usage-history retention, saving actual usage above an estimate, excessive per-request usage rejection, service-only RPCs, RLS, atomic saves, minute/concurrency limits and bounded tutorial progress.
+
+Live requests ran one format at a time through the authenticated Edge Function: **PDF, PNG and JPG all passed the removed budget gate but failed Gemini generateContent with HTTP 400**. No successful assignment analysis was produced. Quantity accuracy, live saved tutorial/progress, and Filipino/Taglish step explanations remain blocked behind assignment generation; the harness correctly did not claim those checks passed. The dashboard log session requires sign-in, so this run did not obtain a more specific provider field/category. Do not infer the cause of the HTTP 400 from the generic error. Failed fixture files/accounts were cleaned through the guarded harness; their usage rows were retained.
+
+Phase 4 remains incomplete due to the live assignment provider error. Keep changes on `codex/phase-4`; do not merge into main or begin Phase 5.

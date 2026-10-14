@@ -23,7 +23,7 @@ try {
   assert.ok((await b.client.from('ohmi_conversations').insert({ user_id: a.user.id })).error);
   assert.ok((await a.client.from('ohmi_messages').insert({ user_id: a.user.id, conversation_id: conv.id, role: 'assistant', content: 'Forged AI', position: 1 })).error);
   const requestId = crypto.randomUUID();
-  const args = { p_user_id: a.user.id, p_request_id: requestId, p_kind: 'chat', p_target: conv.id, p_hash: 'a'.repeat(64), p_language: 'english' };
+  const args = { p_user_id: a.user.id, p_request_id: requestId, p_kind: 'chat', p_target: conv.id, p_hash: 'a'.repeat(64), p_language: 'english', p_estimated_tokens: 64 };
   assert.ok((await a.client.rpc('ohmi_reserve_ai', args)).error, 'Public clients cannot reserve/reset usage');
   const reserved = check(await admin.rpc('ohmi_reserve_ai', args)); assert.equal(reserved.status, 'pending');
   requestIds.push(requestId);
@@ -71,9 +71,13 @@ try {
   };
   const clear=async()=>{if(seeded.length)check(await admin.from('ohmi_ai_requests').delete().in('id',seeded.splice(0)));};
   try{
-    await seed(30,b.user.id);assert.match((await admin.rpc('ohmi_reserve_ai',{...abandoned,p_request_id:crypto.randomUUID()})).error?.message??'',/Daily user/);await clear();
-    await seed(100,null);assert.match((await admin.rpc('ohmi_reserve_ai',{...args,p_request_id:crypto.randomUUID()})).error?.message??'',/Project daily/);await clear();
-    await seed(1,null,480000);assert.match((await admin.rpc('ohmi_reserve_ai',{...args,p_request_id:crypto.randomUUID()})).error?.message??'',/Project daily/,'Completed fallback attempts retain their conservative token budget');
+    await seed(30,b.user.id);await seed(100,null);await seed(1,null,500000);
+    const next={...abandoned,p_request_id:crypto.randomUUID()};
+    check(await admin.rpc('ohmi_reserve_ai',next));requestIds.push(next.p_request_id);
+    assert.ok((await admin.rpc('ohmi_complete_ai',{p_request_id:next.p_request_id,p_output:{message:'Question',answer:'Answer'},p_input_tokens:100001,p_output_tokens:0})).error,'Actual usage still bounded per request');
+    check(await admin.rpc('ohmi_complete_ai',{p_request_id:next.p_request_id,p_output:{message:'Question',answer:'Answer'},p_input_tokens:100,p_output_tokens:30}));
+    assert.equal(check(await admin.from('ohmi_ai_requests').select('id').in('id',seeded)).length,131,'Old daily usage remains unchanged and cannot block admission');
+    assert.ok((await admin.rpc('ohmi_reserve_ai',{...args,p_request_id:crypto.randomUUID(),p_estimated_tokens:64001})).error,'Oversized per-request estimate rejected');
   }finally{await clear();}
   console.log('PASS local AI RLS, server-only writes/RPCs, replay/concurrency/failed-request limits, atomic chat save and owner-bounded tutorial progress.');
 } finally { for (const fixture of fixtures) check(await admin.auth.admin.deleteUser(fixture.user.id)); }

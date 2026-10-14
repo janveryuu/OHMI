@@ -4,6 +4,15 @@ export type ProviderKeys = { gemini: string; groq?: string; geminiFree: boolean;
 type Input = { contents: Content[]; language: string; analysis: boolean };
 const canFallback = (error: unknown) => error instanceof ProviderError && [404,408,429,500,502,503].includes(error.status);
 
+export function estimateRequestTokens(contents: Content[], analysis: boolean, document?: { mime_type: string; size_bytes: number }) {
+  let prompt = 1024;
+  for (const content of contents) for (const part of content.parts) {
+    prompt += 'text' in part ? Math.ceil(new TextEncoder().encode(part.text).length / 3) : part.inlineData.mimeType === 'application/pdf' ? Math.ceil(part.inlineData.data.length * 3 / 4 / 3) : 2048;
+  }
+  if (document) prompt += document.mime_type === 'application/pdf' ? Math.ceil(document.size_bytes / 3) : 2048;
+  return Math.min(analysis ? 160000 : 64000, (prompt + (analysis ? 8192 : 2048)) * (document?.mime_type === 'application/pdf' ? 3 : 4));
+}
+
 export async function generateGroq(key: string, input: Input, fetcher: typeof fetch = fetch, signal = AbortSignal.timeout(45000)) {
   const system = tutorPrompt(input.language) + (input.analysis ? '\n' + ANALYSIS_INSTRUCTION : '');
   let textBytes = new TextEncoder().encode(system).length; let images = 0;
@@ -25,7 +34,7 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
     let diagnostic: ReturnType<typeof providerDiagnostic> | undefined;
     try { diagnostic=providerDiagnostic(await response.json()); } catch { /* Keep the HTTP status when the provider did not return JSON. */ }
     console.warn(JSON.stringify({provider:'groq',model:'qwen/qwen3.8-27b',httpStatus:response.status,...diagnostic,images,maxOutput,format:input.analysis?'json_schema':'text'}));
-    throw new ProviderError(response.status,`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
+    throw new ProviderError(response.status,response.status===429?'The eligible free AI providers are busy or their quota is exhausted. Retry later; paid billing is off.':`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
   }
   const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');
   const data = JSON.parse(raw); const choice = data.choices?.[0];
@@ -37,14 +46,14 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
 
 export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch) {
   if (!keys.geminiFree) throw new Error('Confirm the Gemini project uses the free tier before enabling OHMI AI.');
-  const signal = AbortSignal.timeout(input.analysis?90000:70000); const allowance = input.analysis ? 40000 : 16000;
+  const signal = AbortSignal.timeout(input.analysis?90000:70000); const outputAllowance = input.analysis ? 8192 : 2048;
   let uncertainTokens = 0; let lastError: unknown;
   for (const model of ['gemini-3.8-flash','gemini-3.6-flash'] as const) {
-    let attempts = 0;
+    let attempts = 0; let allowance = estimateRequestTokens(input.contents,input.analysis)/4;
     const countedFetch: typeof fetch = (url,options) => { if (String(url).endsWith(':generateContent')) attempts++; return fetcher(url,options); };
     try {
       const modelSignal = AbortSignal.any([signal,AbortSignal.timeout(model==='gemini-3.8-flash'?(input.analysis?40000:30000):(input.analysis?30000:20000))]);
-      const generated = await generate(keys.gemini,input,countedFetch,{model,signal:modelSignal,retry503:model==='gemini-3.8-flash'});
+      const generated = await generate(keys.gemini,input,countedFetch,{model,signal:modelSignal,retry503:model==='gemini-3.8-flash',onCount:count=>{allowance=count+outputAllowance;}});
       return {...generated,model,accountedTokens:uncertainTokens + Math.max(0,attempts-1)*allowance + generated.inputTokens + generated.outputTokens};
     } catch (error) { if (!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
   }
