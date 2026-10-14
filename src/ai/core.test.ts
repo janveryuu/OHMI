@@ -1,9 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { parseAnalysis, parseAiRequest, tutorPrompt, generate, providerDiagnostic } from '../../supabase/functions/_shared/ai-core';
+import { AnalysisValidationError, parseAnalysis, parseAiRequest, tutorPrompt, generate, providerDiagnostic } from '../../supabase/functions/_shared/ai-core';
 
 const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const analysis = { title: 'LED exercise', status: 'ready', summary: 'Learn current limiting.', objectives: ['Explain LED polarity'], components: [{ name: 'LED', quantity: '1', details: 'Rating not specified' }], expectedResults: ['Observe LED behavior'], assumptions: [], uncertainties: ['Supply voltage not specified'], steps: [{ title: 'Read ratings', instruction: 'Find the LED data sheet.', why: 'Ratings determine safe current.', check: 'Do you know the rating?', code: '' }] };
 describe('AI trust boundaries', () => {
+  it.each([
+    {value:undefined,reason:'wrong_type',actualType:'undefined'},
+    {value:42,reason:'wrong_type',actualType:'number'},
+    {value:null,reason:'wrong_type',actualType:'null'},
+    {value:['PRIVATE_CONTENT'],reason:'wrong_type',actualType:'array',actualLength:1},
+    {value:'  ',reason:'blank',actualType:'string',actualLength:2},
+    {value:'x'.repeat(2201),reason:'too_long',actualType:'string',actualLength:2201},
+    {value:'PRIVATE_CONTENT\u000b',reason:'control_character',actualType:'string',actualLength:16},
+  ])('reports only safe nested field metadata for $reason ($actualType)',({value,reason,actualType,actualLength})=>{
+    try{parseAnalysis({...analysis,steps:[{...analysis.steps[0],instruction:value}]});throw new Error('Must reject');}
+    catch(error){expect(error).toBeInstanceOf(AnalysisValidationError);const failure=error as AnalysisValidationError;
+      expect(failure.diagnostic).toEqual({field:'steps[0].instruction',reason,expectedType:'string',actualType,...(actualLength!==undefined?{actualLength}:{}),maxLength:2200,allowEmpty:false});
+      expect(failure.message+JSON.stringify(failure.diagnostic)).not.toContain('PRIVATE_CONTENT');
+    }
+  });
+  it('labels array/object/list-entry failures and retains optional empty strings',()=>{
+    const cases=[{data:{...analysis,components:[null]},field:'components[0]',reason:'wrong_type',expectedType:'object'},
+      {data:{...analysis,objectives:'PRIVATE_CONTENT'},field:'objectives',reason:'wrong_type',expectedType:'array'},
+      {data:{...analysis,objectives:Array(31).fill('PRIVATE_CONTENT')},field:'objectives',reason:'too_many_items',expectedType:'array'},
+      {data:{...analysis,assumptions:['']},field:'assumptions[0]',reason:'blank',expectedType:'string'},
+      {data:{...analysis,components:[{...analysis.components[0],quantity:'[PRIVATE_CONTENT]'}]},field:'components[0].quantity',reason:'quantity_delimiter',expectedType:'string'}];
+    for(const {data,field,reason,expectedType} of cases){try{parseAnalysis(data);throw new Error('Must reject');}catch(error){expect(error).toBeInstanceOf(AnalysisValidationError);expect((error as AnalysisValidationError).diagnostic).toMatchObject({field,reason,expectedType});expect(String(error)).not.toContain('PRIVATE_CONTENT');}}
+    expect(parseAnalysis({...analysis,components:[{...analysis.components[0],details:''}],steps:[{...analysis.steps[0],instruction:'allowed\tline\nnext\rline',code:''}]}).steps[0]?.code).toBe('');
+  });
   it('keeps provider diagnostics useful without logging private error payloads',()=>{
     const diagnostic=providerDiagnostic({error:{code:'json_validate_failed',message:'Failed to generate JSON: PRIVATE_STUDENT_PROMPT',failed_generation:'PRIVATE_ANSWER',details:[{fieldViolations:[{field:'generationConfig.responseSchema.properties.title',description:'PRIVATE_KEY'},{field:'PRIVATE_FILENAME'}]}]}});
     expect(diagnostic).toEqual({code:'json_validate_failed',reason:'invalid_generated_json',fields:['generationConfig.responseSchema']});

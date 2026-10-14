@@ -3,9 +3,23 @@ export const MODEL = 'gemini-3.6-flash';
 export type Analysis = { title: string; status: 'ready' | 'needs_clarification'; summary: string; objectives: string[]; components: { name: string; quantity: string; details: string }[]; expectedResults: string[]; assumptions: string[]; uncertainties: string[]; steps: { title: string; instruction: string; why: string; check: string; code: string }[] };
 export type AiRequest = { kind: 'chat' | 'analyze'; accountId: string; requestId: string; conversationId?: string; assignmentId?: string; message?: string; stepIndex?: number; pdfContext?:import('./ai-pdf.ts').PdfContext };
 export type Content = { role: 'user' | 'model'; parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] };
-const record = (value: unknown) => { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid AI data.'); return value as Record<string, unknown>; };
-const text = (value: unknown, max: number, empty = false) => { if (typeof value !== 'string' || value.length > max || (!empty && !value.trim()) || /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)) throw new Error('AI data is missing or too long.'); return value.trim(); };
-const list = (value: unknown, max: number) => { if (!Array.isArray(value) || value.length > max) throw new Error('Invalid AI list.'); return value; };
+export type AnalysisDiagnostic = { field: string; reason: string; expectedType: string; actualType: string; actualLength?: number; maxLength?: number; maxItems?: number; allowEmpty?: boolean };
+export class AnalysisValidationError extends Error {
+  constructor(readonly diagnostic: AnalysisDiagnostic, message: string) {
+    super(`${message} Field: ${diagnostic.field}; ${diagnostic.reason}; expected ${diagnostic.expectedType}${diagnostic.maxLength!==undefined?` <= ${diagnostic.maxLength} characters`:diagnostic.maxItems!==undefined?` <= ${diagnostic.maxItems} items`:''}; got ${diagnostic.actualType}${diagnostic.actualLength!==undefined?`, length ${diagnostic.actualLength}`:''}.`);
+  }
+}
+function invalid(message:string,field:string|undefined,reason:string,expectedType:string,value:unknown,limits:Pick<AnalysisDiagnostic,'maxLength'|'maxItems'|'allowEmpty'>={}) : never {
+  if(!field)throw new Error(message);
+  throw new AnalysisValidationError({field,reason,expectedType,actualType:value===null?'null':Array.isArray(value)?'array':typeof value,...(typeof value==='string'||Array.isArray(value)?{actualLength:value.length}:{}),...limits},message);
+}
+const record = (value: unknown, field?:string) => { if (!value || typeof value !== 'object' || Array.isArray(value)) invalid('Invalid AI data.',field,'wrong_type','object',value); return value as Record<string, unknown>; };
+const text = (value: unknown, max: number, empty = false, field?:string) => {
+  const reason=typeof value!=='string'?'wrong_type':value.length>max?'too_long':!empty&&!value.trim()?'blank':/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)?'control_character':undefined;
+  if(reason)invalid('AI data is missing or too long.',field,reason,'string',value,{maxLength:max,allowEmpty:empty});
+  return (value as string).trim();
+};
+const list = (value: unknown, max: number, field?:string) => { if (!Array.isArray(value)) invalid('Invalid AI list.',field,'wrong_type','array',value,{maxItems:max}); if(value.length>max)invalid('Invalid AI list.',field,'too_many_items','array',value,{maxItems:max}); return value; };
 const uuid = (value: unknown) => { if (typeof value !== 'string' || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value)) throw new Error('Invalid AI record ID.'); return value; };
 export function parseAiRequest(value: unknown): AiRequest {
   const data = record(value);
@@ -21,17 +35,17 @@ export function parseAiRequest(value: unknown): AiRequest {
   return result;
 }
 export function parseAnalysis(value: unknown): Analysis {
-  const data = record(value);
-  if (data.status !== 'ready' && data.status !== 'needs_clarification') throw new Error('Invalid analysis status.');
-  const strings = (value: unknown) => list(value, 30).map(item => text(item, 1200));
+  const data = record(value,'analysis');
+  if (data.status !== 'ready' && data.status !== 'needs_clarification') invalid('Invalid analysis status.','status','expected_ready_or_needs_clarification','string',data.status);
+  const strings = (value: unknown,field:string) => list(value, 30,field).map((item,index) => text(item, 1200,false,`${field}[${index}]`));
   const result: Analysis = {
-    title: text(data.title, 160), status: data.status as Analysis['status'], summary: text(data.summary, 5000),
-    objectives: strings(data.objectives), expectedResults: strings(data.expectedResults), assumptions: strings(data.assumptions), uncertainties: strings(data.uncertainties),
-    components: list(data.components, 60).map(item => { const component = record(item); const quantity=text(component.quantity,80);if(/[{}\[\]]/.test(quantity))throw new Error('Invalid component quantity.');return { name: text(component.name, 120), quantity, details: text(component.details, 600, true) }; }),
-    steps: list(data.steps, 24).map(item => { const step = record(item); return { title: text(step.title, 160), instruction: text(step.instruction, 2200), why: text(step.why, 1200), check: text(step.check, 1200), code: text(step.code, 4000, true) }; }),
+    title: text(data.title, 160,false,'title'), status: data.status as Analysis['status'], summary: text(data.summary, 5000,false,'summary'),
+    objectives: strings(data.objectives,'objectives'), expectedResults: strings(data.expectedResults,'expectedResults'), assumptions: strings(data.assumptions,'assumptions'), uncertainties: strings(data.uncertainties,'uncertainties'),
+    components: list(data.components, 60,'components').map((item,index) => { const field=`components[${index}]`;const component = record(item,field); const quantity=text(component.quantity,80,false,`${field}.quantity`);if(/[{}\[\]]/.test(quantity))invalid('Invalid component quantity.',`${field}.quantity`,'quantity_delimiter','string',component.quantity,{maxLength:80,allowEmpty:false});return { name: text(component.name, 120,false,`${field}.name`), quantity, details: text(component.details, 600, true,`${field}.details`) }; }),
+    steps: list(data.steps, 24,'steps').map((item,index) => { const field=`steps[${index}]`;const step = record(item,field); return { title: text(step.title, 160,false,`${field}.title`), instruction: text(step.instruction, 2200,false,`${field}.instruction`), why: text(step.why, 1200,false,`${field}.why`), check: text(step.check, 1200,false,`${field}.check`), code: text(step.code, 4000, true,`${field}.code`) }; }),
   };
-  if (result.status === 'ready' && !result.steps.length) throw new Error('A ready tutorial needs steps.');
-  if (result.status === 'needs_clarification' && (!result.uncertainties.length || result.steps.length)) throw new Error('Explain the missing information without construction steps.');
+  if (result.status === 'ready' && !result.steps.length) invalid('A ready tutorial needs steps.','steps','required_for_ready','array',data.steps,{maxItems:24});
+  if (result.status === 'needs_clarification' && (!result.uncertainties.length || result.steps.length)) invalid('Explain the missing information without construction steps.',!result.uncertainties.length?'uncertainties':'steps',!result.uncertainties.length?'required_for_clarification':'must_be_empty_for_clarification','array',!result.uncertainties.length?data.uncertainties:data.steps,{maxItems:!result.uncertainties.length?30:0});
   return result;
 }
 const stringSchema = { type: 'string' };
@@ -107,7 +121,7 @@ export async function generate(key: string, input: { contents: Content[]; langua
   if (!candidates.length) throw new Error('AI could not answer this request. Rephrase the question or clarify the assignment.');
   const candidate = record(candidates[0]);
   if (candidate.finishReason !== 'STOP') throw new Error('AI response was blocked or incomplete. Try a shorter, clearer request.');
-  const parts = list(record(candidate.content).parts, 100).map(record).filter(part => !part.thought);
+  const parts = list(record(candidate.content).parts, 100).map(part=>record(part)).filter(part => !part.thought);
   const answer = text(parts.map(part => typeof part.text === 'string' ? part.text : '').join(''), input.analysis ? 100000 : 18000);
   const usage = generated.usageMetadata ? record(generated.usageMetadata) : {};
   const inputTokens = Number(usage.promptTokenCount ?? count); const total = Number(usage.totalTokenCount ?? inputTokens + (input.analysis ? 8192 : 2048));

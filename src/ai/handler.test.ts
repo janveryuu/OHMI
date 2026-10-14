@@ -36,7 +36,7 @@ it('permits a fresh ID when immutable input or language changes', async () => {
   expect(await response.json()).toMatchObject({ok:false,retryNew:true});
 });
 
-it.each(['image/png','application/pdf'])('records Groq usage for %s and never forwards raw PDF even when quality validation fails',async mime=>{
+it.each([['image/png','math'],['application/pdf','math'],['application/pdf','structure']])('records Groq usage for %s on %s validation failure without raw PDF or private logs',async(mime,failureKind)=>{
   const row:Record<string,unknown>={id,status:'pending'};let completed=false;
   const chain=(data:unknown,write?:Record<string,unknown>)=>{
     const query={select(){return query;},eq(){return query;},in(){return query;},gt(){return query;},abortSignal(){return query;},single:async()=>({data,error:null}),maybeSingle:async()=>({data,error:null}),then(resolve:(value:unknown)=>unknown){if(write)Object.assign(row,write);return Promise.resolve({data,error:null}).then(resolve);}};return query;
@@ -46,15 +46,18 @@ it.each(['image/png','application/pdf'])('records Groq usage for %s and never fo
   const user={from(table:string){return chain(table==='ohmi_profiles'?{language:'english'}:table==='ohmi_assignments'?{id,object_path:'owned.file',mime_type:mime,size_bytes:bytes.length}:null);},storage:{from(){return{download:async()=>({data:new Blob([bytes],{type:mime}),error:null})};}}};
   const admin={from(table:string){return table==='ohmi_ai_provider_backoffs'?chain([]):{update(write:Record<string,unknown>){return chain([{id}],write);}};},rpc:async(name:string)=>{if(name==='ohmi_complete_ai')completed=true;return{data:{fresh:true},error:null};}};
   const bad={title:'LED',status:'ready',summary:'5V, 2V, 220 ohms',objectives:[],components:[],expectedResults:['LED current is 16.8 mA.'],assumptions:[],uncertainties:[],steps:[{title:'Check',instruction:'Read ratings on PDF page 1',why:'LED current {{led_current_mA:5,2,220}}.',check:'Why limit current?',code:''}]};
+  if(failureKind==='structure')bad.steps[0]!.instruction='PRIVATE_CONTENT\u000b';
+  const warnings=vi.spyOn(console,'warn').mockImplementation(()=>undefined);
   const calls:{url:string;body:any}[]=[];
   vi.stubGlobal('fetch',async(url:string,options:RequestInit)=>{calls.push({url,body:JSON.parse(String(options.body))});return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(bad)}}],usage:{prompt_tokens:123,total_tokens:456}});});
   try{
     const handler=createAiHandler(async()=>({userId:id,key:'',groqKey:'test',geminiFree:false,groqFree:true,user,admin} as unknown as ScopedAi));
     const response=await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer test'},body:JSON.stringify({kind:'analyze',accountId:id,requestId:id,assignmentId:id,...(mime==='application/pdf'?{pdfContext:{sha256:digest,totalPages:1,pages:[{page:1,text:'5V, 2V, 220 ohms'}],images:[]}}:{})})}));
-    expect(await response.json()).toMatchObject({ok:false,retryNew:true});
+    const result=await response.json();expect(result).toMatchObject({ok:false,retryNew:true});
+    if(failureKind==='structure'){expect(result.validation).toEqual({field:'steps[0].instruction',reason:'control_character',expectedType:'string',actualType:'string',actualLength:16,maxLength:2200,allowEmpty:false});expect(JSON.stringify(result)+JSON.stringify(warnings.mock.calls)).not.toContain('PRIVATE_CONTENT');expect(warnings.mock.calls).toHaveLength(1);}
     expect(row).toMatchObject({status:'failed',model:'qwen/qwen3.8-27b',input_tokens:123,output_tokens:333,accounted_tokens:456});expect(completed).toBe(false);
     expect(calls).toHaveLength(1);expect(calls[0]!.url).toBe('https://api.groq.com/openai/v1/chat/completions');
     if(mime==='image/png')expect(calls[0]!.body.messages[1].content[1].image_url.url).toBe(`data:${mime};base64,${btoa(String.fromCharCode(...bytes))}`);
     else {expect(JSON.stringify(calls[0]!.body)).toContain('[PDF page 1]');expect(JSON.stringify(calls[0]!.body)).not.toContain('application/pdf');}
-  }finally{vi.unstubAllGlobals();}
+  }finally{vi.unstubAllGlobals();warnings.mockRestore();}
 });

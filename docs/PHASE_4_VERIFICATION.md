@@ -2,6 +2,21 @@
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
+## Privacy-safe diagnostics and one live attempt — 15 October 2026
+
+**Diagnostics deployed; Phase 4 remains incomplete. Stopped after one real PDF analysis failed a later citation check.**
+
+- Added `AnalysisValidationError` metadata to `parseAnalysis()` and its string/object/list helpers: field path, fixed reason, expected type/length or item limit, empty-string policy, actual type and actual string/list length. Status, quantity and ready/clarification invariants also report their fields. No input values, arbitrary keys, assignment text, credentials or generated response contents enter diagnostics.
+- The hosted handler logs only this metadata and returns it with the bounded error. Existing limits, prohibited characters, trimming, empty-string exceptions and all accuracy/security checks are unchanged. Groq-only routing, prompts, provider settings and billing are unchanged.
+- **78 focused tests passed** in core/provider/handler/PDF/math suites. Synthetic cases cover missing/null/number/array strings, blanks, excessive lengths, control characters, nested object/list paths, quantity delimiters, allowed whitespace/empty fields and safe handler logging. Typecheck and production build passed; provider-key scan found zero matches. A TypeScript callback adjustment explicitly wraps `record()` so Array.map does not pass its numeric index as a field path.
+- Deployed the necessary diagnostic change **once**. The controlled extension run uploaded the existing PDF privately and confirmed second-account denial, then sent exactly **one Groq analysis request**. Provider usage: 3,391 input / 860 output tokens, 4,251 accounted; request status failed. No retry, prompt change or second deployment.
+
+This response **passed `parseAnalysis()`**; the historical `text()` failure was not reproduced live. It then failed `validatePdfReferences()` with the exact error: `AI omitted PDF page references. Retry with clearer source pages.` That validator requires a `page N` reference in every component detail and in each step's combined instruction/why/check text. Actual failure: at least one of those strings lacked the required citation. The separate citation validator reports no field index, and rejected content is not retained, so the exact offending component/step index and length are **not recoverable** from this run. Do not claim that an old field failure or a particular step was identified.
+
+Groq's required `finish_reason: stop` check and JSON parsing had passed before this rejection; no provider-reported or JSON transport truncation was observed. No accepted tutorial was saved. Per the owner's rule, stopped immediately: no follow-up, accuracy/progress-after-refresh verification, automatic fix or re-analysis. Guarded disposable fixtures were cleaned; student data and usage history remained. The live harness suppresses assertion dumps of response content.
+
+Current code remains on `codex/phase-4`; no main merge, Phase 5 or completion push. The original structural cause is still unknown. A future authorized investigation of the citation failure would need privacy-safe citation-field/index metadata, while keeping its source-reference requirement intact.
+
 ## Validation-only investigation from `12e1d95` — 15 October 2026
 
 **Stopped because the historical rejected field and root cause remain uncertain. No application change, deployment or live provider call.** Groq-only routing, student data and all validation/security rules remain unchanged.

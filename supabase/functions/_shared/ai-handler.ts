@@ -1,6 +1,6 @@
 import {pdfContents,pdfSourceComponents,validatePdfReferences} from './ai-pdf.ts';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { parseAiRequest, parseAnalysis, type AiRequest, type Content } from './ai-core.ts';
+import { AnalysisValidationError, parseAiRequest, parseAnalysis, type AiRequest, type Content } from './ai-core.ts';
 import { resolveAnalysisCurrents } from './ai-math.ts';
 import { estimateRequestTokens, generateWithFallback } from './ai-providers.ts';
 export type ScopedAi = { userId: string; user: SupabaseClient; admin: SupabaseClient; key: string; groqKey?: string; geminiFree?: boolean; groqFree?: boolean };
@@ -132,7 +132,9 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
             retryNew = !failed.error && !!failed.data?.length;
           }
           const message = error instanceof SyntaxError ? 'AI analysis was invalid. Try a clearer document.' : error instanceof Error ? error.message.slice(0, 220) : 'AI could not complete this request. Retry.';
-          write(JSON.stringify({ ok: false, error: message, retryNew }));
+          const validation=error instanceof AnalysisValidationError?error.diagnostic:undefined;
+          if(validation)console.warn(JSON.stringify({validation:'analysis_structure',...validation}));
+          write(JSON.stringify({ ok: false, error: message, retryNew, ...(validation?{validation}:{}) }));
         } finally { clearInterval(timer); if (connected) { try { controller.close(); } catch { /* The caller disconnected; saved results remain private. */ } } }
       },
     });

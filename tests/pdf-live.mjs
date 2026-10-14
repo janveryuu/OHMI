@@ -61,6 +61,9 @@ export async function testPdfLive(env,clients,fixtures){
     const usage=check(await a.from('ohmi_ai_requests').select('model,status,input_tokens,output_tokens').eq('status','completed'));assert.equal(usage.length,2);assert.ok(usage.every(row=>row.model==='qwen/qwen3.8-27b'&&row.input_tokens>0&&row.output_tokens>0));
     await editor.screenshot({path:join(output,'pdf-tutor-followup.png')});
     console.log('PASS live PDF current-step follow-up, actual token accounting, private cache/history and saved progress.');
+  }catch(error){
+    if(error instanceof assert.AssertionError)throw new Error('Live tutorial acceptance failed; response retained privately when available. No response content logged.');
+    throw error;
   }finally{
     await context?.close();const rows=check(await a.from('ohmi_assignments').select('id,object_path'));
     for(const row of rows){check(await a.storage.from('ohmi-assignments').remove([row.object_path]));check(await a.from('ohmi_assignments').delete().eq('id',row.id));}
