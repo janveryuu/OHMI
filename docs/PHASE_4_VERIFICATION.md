@@ -2,6 +2,20 @@
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
+## New Gemini key smoke test — 15 October 2026 (Asia/Manila)
+
+**This session stopped at the requested basic-generation gate.**
+
+- Preserved the existing Phase 4/PDF work in local checkpoint `3213f50` on `codex/phase-4`. Student rows, uploaded files, usage history, UI and provider integrations were not modified by this session.
+- Updated ignored root `.env` and hosted Supabase project `vhmdgfydvoljzqztuxmu` with the new server-only `GEMINI_API_KEY` and `GEMINI_FREE_TIER_CONFIRMED=true`. The flag reflects the owner's project confirmation; no billing setting was changed. No key value is recorded here or in source control.
+- Authenticated Google model lookup returned HTTP 200 for `models/gemini-3.8-flash`, advertising `generateContent` and `countTokens`. Google's [model catalog](https://ai.google.dev/gemini-api/docs/models) also lists this exact ID.
+- Ran the production backend `generate` function locally with the new key: one short LED/resistor question, `analysis:false`, no media or structured-output fields. `countTokens` succeeded. Exactly one `generateContent` request was sent using the existing text configuration with `retry503:false`; no fallback was invoked.
+- Generation returned **HTTP 503**, code `503`, status `UNAVAILABLE`, message: "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+- Per the owner's stop condition, did not test PNG/PDF, change routing/request architecture, deploy an Edge Function, run the end-to-end workflow, or rerun unit/typecheck/build/security suites. This local backend-module probe is not a successful hosted Edge Function test.
+- Removed the temporary secret-upload file and checked tracked files for the new key. Phase completion, tutorial accuracy and saved progress using the new Gemini configuration remain unverified. No completion push, main merge or Phase 5 work occurred.
+
+Next continuation must first pass basic Gemini generation, then test each media format and the Gemini PDF workflow. This HTTP 503 does not establish an HTTP 400 schema fix.
+
 ## Implemented
 
 - Authenticated `ohmi-ai` Edge Function, independent user verification, private owned document/context reads, server-only provider keys, and RLS-protected conversations, messages, analyses, progress and usage.
