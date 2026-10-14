@@ -2,6 +2,21 @@
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
+## Validation-only investigation from `12e1d95` — 15 October 2026
+
+**Stopped because the historical rejected field and root cause remain uncertain. No application change, deployment or live provider call.** Groq-only routing, student data and all validation/security rules remain unchanged.
+
+- Exact throwing validator: the shared `text(value, max, empty=false)` helper in `supabase/functions/_shared/ai-core.ts`, line 7 at `12e1d95`. It throws `AI data is missing or too long.` when the value is not a string, exceeds its maximum UTF-16 length, is blank when required, or contains a disallowed control character (`U+0000–0008`, `U+000B–000C`, `U+000E–001F`, `U+007F`). Tabs, LF and CR are allowed.
+- For this PDF path, `parseAnalysis()` calls that helper after Groq generation, JSON parsing and source component substitution, before source-reference/math validation and saving. Source: `ai-handler.ts` and `ai-providers.ts`. Numeric calculation or blink-code rejection would produce different errors.
+- The rejected response was not captured. The live harness writes `pdf-analysis.json` only after a saved analysis exists. Its existing file predates this failure; it is not the rejected payload. The safe request metadata retains only model/status/token counts, and the production provider logs do not retain generated responses. Therefore the **actual rejected field, actual type/length and exact predicate cannot be recovered** from available evidence.
+- String limits: title/step title 160; summary 5,000; list entries, step why/check 1,200; component name 120; quantity 80; details 600; step instruction 2,200; code 4,000 UTF-16 code units. Component details and code may be empty; other string fields must be nonblank.
+- Local reproduction used the existing fictional fixture and stubbed Groq fetch, without network access. Synthetic `steps[0].instruction` examples (missing, number, blank, 2,201 characters, and a control character) each passed a complete JSON/provider-stop response and then reproduced the exact helper error. These are counterexamples demonstrating ambiguity, not evidence that the historical instruction field failed.
+- Truncation check: `generateGroq()` requires `finish_reason: stop` before returning usage to the handler. The failed live request had metered 3,391 input and 1,047 output tokens, so it passed that check; malformed JSON would also have produced a different handler error. A synthetic `finish_reason: length` is rejected earlier as `AI response was blocked or incomplete. Try a shorter, clearer request.` No evidence of provider-reported or JSON transport truncation; missing semantic content still cannot be ruled out without the payload.
+
+Focused local checks: **47 tests passed** across core/provider/handler test files; the five synthetic boundary cases and truncation self-check also passed. No broader tests, build or database operations were needed because application source was not changed. Local reproduction outputs contain field metadata only; no private document contents, credentials or full responses were logged.
+
+Do not guess a field, trim arbitrary output, raise limits, or relax accuracy/security rules. A future authorized attempt needs privacy-safe field/reason/type/length diagnostics to establish the actual cause; this investigation did not deploy or collect those diagnostics. Saving/progress restoration remain blocked behind an accepted real tutorial. Phase 4 remains incomplete; no main merge, Phase 5 or completion push.
+
 ## Groq restoration and real PDF gate — 15 October 2026 (Asia/Manila)
 
 **Current provider: Groq `qwen/qwen3.8-27b` only. Phase 4 remains incomplete.** This section supersedes previous current-routing descriptions below.
