@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { createAiHandler, type ScopedAi } from '../../supabase/functions/_shared/ai-handler';
 const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 it('rejects missing authentication before invoking any backend or provider', async () => {
@@ -34,4 +34,21 @@ it('permits a fresh ID when immutable input or language changes', async () => {
   const handler=createAiHandler(async()=>({userId:id,key:'test',user} as unknown as ScopedAi));
   const response=await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer test'},body:JSON.stringify({kind:'chat',accountId:id,requestId:id,conversationId:id,message:'Question'})}));
   expect(await response.json()).toMatchObject({ok:false,retryNew:true});
+});
+
+it('records provider-reported usage even when the generated guide fails quality validation',async()=>{
+  const row:Record<string,unknown>={id,status:'pending'};let completed=false;
+  const chain=(data:unknown,write?:Record<string,unknown>)=>{
+    const query={select(){return query;},eq(){return query;},in(){return query;},gt(){return query;},abortSignal(){return query;},single:async()=>({data,error:null}),maybeSingle:async()=>({data,error:null}),then(resolve:(value:unknown)=>unknown){if(write)Object.assign(row,write);return Promise.resolve({data,error:null}).then(resolve);}};return query;
+  };
+  const user={from(table:string){return chain(table==='ohmi_profiles'?{language:'english'}:table==='ohmi_assignments'?{id,object_path:'owned.png',mime_type:'image/png',size_bytes:8}:null);},storage:{from(){return{download:async()=>({data:new Blob([new Uint8Array([137,80,78,71,13,10,26,10])],{type:'image/png'}),error:null})};}}};
+  const admin={from(table:string){return table==='ohmi_ai_provider_backoffs'?chain([]):{update(write:Record<string,unknown>){return chain([{id}],write);}};},rpc:async(name:string)=>{if(name==='ohmi_complete_ai')completed=true;return{data:{fresh:true},error:null};}};
+  const bad={title:'LED',status:'ready',summary:'5V, 2V, 220 ohms',objectives:[],components:[],expectedResults:['LED current is 16.8 mA.'],assumptions:[],uncertainties:[],steps:[{title:'Check',instruction:'Read ratings',why:'LED current {{led_current_mA:5,2,220}}.',check:'Why limit current?',code:''}]};
+  vi.stubGlobal('fetch',async(url:string)=>Response.json(url.endsWith('countTokens')?{totalTokens:10}:{candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(bad)}]}}],usageMetadata:{promptTokenCount:123,totalTokenCount:456}}));
+  try{
+    const handler=createAiHandler(async()=>({userId:id,key:'test',geminiFree:true,user,admin} as unknown as ScopedAi));
+    const response=await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer test'},body:JSON.stringify({kind:'analyze',accountId:id,requestId:id,assignmentId:id})}));
+    expect(await response.json()).toMatchObject({ok:false,retryNew:true});
+    expect(row).toMatchObject({status:'failed',model:'gemini-3.8-flash',input_tokens:123,output_tokens:333,accounted_tokens:456});expect(completed).toBe(false);
+  }finally{vi.unstubAllGlobals();}
 });

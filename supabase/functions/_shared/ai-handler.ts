@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { parseAiRequest, parseAnalysis, type AiRequest, type Content } from './ai-core.ts';
+import { resolveAnalysisCurrents } from './ai-math.ts';
 import { estimateRequestTokens, generateWithFallback } from './ai-providers.ts';
 export type ScopedAi = { userId: string; user: SupabaseClient; admin: SupabaseClient; key: string; groqKey?: string; geminiFree?: boolean; groqFree?: boolean };
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -99,7 +100,10 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
             const saved=await scope.admin.rpc('ohmi_defer_ai_provider',{p_model:model,p_retry_after:seconds}).abortSignal(AbortSignal.timeout(5000));
             if(saved.error)throw new Error('Provider quota state could not be saved.');
           }});
-          const output = input.kind === 'chat' ? { message: input.message, answer: generated.text } : parseAnalysis(JSON.parse(generated.text));
+          // Successful provider usage must survive a rejected guide or account deletion.
+          const metered=await scope.admin.from('ohmi_ai_requests').update({model:generated.model,input_tokens:generated.inputTokens,output_tokens:generated.outputTokens,accounted_tokens:generated.accountedTokens}).eq('id',input.requestId).eq('input_hash',inputHash).in('status',['pending','failed']).select('id').abortSignal(AbortSignal.timeout(5000));
+          if(metered.error||!metered.data?.length)throw new Error('AI usage could not be recorded. Saved work is unchanged.');
+          const output = input.kind === 'chat' ? { message: input.message, answer: generated.text } : resolveAnalysisCurrents(JSON.parse(generated.text));
           const saved = db(await scope.admin.rpc('ohmi_complete_ai', { p_request_id: input.requestId, p_output: output, p_input_tokens: generated.inputTokens, p_output_tokens: generated.outputTokens, p_model:generated.model, p_accounted_tokens:generated.accountedTokens }), 'AI answered but could not save. Retry the same request to check history.');
           write(JSON.stringify({ ok: true, data: await result(scope, input, saved.id), cached: false }));
         } catch (error) {

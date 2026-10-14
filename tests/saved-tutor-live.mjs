@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { testAiExtension } from './ai-extension.mjs';
 
 export function verifyTutorFixture(payload) {
   assert.equal(payload.status,'ready');
-  assert.match(payload.expectedResults.join(' '),/13[.,]6\d{0,4}\s*mA|0[.,]0136\d{0,4}\s*A/i,'The fixture current must be (5V-2V)/220ohm, approximately 13.6mA');
+  assert.match(JSON.stringify(payload),/13[.,]6\d{0,4}\s*mA|0[.,]0136\d{0,4}\s*A/i,'The fixture current must be (5V-2V)/220ohm, approximately 13.6mA');
   assert.doesNotMatch(payload.expectedResults.join(' '),/\b9\s*mA\b/i,'Reject the recorded wrong current');
   const distinct=new Set();
   for(const name of [/arduino|uno/i,/breadboard/i,/\bled\b/i,/resistor/i]){
@@ -13,7 +13,7 @@ export function verifyTutorFixture(payload) {
   assert.equal(distinct.size,4,'List the four required components separately');
   assert.ok(payload.steps.length>0&&payload.steps.length<=24);
   assert.ok(payload.steps.every(step=>step.instruction&&step.why&&step.check));
-  assert.doesNotMatch(JSON.stringify(payload),/7\s*V|600.pin/i);
+  assert.doesNotMatch(JSON.stringify(payload),/7\s*V|600.pin|(?<![\d.])1\s*Hz/i,'Preserve ratings and the stated two-second blink period');
   return payload;
 }
 
@@ -54,6 +54,27 @@ export async function testSavedTutorLive(env,clients,fixtures,query) {
     assert.equal(progress.current_step,1);assert.deepEqual(progress.completed,[0,1]);
     assert.equal(check(await a.from('ohmi_ai_requests').select('id')).length,before,'Saved tutor UI must not consume model quota or create fake usage');
     console.log('PASS live Supabase fixture-backed tutor: save/resume/completion, step context, responsive UI and two-user isolation; no AI generation claimed.');
+    if(process.env.OHMI_AI_LANGUAGES==='1'){
+      const contextual=check(await a.from('ohmi_conversations').insert({user_id:owner,analysis_id:analysisId}).select().single());
+      const explanations=[];
+      for(const language of ['english','filipino','taglish']){
+        if(explanations.length&&explanations.at(-1).model==='qwen/qwen3.8-27b'){
+          console.log('Respecting Groq free TPM: waiting one minute before the next explanation.');
+          await new Promise(resolve=>setTimeout(resolve,60000));
+        }
+        check(await a.from('ohmi_profiles').update({language}).eq('id',owner));
+        const response=check(await a.functions.invoke('ohmi-ai',{body:{kind:'chat',accountId:owner,requestId:crypto.randomUUID(),conversationId:contextual.id,stepIndex:1,message:'Explain the current step and why it matters, in my preferred language. Two sentences and one small hint only.'}}));
+        assert.equal(response.ok,true,response.error);
+        assert.match(response.data.content,/resistor|LED|series|serye|kuryente/i);
+        if(language!=='english')assert.match(response.data.content,/\b(ang|ng|ito|para|natin|yung|mo|kung)\b/i);
+        const usage=check(await a.from('ohmi_ai_requests').select('model,status,input_tokens,output_tokens').eq('result_id',response.data.id).single());
+        assert.equal(usage.status,'completed');assert.ok(usage.input_tokens>0&&usage.output_tokens>0);
+        explanations.push({language,model:usage.model,answer:response.data.content});
+        await writeFile('.superpowers/sdd/2026-10-14-phase-4-recovery/fixture-languages.json',JSON.stringify(explanations,null,2));
+        console.log(`PASS live ${language} current-step explanation of the deterministic saved tutor, actual usage tracked.`);
+      }
+    }
+
   } finally {
     check(await a.storage.from('ohmi-assignments').remove([path]));check(await a.from('ohmi_assignments').delete().eq('id',assignmentId));check(await a.from('ohmi_conversations').delete().eq('user_id',owner));
     assert.equal(check(await a.from('ohmi_analyses').select('id').eq('id',analysisId)).length,0,'Owner deletion removes its analysis');

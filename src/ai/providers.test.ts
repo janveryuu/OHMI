@@ -33,7 +33,7 @@ it('falls back after a provider connection failure while budgeting the abandoned
 it('bounds free-plan image requests and validates Groq output before returning it',async()=>{
   let calls=0;let body:Record<string,any>={};
   await generateGroq('test', {...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'image/png',data:'iVBORw=='}}]}]},async(_url,options)=>{calls++;body=JSON.parse(String(options?.body));return Response.json({choices:[{finish_reason:'stop',message:{content:'{"test":true}'}}],usage:{prompt_tokens:2500,total_tokens:3000}});});
-  expect(body.messages[1].content[0].image_url.url).toBe('data:image/png;base64,iVBORw==');expect(body.max_completion_tokens).toBeLessThan(4096);expect(body.response_format.json_schema.strict).toBe(true);expect(body.store).toBe(false);
+  expect(body.messages[1].content[0].image_url.url).toBe('data:image/png;base64,iVBORw==');expect(body.max_completion_tokens).toBeLessThanOrEqual(4096);expect(body.response_format.json_schema.strict).toBe(true);expect(body.store).toBe(false);
   for(const result of [{choices:[{finish_reason:'length',message:{content:'Partial'}}],usage:{prompt_tokens:1,total_tokens:2}},{choices:[{finish_reason:'stop',message:{content:'Answer'}}],usage:{prompt_tokens:3,total_tokens:2}}]) await expect(generateGroq('test',input,async()=>Response.json(result))).rejects.toThrow();
   expect(calls).toBe(1);
 });
@@ -89,4 +89,23 @@ it('returns a reset hint without HTTP calls when all compatible providers are de
   const until=new Date(Date.now()+3600000).toISOString();
   await expect(generateWithFallback(keys,{...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]}]},async()=>{calls++;return Response.json({});},{backoffs:{'gemini-3.8-flash':until,'gemini-3.6-flash':until}})).rejects.toThrow(/quota.*reset|reset.*quota/i);
   expect(calls).toBe(0);
+});
+
+it('does not immediately retry a 503 when the provider supplies Retry-After',async()=>{
+  let primaryAttempts=0;
+  const result=await generateWithFallback(keys,input,async url=>{
+    const value=String(url);if(value.endsWith('countTokens'))return Response.json({totalTokens:10});
+    if(value.includes('3.8')){primaryAttempts++;return Response.json({},{status:503,headers:{'retry-after':'60'}});}
+    return Response.json(answer);
+  });
+  expect(result.model).toBe('gemini-3.6-flash');expect(primaryAttempts).toBe(1);
+});
+
+it('leaves adequate output room for a compact image guide without exceeding the free request estimate',async()=>{
+  let budget=0;
+  await generateGroq('test',{...input,analysis:true,contents:[{role:'user',parts:[{text:'Analyze this small LED assignment.'},{inlineData:{mimeType:'image/png',data:'iVBORw=='}}]}]},async(_url,options)=>{
+    const body=JSON.parse(String(options?.body));budget=body.max_completion_tokens;
+    return Response.json({choices:[{finish_reason:'stop',message:{content:'{}'}}],usage:{prompt_tokens:3000,total_tokens:3500}});
+  });
+  expect(budget).toBeGreaterThan(2048);expect(budget).toBeLessThanOrEqual(4096);
 });

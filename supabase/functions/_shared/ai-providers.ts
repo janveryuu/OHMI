@@ -14,18 +14,19 @@ export function estimateRequestTokens(contents: Content[], analysis: boolean, do
 }
 
 export async function generateGroq(key: string, input: Input, fetcher: typeof fetch = fetch, signal = AbortSignal.timeout(45000)) {
-  const system = tutorPrompt(input.language) + (input.analysis ? '\n' + ANALYSIS_INSTRUCTION : '');
+  const schema=ANALYSIS_SCHEMA;
+  const system = tutorPrompt(input.language) + (input.analysis ? '\n' + ANALYSIS_INSTRUCTION + '\nFor components.quantity, emit a JSON string such as "1" for the word one, "2" for two, and "3" for three. Do not emit unknown labels when the assignment states a count.' : '');
   let textBytes = new TextEncoder().encode(system).length; let images = 0;
   const messages = [{role:'system',content:system}, ...input.contents.map(message => ({role:message.role === 'model' ? 'assistant' : 'user',content:message.parts.map(part => {
     if ('text' in part) { textBytes += new TextEncoder().encode(part.text).length; return {type:'text',text:part.text}; }
     if (!['image/png','image/jpeg'].includes(part.inlineData.mimeType)) throw new Error('Groq fallback supports PNG/JPG assignments, not PDF. Retry Gemini later.');
     images++; return {type:'image_url',image_url:{url:`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`}};
   })}))];
-  const estimatedInput = textBytes + images*2048 + (input.analysis ? new TextEncoder().encode(JSON.stringify(ANALYSIS_SCHEMA)).length : 0);
+  const estimatedInput = Math.ceil((textBytes + (input.analysis ? new TextEncoder().encode(JSON.stringify(schema)).length : 0))/3) + images*2048 + 256;
   const maxOutput = Math.min(input.analysis?4096:2048,8000-estimatedInput-64);
   if (images > 3 || maxOutput < 1024) throw new Error('This context is too long for the free Groq fallback. Use one smaller image or start a new conversation.');
   const body = JSON.stringify({model:'qwen/qwen3.8-27b',messages,reasoning_effort:'none',reasoning_format:'hidden',max_completion_tokens:maxOutput,store:false,
-    ...(input.analysis ? {response_format:{type:'json_schema',json_schema:{name:'ohmi_assignment',strict:true,schema:ANALYSIS_SCHEMA}}} : {})});
+    ...(input.analysis ? {response_format:{type:'json_schema',json_schema:{name:'ohmi_assignment',strict:true,schema}}} : {})});
   if (body.length > 20000000) throw new Error('This image is too large for Groq fallback. Retry Gemini later.');
   let response: Response;
   try { response = await fetcher('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body,signal}); }

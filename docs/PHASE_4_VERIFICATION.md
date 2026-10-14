@@ -137,3 +137,48 @@ node tests/backend-live.mjs
 The harness now rejects the known incorrect 9 mA statement and accepts the correct 13.6 mA value at reasonable precision. Clearing local counters or replacing provider keys is not a prerequisite and would not resolve provider restrictions. Keep this checkpoint on `codex/phase-4`; do not merge into main or begin Phase 5.
 
 References: [Google structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output), [Groq model/vision compatibility](https://console.groq.com/docs/model/qwen/qwen3.8-27b), [Groq structured output](https://console.groq.com/docs/structured-outputs), [Groq rate-limit headers](https://console.groq.com/docs/rate-limits), [Supabase log queries](https://supabase.com/docs/guides/observability/advanced-log-filtering).
+
+## Recovery implementation — 14 October 2026
+
+This section supersedes earlier verification results. Implementation plan: [Phase 4 recovery](superpowers/plans/2026-10-14-phase-4-recovery.md). Work remains on `codex/phase-4`; Phase 5 and the main merge are not authorized.
+
+### Deployed fixes
+
+- Added migration `20261014065738_provider_quota_backoff.sql` to the existing linked project. Provider cooldowns persist across Edge Function workers, are service-only, and concurrent updates cannot shorten the reset time. Students cannot read or change them. Expiry restores Gemini 3.8 preference automatically.
+- HTTP 429 records the bounded provider retry delay, or a conservative one-minute pause when no delay is supplied. Eligible confirmed-free fallbacks remain available. A 503 with Retry-After does not trigger an immediate repeat. Invalid HTTP 400 requests are never retried.
+- Retained the corrected Gemini OpenAPI structured-output format from the earlier investigation. Its live success is still unverified because both Gemini models are quota-blocked. MIME signatures and payload handling remain validated; raw PDF is never sent to Groq.
+- Groq's input estimate now includes schema/image overhead and estimates text tokens from UTF-8 bytes instead of treating every byte as a token. Existing output ceilings, timeouts and bounded attempts remain intact.
+- Successful provider token usage is recorded before guide validation, so rejected output no longer loses reported usage. Existing usage history is retained.
+- Added explicit server arithmetic for generated LED-current markers. `(5 V - 2 V) / 220 ohms` resolves to 13.6364 mA; invalid ratings, unresolved expressions and inconsistent derived claims in structured expected results are rejected before saving. This checks arithmetic, not whether AI extracted the correct operands or whether a circuit works. Rating statements and breadboard labels have separate regression checks.
+- Groq's integer/unknown quantity-schema experiment produced incorrect unknown labels and was removed. Both providers retain OHMI's string quantity interface, with explicit instructions to preserve stated counts. Blink-period and Tinkercad simulation instructions were tightened after live review.
+
+### Verification
+
+- **71 unit tests passed**, TypeScript passed and the production Chrome extension build passed. Local two-user AI database tests passed: RLS/service-only operations, replay, concurrency, atomic saves, progress bounds, cooldown validation and monotonic updates.
+- Browser regressions passed for Phase 1/2 controls, accessibility/focus, dragging, persistence, responsive bounds, animation/reduced motion, SPA navigation and browser errors. Phase 3 account UI and account-switch privacy regressions passed. These editor pages are simulated; no new logged-in Tinkercad test is claimed.
+- Real Supabase fixture-backed tutor checks passed: saving/resuming/completing steps across reload, current-step/general-chat context, 360px layout, ownership isolation and owner deletion. The fixture is explicitly labeled `offline-test-fixture`; this does not prove fresh AI assignment generation.
+- Changed source/build credential scan passed, and the approved mascot PNG matches the build byte-for-byte. No dependency, billing, key, UI or mascot change was made.
+
+### Live acceptance gates
+
+PNG and JPG requests generated structured Groq tutorials through the actual authenticated Edge Function without HTTP 400. Review still exposed incorrect unknown component counts and, in one PNG response, incorrect units and an unstated resistor example. These responses do **not** pass full tutor acceptance. The test preserves the response before quality assertions and refuses to report these cases as successful.
+
+PDF returned a clear persisted Gemini quota/reset error rather than HTTP 400. Both Gemini models are deferred until **15 October 2026, approximately 08:00 Philippine time**. Groq does not support the raw PDF input. No request was sent to a known-blocked Gemini model.
+
+Live English, Filipino and Taglish current-step explanations all passed through Groq via the authenticated Edge Function, with actual input/output tokens and completed requests recorded. The saved assignment context was the deterministic fixture, not a newly accepted AI-generated tutorial. Responses used the series-resistor/polarity context and Taglish included approximately 13.6 mA. Each Groq explanation was paced one minute apart after an initial minute-quota rejection. The Filipino/Taglish responses were understandable but contained awkward phrasing; the language assertions do not establish native-level fluency.
+
+The final JPG check passed through Groq: the four specified component quantities were each 1, jumper wires were as needed, the current was 13.6364 mA, and the guide included five teaching steps, complete D9 setup()/loop() code and 0.5 Hz blink timing. Cache reuse created no new usage row; saved progress and second-account isolation passed. Manual review still found an invented starter-kit reference and an unspecified breadboard rail label; automated acceptance does not prove every sentence correct.
+
+The first final PNG check was rejected by summary current validation. A unit counterexample reproduced a false rejection of a stated maximum rating in summary prose. Validation now checks raw numeric claims only in structured expected results; explicit arithmetic markers are still resolved throughout the guide.
+
+The corrected PNG check **passed live** through Groq: all four stated counts were 1, current was 13.6364 mA, blink frequency was 0.5 Hz, and six teaching steps included complete D9 setup()/loop() code. Cache reuse, saved progress and cross-account isolation passed. Manual review confirmed the series-resistor/polarity instructions and matching stated ratings. Some uncertainty wording was unnecessary; the guide is AI output and still requires student review.
+
+| Final gate | Status |
+| --- | --- |
+| PNG and JPG Edge Function analysis | Passed Groq automated acceptance and saved-data checks; prose limitations noted above. |
+| English / Filipino / Taglish step explanations | Passed live, using an explicitly deterministic saved assignment context. |
+| Real saved tutor UI / private progress / account isolation | Passed fixture-backed Supabase and browser checks. |
+| Gemini 3.8 / 3.6 final structured generation | Blocked by provider quota; priority automatically restores after expiry. |
+| Raw PDF generation | Blocked by compatible Gemini quota; clear reset error returned, no unsupported Groq call. |
+
+Phase 4 remains incomplete until genuine Gemini/PDF generation is verified. No main merge or Phase 5 work occurred. Disposable accounts/files were cleaned while usage history was retained.

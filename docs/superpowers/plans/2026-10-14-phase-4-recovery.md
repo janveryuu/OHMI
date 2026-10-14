@@ -54,16 +54,21 @@
 
 ### Task 3: Final deployment, controlled live checks and report
 
-**Files:** `docs/PHASE_4_VERIFICATION.md`, this plan and necessary test fixes only.
+**Files:** `docs/PHASE_4_VERIFICATION.md`, this plan, shared AI handler/core/providers, new `ai-math.ts`, and their relevant tests/live harnesses.
 
-- [ ] Review the diff for security, eligibility, cooldown expiry/races, arithmetic checks and preserved UI; no subagent dispatch.
-- [ ] Run `npm test`, `npm run typecheck`, `npm run build`, and relevant DB/UI regressions. Scan changed/build files for credentials; verify mascot hash.
-- [ ] Apply only the tested new migration to the existing linked project, run advisors and deploy `ohmi-ai`.
-- [ ] Reuse authoritative provider reset observations to seed backoffs without sending known-blocked Gemini requests. Test only an eligible free provider once to establish its current availability/reset.
+- [x] Arithmetic recovery from observed live error: add `supabase/functions/_shared/ai-math.ts` exposing `resolveAnalysisCurrents(payload: unknown): Analysis`; use explicit `{{led_current_mA:supply,drop,resistance}}` markers in generated strings, compute on the server without eval, reject inconsistent calculated-current claims in structured expected results and invalid/unresolved markers before save. Keep JSON fields/UI unchanged; test 5/2/220, bad 16.8 mA, ratings, unknown inputs and zero resistance before implementation.
+- [x] Review the diff for security, eligibility, cooldown expiry/races, arithmetic checks and preserved UI; no subagent dispatch.
+- [x] Run `npm test`, `npm run typecheck`, `npm run build`, and relevant DB/UI regressions. Scan changed/build files for credentials; verify mascot hash.
+- [x] Apply only the tested new migration to the existing linked project, run advisors and deploy `ohmi-ai`.
+- [x] Reuse authoritative provider reset observations to seed backoffs without sending known-blocked Gemini requests. Test only an eligible free provider once to establish its current availability/reset.
 - [ ] If quota is available, test PNG, JPG, PDF one at a time, checking 13.6 mA, component quantities, code, cache, ownership and progress; then English/Filipino/Taglish step explanations.
-- [ ] If quota is still exhausted, stop live generation until provider reset. Record exact blocked gates and retry time; do not mark Phase 4 complete.
-- [ ] Clean only recorded disposable fixtures; retain usage history. Commit/push verified changes to `codex/phase-4` and confirm the remote commit.
+- [x] If quota is still exhausted, stop live generation until provider reset. Record exact blocked gates and retry time; do not mark Phase 4 complete.
+- [x] Clean only recorded disposable fixtures; retain usage history. Commit/push verified changes to `codex/phase-4` and confirm the remote commit.
 
 ## Completion rule
 
 Phase 4 is complete only after genuine live Gemini file generation, PNG/JPG/PDF analysis, correct tutor arithmetic, saved tutor behavior and English/Taglish responses pass. Provider quota is an external blocker, not a code error that can be truthfully removed through retries or an offline fixture.
+
+Recovery findings: narrowed numeric claim validation to structured expected results after a summary-rating counterexample failed. Explicit arithmetic markers still resolve throughout all fields; this is not a validator for arbitrary AI prose. Removed the Groq integer/unknown union experiment after it lost stated counts; kept the existing quantity string interface. Final JPG acceptance and live English/Filipino/Taglish step explanations passed. Gemini/PDF quota remains an external gate.
+
+Final status: 71 unit tests, TypeScript, production build, local AI DB security, browser/account privacy, real fixture-backed tutor UI, PNG/JPG Groq acceptance and all three live languages passed. Zero disposable accounts remain; six failed metered requests remain after cleanup, proving reported usage retention. Native Gemini/PDF generation remains unverified until the provider reset. Keep the full live-format gate unchecked and Phase 4 incomplete.

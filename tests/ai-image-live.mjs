@@ -15,8 +15,8 @@ try{
  assert.equal(check(await b.functions.invoke('ohmi-ai',{body:{...input,accountId:fixtures[1].id}})).ok,false);
  const result=check(await a.functions.invoke('ohmi-ai',{body:input}));assert.equal(result.ok,true,result.error);assert.equal(result.data.payload.status,'ready');assert.match(JSON.stringify(result.data.payload),/220/);
  const payload=result.data.payload;
- verifyTutorFixture(payload);
  await writeFile(`.superpowers/sdd/2026-10-14-phase-4/${ext}-edge-results.json`,JSON.stringify(result.data,null,2));
+ verifyTutorFixture(payload);
  const before=check(await a.from('ohmi_ai_requests').select('id')).length;const cached=check(await a.functions.invoke('ohmi-ai',{body:{...input,requestId:crypto.randomUUID()}}));assert.equal(cached.ok,true);assert.equal(cached.cached,true);assert.equal(cached.data.id,result.data.id);assert.equal(check(await a.from('ohmi_ai_requests').select('id')).length,before);
  const step=Math.min(1,payload.steps.length-1);check(await a.rpc('ohmi_save_tutorial_progress',{p_analysis_id:result.data.id,p_current_step:step,p_completed:[0]}));
  const progress=check(await a.from('ohmi_tutorial_progress').select('current_step,completed').eq('analysis_id',result.data.id).single());assert.equal(progress.current_step,step);assert.deepEqual(progress.completed,[0]);assert.equal(check(await b.from('ohmi_analyses').select('id')).length,0);
@@ -26,6 +26,7 @@ try{
  if(process.env.OHMI_AI_LANGUAGES==='1'){
    const contextual=check(await a.from('ohmi_conversations').insert({user_id:fixtures[0].id,analysis_id:result.data.id}).select().single());const explanations=[];
    for(const language of ['filipino','taglish']){
+     if(result.data.model==='qwen/qwen3.8-27b'){console.log('Respecting Groq free TPM: waiting one minute before the next live explanation.');await new Promise(resolve=>setTimeout(resolve,60000));}
      check(await a.from('ohmi_profiles').update({language}).eq('id',fixtures[0].id));
      const answer=check(await a.functions.invoke('ohmi-ai',{body:{kind:'chat',accountId:fixtures[0].id,requestId:crypto.randomUUID(),conversationId:contextual.id,stepIndex:step,message:'Ipaliwanag ang current step at bakit mahalaga ito. Give a small hint, without completing the assignment. Keep it to two sentences.'}}));assert.equal(answer.ok,true,answer.error);assert.match(answer.data.content,/\b(ang|ng|ito|para|kuryente|natin|yung|mo|kung)\b/i);
      explanations.push({language,answer:answer.data.content});console.log(`PASS live ${language} current-step explanation.`);
