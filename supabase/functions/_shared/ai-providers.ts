@@ -36,7 +36,7 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
     const retryAfter=Number(response.headers.get('retry-after'));
     const retryHint=retryAfter>0&&retryAfter<=172800?` Try again in ${Math.ceil(retryAfter)} seconds.`:'';
     console.warn(JSON.stringify({retryAfterSeconds:retryAfter>0&&retryAfter<=172800?Math.ceil(retryAfter):undefined,provider:'groq',model:'qwen/qwen3.8-27b',httpStatus:response.status,...diagnostic,images,maxOutput,format:input.analysis?'json_schema':'text'}));
-    throw new ProviderError(response.status,response.status===429?`The eligible free AI providers are busy or their quota is exhausted.${retryHint||' Retry later.'}${diagnostic?.quotaWindows?' '+diagnostic.quotaWindows.join('/')+' quota.':''} Paid billing is off.`:`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`);
+    throw new ProviderError(response.status,response.status===429?`The eligible free AI providers are busy or their quota is exhausted.${retryHint||' Retry later.'}${diagnostic?.quotaWindows?' '+diagnostic.quotaWindows.join('/')+' quota.':''} Paid billing is off.`:`Groq fallback is unavailable (HTTP ${response.status}). Retry later; billing remains unchanged.`,retryAfter>0&&retryAfter<=172800?Math.ceil(retryAfter):undefined);
   }
   const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');
   const data = JSON.parse(raw); const choice = data.choices?.[0];
@@ -46,23 +46,36 @@ export async function generateGroq(key: string, input: Input, fetcher: typeof fe
   return {text:choice.message.content.trim(),inputTokens,outputTokens:total-inputTokens};
 }
 
-export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch) {
+export async function generateWithFallback(keys: ProviderKeys, input: Input, fetcher: typeof fetch = fetch, options: {backoffs?:Record<string,string>;onQuota?:(model:string,seconds:number)=>Promise<void>} = {}) {
   if (!keys.geminiFree) throw new Error('Confirm the Gemini project uses the free tier before enabling OHMI AI.');
   const signal = AbortSignal.timeout(input.analysis?90000:70000); const outputAllowance = input.analysis ? 8192 : 2048;
   let uncertainTokens = 0; let lastError: unknown;
+  const deferred=(model:string)=>{
+    const until=Date.parse(options.backoffs?.[model]??'');
+    if(until>Date.now()){lastError=new ProviderError(429,`${model} free provider quota is unavailable. Reset: ${new Date(until).toISOString()}.`,Math.ceil((until-Date.now())/1000));return true;}
+    return false;
+  };
+  const recordQuota=async(model:string,error:unknown)=>{
+    if(error instanceof ProviderError&&error.status===429&&options.onQuota){
+      try{await options.onQuota(model,error.retryAfterSeconds??60);}catch{console.warn(JSON.stringify({model,quotaStateSaveFailed:true}));}
+    }
+  };
   for (const model of ['gemini-3.8-flash','gemini-3.6-flash'] as const) {
+    if(deferred(model))continue;
     let attempts = 0; let allowance = estimateRequestTokens(input.contents,input.analysis)/4;
     const countedFetch: typeof fetch = (url,options) => { if (String(url).endsWith(':generateContent')) attempts++; return fetcher(url,options); };
     try {
       const modelSignal = AbortSignal.any([signal,AbortSignal.timeout(model==='gemini-3.8-flash'?(input.analysis?40000:30000):(input.analysis?30000:20000))]);
       const generated = await generate(keys.gemini,input,countedFetch,{model,signal:modelSignal,retry503:model==='gemini-3.8-flash',onCount:count=>{allowance=count+outputAllowance;}});
       return {...generated,model,accountedTokens:uncertainTokens + Math.max(0,attempts-1)*allowance + generated.inputTokens + generated.outputTokens};
-    } catch (error) { if (!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
+    } catch (error) { await recordQuota(model,error); if (!canFallback(error)) throw error; uncertainTokens += attempts*allowance; lastError = error; }
   }
   const groqCompatible=input.contents.every(content=>content.parts.every(part=>'text' in part||['image/png','image/jpeg'].includes(part.inlineData.mimeType)));
-  if (keys.groq && keys.groqFree && groqCompatible && !signal.aborted) {
-    const generated = await generateGroq(keys.groq,input,fetcher,signal);
-    return {...generated,model:'qwen/qwen3.8-27b',accountedTokens:uncertainTokens+generated.inputTokens+generated.outputTokens};
+  if (keys.groq && keys.groqFree && groqCompatible && !signal.aborted && !deferred('qwen/qwen3.8-27b')) {
+    try {
+      const generated = await generateGroq(keys.groq,input,fetcher,signal);
+      return {...generated,model:'qwen/qwen3.8-27b',accountedTokens:uncertainTokens+generated.inputTokens+generated.outputTokens};
+    } catch(error) {await recordQuota('qwen/qwen3.8-27b',error);throw error;}
   }
   throw lastError;
 }

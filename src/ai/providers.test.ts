@@ -68,3 +68,25 @@ it('shows a provider Retry-After without retrying a quota-exhausted Groq request
   await expect(generateGroq('test',input,async()=>{calls++;return Response.json({error:{code:'rate_limit_exceeded'}},{status:429,headers:{'retry-after':'45'}});})).rejects.toThrow('Try again in 45 seconds');
   expect(calls).toBe(1);
 });
+
+it('skips deferred Gemini models while allowing a compatible free fallback',async()=>{
+  const calls:string[]=[];
+  const backoffs={'gemini-3.8-flash':new Date(Date.now()+3600000).toISOString(),'gemini-3.6-flash':new Date(Date.now()+3600000).toISOString()};
+  const result=await generateWithFallback(keys,input,async url=>{calls.push(String(url));return String(url).includes('groq.com')?Response.json({choices:[{finish_reason:'stop',message:{content:'It limits current.'}}],usage:{prompt_tokens:10,total_tokens:20}}):Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:answer);},{backoffs});
+  expect(result.model).toBe('qwen/qwen3.8-27b');expect(calls.some(url=>url.includes('googleapis'))).toBe(false);expect(result.accountedTokens).toBe(20);
+});
+it('restores primary preference when a stored backoff expires',async()=>{
+  const result=await generateWithFallback(keys,input,async url=>Response.json(String(url).endsWith('countTokens')?{totalTokens:10}:answer),{backoffs:{'gemini-3.8-flash':'2020-01-01T00:00:00Z'}});
+  expect(result.model).toBe('gemini-3.8-flash');
+});
+it('records a provider-reported quota delay without blocking the next free fallback',async()=>{
+  const recorded:{model:string;seconds:number}[]=[];
+  const result=await generateWithFallback(keys,input,async url=>{const value=String(url);return Response.json(value.endsWith('countTokens')?{totalTokens:10}:value.includes('3.8')?{}:answer,{status:value.includes('3.8')&&value.endsWith('generateContent')?429:200,headers:{'retry-after':'600'}});},{onQuota:async(model,seconds)=>{recorded.push({model,seconds});}});
+  expect(result.model).toBe('gemini-3.6-flash');expect(recorded).toEqual([{model:'gemini-3.8-flash',seconds:600}]);
+});
+it('returns a reset hint without HTTP calls when all compatible providers are deferred',async()=>{
+  let calls=0;
+  const until=new Date(Date.now()+3600000).toISOString();
+  await expect(generateWithFallback(keys,{...input,analysis:true,contents:[{role:'user',parts:[{inlineData:{mimeType:'application/pdf',data:'JVBERi0='}}]}]},async()=>{calls++;return Response.json({});},{backoffs:{'gemini-3.8-flash':until,'gemini-3.6-flash':until}})).rejects.toThrow(/quota.*reset|reset.*quota/i);
+  expect(calls).toBe(0);
+});

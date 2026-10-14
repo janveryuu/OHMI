@@ -17,6 +17,22 @@ try {
     const client = createClient(env.API_URL, key, options); check(await client.auth.signInWithPassword({ email, password })); fixtures.push({ user, client });
   }
   const [a, b] = fixtures;
+  const backoffBefore=check(await admin.from('ohmi_ai_provider_backoffs').select('*').eq('model','gemini-3.8-flash'));
+  try {
+    const quotaArgs={p_model:'gemini-3.8-flash',p_retry_after:120};
+    assert.ok((await a.client.from('ohmi_ai_provider_backoffs').select('*')).error,'Students cannot read global provider quota state');
+    assert.ok((await a.client.from('ohmi_ai_provider_backoffs').upsert({model:'gemini-3.8-flash',blocked_until:new Date().toISOString()})).error,'Students cannot clear or extend provider backoff');
+    assert.ok((await b.client.rpc('ohmi_defer_ai_provider',quotaArgs)).error,'Provider backoff RPC is service-only');
+    check(await admin.rpc('ohmi_defer_ai_provider',quotaArgs));
+    const original=check(await admin.from('ohmi_ai_provider_backoffs').select('blocked_until').eq('model',quotaArgs.p_model).single()).blocked_until;
+    check(await admin.rpc('ohmi_defer_ai_provider',{...quotaArgs,p_retry_after:1}));
+    assert.equal(check(await admin.from('ohmi_ai_provider_backoffs').select('blocked_until').eq('model',quotaArgs.p_model).single()).blocked_until,original,'A later shorter delay cannot shorten a provider reset');
+    for(const args of [{...quotaArgs,p_model:'unapproved-provider'},{...quotaArgs,p_retry_after:0},{...quotaArgs,p_retry_after:172801}])assert.ok((await admin.rpc('ohmi_defer_ai_provider',args)).error,'Invalid model/delay denied');
+  } finally {
+    check(await admin.from('ohmi_ai_provider_backoffs').delete().eq('model','gemini-3.8-flash'));
+    if(backoffBefore.length)check(await admin.from('ohmi_ai_provider_backoffs').insert(backoffBefore));
+  }
+
   check(await a.client.from('ohmi_analyses').select('id'));
   const conv = check(await a.client.from('ohmi_conversations').insert({ user_id: a.user.id }).select().single());
   assert.equal(check(await b.client.from('ohmi_conversations').select('*')).length, 0);

@@ -52,7 +52,7 @@ export function tutorPrompt(language: string): string {
 export const ANALYSIS_INSTRUCTION = 'Analyze only the provided assignment. Return the required JSON structure with concise summary, objectives, component checklist, expected results, explicit assumptions, uncertainties, and usually 4 to 8 ordered teaching steps (at most 24). Avoid repeated steps. Use literal component quantities from the assignment or "as needed"/"not specified". Each step must contain title, instruction, why, check, and code (empty string when unnecessary). Keep titles under 160 characters, summary under 5000, instructions under 2200, reasoning/check under 1200, code under 4000, component details under 600. Preserve stated values; never invent missing requirements or interpret an uploaded diagram as electrical verification. If missing information prevents a reliable construction guide, use needs_clarification and explain uncertainties, and steps MUST be an empty array. Separate any optional examples from requirements.';
 
 export class ProviderError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public retryAfterSeconds?: number) { super(message); }
 }
 export function providerDiagnostic(value: unknown) {
   const error = value && typeof value==='object' ? (value as {error?:{status?:unknown;code?:unknown;message?:unknown;details?:unknown}}).error : undefined;
@@ -91,7 +91,7 @@ export async function generate(key: string, input: { contents: Content[]; langua
       const retryAfter=Number(response.headers.get('retry-after'))||diagnostic?.retryAfterSeconds;
       const retryHint=retryAfter&&retryAfter>0&&retryAfter<=172800?` Try again in ${Math.ceil(retryAfter)} seconds.`:'';
       console.warn(JSON.stringify({retryAfterSeconds:retryAfter&&retryAfter>0&&retryAfter<=172800?Math.ceil(retryAfter):undefined,provider:'gemini',model,method,httpStatus:response.status,...diagnostic,media:input.contents.flatMap(content=>content.parts.flatMap(part=>'inlineData' in part?[part.inlineData.mimeType]:[])),format:input.analysis?'responseSchema':'text'}));
-      throw new ProviderError(response.status, response.status === 429 ? `Gemini ${model} is busy or provider quota is exhausted.${retryHint||' Retry later.'}${diagnostic?.quotaWindows?' '+diagnostic.quotaWindows.join('/')+' quota.':''}` : response.status === 400 || response.status === 403 ? `Gemini ${model} could not accept ${method} (HTTP ${response.status}). Ask the owner to check API access and document format.` : `Gemini ${method} is unavailable (HTTP ${response.status}). Retry later.`);
+      throw new ProviderError(response.status, response.status === 429 ? `Gemini ${model} is busy or provider quota is exhausted.${retryHint||' Retry later.'}${diagnostic?.quotaWindows?' '+diagnostic.quotaWindows.join('/')+' quota.':''}` : response.status === 400 || response.status === 403 ? `Gemini ${model} could not accept ${method} (HTTP ${response.status}). Ask the owner to check API access and document format.` : `Gemini ${method} is unavailable (HTTP ${response.status}). Retry later.`,retryAfter&&retryAfter>0&&retryAfter<=172800?Math.ceil(retryAfter):undefined);
     }
     const raw = await response.text(); if (raw.length > 500000) throw new Error('AI response is too large. Try a smaller assignment.');
     try { return record(JSON.parse(raw)); } catch { throw new Error('AI returned an invalid response. Retry.'); }

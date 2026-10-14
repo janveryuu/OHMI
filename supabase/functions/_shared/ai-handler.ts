@@ -93,7 +93,12 @@ export function createAiHandler(authenticate: (authorization: string) => Promise
             let binary = ''; for (let offset=0; offset<bytes.length; offset+=8192) binary += String.fromCharCode(...bytes.subarray(offset, offset+8192));
             contents.push({ role: 'user', parts: [{ text: 'Analyze this assignment and generate an honest, manageable teaching guide.' }, { inlineData: { mimeType: assignment.mime_type, data: btoa(binary) } }] });
           }
-          const generated = await generateWithFallback({gemini:scope.key,groq:scope.groqKey,geminiFree:scope.geminiFree,groqFree:scope.groqFree===true}, { contents, language, analysis: input.kind === 'analyze' });
+          const rows=db(await scope.admin.from('ohmi_ai_provider_backoffs').select('model,blocked_until').gt('blocked_until',new Date().toISOString()).abortSignal(AbortSignal.timeout(5000)), 'Provider availability could not be checked. Retry.');
+          const backoffs=Object.fromEntries(rows.map((row:{model:string;blocked_until:string})=>[row.model,row.blocked_until]));
+          const generated = await generateWithFallback({gemini:scope.key,groq:scope.groqKey,geminiFree:scope.geminiFree,groqFree:scope.groqFree===true}, { contents, language, analysis: input.kind === 'analyze' },fetch,{backoffs,onQuota:async(model,seconds)=>{
+            const saved=await scope.admin.rpc('ohmi_defer_ai_provider',{p_model:model,p_retry_after:seconds}).abortSignal(AbortSignal.timeout(5000));
+            if(saved.error)throw new Error('Provider quota state could not be saved.');
+          }});
           const output = input.kind === 'chat' ? { message: input.message, answer: generated.text } : parseAnalysis(JSON.parse(generated.text));
           const saved = db(await scope.admin.rpc('ohmi_complete_ai', { p_request_id: input.requestId, p_output: output, p_input_tokens: generated.inputTokens, p_output_tokens: generated.outputTokens, p_model:generated.model, p_accounted_tokens:generated.accountedTokens }), 'AI answered but could not save. Retry the same request to check history.');
           write(JSON.stringify({ ok: true, data: await result(scope, input, saved.id), cached: false }));

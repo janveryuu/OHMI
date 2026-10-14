@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -39,6 +39,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      ohmi_ai_provider_backoffs: {
+        Row: { model: string; blocked_until: string }
+        Insert: { model: string; blocked_until: string }
+        Update: { model?: string; blocked_until?: string }
+        Relationships: []
+      }
       ohmi_ai_requests: {
         Row: {
           accounted_tokens: number | null
@@ -351,6 +357,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ohmi_defer_ai_provider: {
+        Args: { p_model: string; p_retry_after: number }
+        Returns: undefined
+      }
       ohmi_complete_ai: {
         Args: {
           p_accounted_tokens?: number
