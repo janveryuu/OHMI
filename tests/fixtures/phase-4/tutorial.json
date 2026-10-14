@@ -1,0 +1,74 @@
+{
+  "title": "LED blink — deterministic test fixture",
+  "status": "ready",
+  "summary": "Deterministic test fixture, not an AI-generated answer. Arduino Uno D9 supplies 5 V logic through a 220-ohm resistor and a red LED with 2 V forward drop; LED cathode connects to GND.",
+  "objectives": [
+    "Explain LED polarity and series current limiting.",
+    "Program one second on and one second off."
+  ],
+  "components": [
+    {
+      "name": "Arduino Uno",
+      "quantity": "1",
+      "details": "Use digital pin 9 and GND."
+    },
+    {
+      "name": "Breadboard",
+      "quantity": "1",
+      "details": "Use separate connected strips; check the board layout."
+    },
+    {
+      "name": "Red LED",
+      "quantity": "1",
+      "details": "Forward voltage 2 V; maximum current 20 mA."
+    },
+    {
+      "name": "220-ohm resistor",
+      "quantity": "1",
+      "details": "Keep it in series with the LED."
+    },
+    {
+      "name": "Jumper wires",
+      "quantity": "as needed",
+      "details": "Use wires for the stated series connections."
+    }
+  ],
+  "expectedResults": [
+    "Approximate LED current is (5 V - 2 V) / 220 ohms = 0.013636 A, or 13.6 mA.",
+    "LED alternates one second on and one second off."
+  ],
+  "assumptions": [],
+  "uncertainties": [
+    "This fixture does not electrically verify a circuit or test the suggested code."
+  ],
+  "steps": [
+    {
+      "title": "Check the declared ratings",
+      "instruction": "Use the declared 5 V output, 2 V LED drop and 220-ohm resistor. Calculate (5 - 2) / 220 = 0.013636 A, approximately 13.6 mA.",
+      "why": "The series resistor limits current below the declared 20 mA maximum.",
+      "check": "Why must the resistor stay in series?",
+      "code": ""
+    },
+    {
+      "title": "Wire with simulation stopped",
+      "instruction": "Connect D9 to one end of the 220-ohm resistor, its other end to the LED anode, and the LED cathode to GND. Check polarity and connected breadboard strips.",
+      "why": "Correct polarity and current limiting are necessary for this series path.",
+      "check": "Can you trace D9 through the resistor and LED to GND?",
+      "code": ""
+    },
+    {
+      "title": "Add the suggested blink program",
+      "instruction": "Use the untested suggested code below. D9 turns on for 1000 milliseconds, then off for 1000 milliseconds.",
+      "why": "Pin mode enables output and the two delays set the blink interval.",
+      "check": "What does 1000 milliseconds mean in seconds?",
+      "code": "// Untested suggested code for this fictional fixture.\nconst int ledPin = 9;\nvoid setup() {\n  pinMode(ledPin, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(ledPin, HIGH);\n  delay(1000);\n  digitalWrite(ledPin, LOW);\n  delay(1000);\n}"
+    },
+    {
+      "title": "Observe the simulated result",
+      "instruction": "After checking the connections and resistor, start the simulation yourself and observe the intended one-second blink intervals.",
+      "why": "Observation can reveal mistakes; this guide cannot claim your actual circuit is electrically verified.",
+      "check": "If the LED does not blink, stop simulation and inspect wiring, polarity and code.",
+      "code": ""
+    }
+  ]
+}

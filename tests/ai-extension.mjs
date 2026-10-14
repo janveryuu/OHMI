@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname, basename } from 'node:path';
 import { chromium } from 'playwright';
@@ -22,14 +22,16 @@ export async function testAiExtension(fixtures,saved) {
     if(saved){
       await editor.getByLabel('Saved conversation',{exact:true}).selectOption(saved.conversationId);
       if(saved.hasCode!==false)await editor.getByRole('log',{name:'AI conversation'}).getByText(/setup\s*\(/).waitFor();
-      await editor.reload();await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).click();await editor.getByRole('button',{name:'Ask section',exact:true}).click();
+      await editor.reload();await editor.getByRole('button',{name:/^(Open|Minimize) OHMI assistant$/}).waitFor();if(await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).count())await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).click();await editor.getByRole('button',{name:'Ask section',exact:true}).click();
       await editor.getByRole('log',{name:'AI conversation'}).waitFor();await editor.getByLabel('Saved conversation',{exact:true}).selectOption(saved.conversationId);if(saved.hasCode!==false)await editor.getByRole('log',{name:'AI conversation'}).getByText(/setup\s*\(/).waitFor();
       await editor.getByRole('button',{name:'Guide section',exact:true}).click();await editor.getByRole('region',{name:'AI assignment tutor',exact:true}).waitFor();await editor.getByLabel('Saved AI tutorial',{exact:true}).selectOption(saved.analysisId);
       const guide=editor.getByRole('region',{name:'AI assignment tutor',exact:true});await guide.getByText('1 of ',{exact:false}).waitFor();
       await guide.getByRole('button',{name:'Complete AI step',exact:true}).click();await guide.getByRole('button',{name:'Undo AI step',exact:true}).waitFor();
+      await editor.reload();await editor.getByRole('button',{name:/^(Open|Minimize) OHMI assistant$/}).waitFor();if(await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).count())await editor.getByRole('button',{name:'Open OHMI assistant',exact:true}).click();await editor.getByRole('button',{name:'Guide section',exact:true}).click();await editor.getByLabel('Saved AI tutorial',{exact:true}).selectOption(saved.analysisId);await guide.getByRole('button',{name:'Undo AI step',exact:true}).waitFor();
       await guide.getByRole('button',{name:'Ask about this step',exact:true}).click();await editor.getByText(/Assignment context · step/).waitFor();await editor.getByRole('button',{name:'General chat',exact:true}).click();await editor.getByText(/Assignment context · step/).waitFor({state:'hidden'});
-      await editor.setViewportSize({width:360,height:740});await editor.getByRole('log',{name:'AI conversation'}).waitFor();
-      await editor.screenshot({path:'docs/screenshots/phase-4-chat-small.png'});
+      await editor.setViewportSize({width:360,height:740});await editor.getByRole('log',{name:'AI conversation'}).waitFor();await editor.getByText('OHMI is working…',{exact:true}).waitFor({state:'hidden'});
+      const screenshots=resolve(process.env.OHMI_SCREENSHOT_DIR??'docs/screenshots');await mkdir(screenshots,{recursive:true});
+      await editor.screenshot({path:join(screenshots,'phase-4-chat-small.png')});
       console.log('PASS real saved AI history across reload, tutor resume/completion, current-step chat, general chat and 360px layout.');
     }
   } finally { await context?.close(); assert.equal(dirname(profile),resolve(tmpdir())); assert.ok(basename(profile).startsWith('ohmi-ai-ui-')); await rm(profile,{recursive:true,force:true}); }

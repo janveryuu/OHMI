@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {testAiExtension} from './ai-extension.mjs';
+import {verifyTutorFixture} from './saved-tutor-live.mjs';
 export async function testAssignmentLive(env,clients,fixtures){
 assert.equal(env.WXT_SUPABASE_URL,'https://vhmdgfydvoljzqztuxmu.supabase.co');
 const ext=process.env.OHMI_AI_FILE_TYPE;assert.ok(['pdf','png','jpg'].includes(ext),'Choose one assignment file type');
@@ -14,10 +15,7 @@ try{
  assert.equal(check(await b.functions.invoke('ohmi-ai',{body:{...input,accountId:fixtures[1].id}})).ok,false);
  const result=check(await a.functions.invoke('ohmi-ai',{body:input}));assert.equal(result.ok,true,result.error);assert.equal(result.data.payload.status,'ready');assert.match(JSON.stringify(result.data.payload),/220/);
  const payload=result.data.payload;
- const components=new Set();for(const name of [/arduino|uno/i,/breadboard/i,/^.*\bled\b/i,/resistor/i]){const component=payload.components.find(component=>name.test(component.name));assert.ok(component,`Missing component ${name}`);assert.match(component.quantity,/^(1|one)(\b|$)/i,'Preserve the assignment quantity');components.add(component);}assert.equal(components.size,4,'List the four separate assigned components');
- assert.ok(payload.steps.length>=1&&payload.steps.length<=24);assert.ok(payload.steps.every(step=>step.instruction&&step.why&&step.check));
- assert.match(JSON.stringify(payload),/13[.,]6\d{0,4}\s*mA|0[.,]0136\d{0,4}\s*A/i,'Compute (5V-2V)/220ohm = 13.6mA');
- assert.doesNotMatch(JSON.stringify(payload),/7\s*V|600.pin|\b9\s*mA\b/i,'Do not invent fixture voltages or board sizes');
+ verifyTutorFixture(payload);
  await writeFile(`.superpowers/sdd/2026-10-14-phase-4/${ext}-edge-results.json`,JSON.stringify(result.data,null,2));
  const before=check(await a.from('ohmi_ai_requests').select('id')).length;const cached=check(await a.functions.invoke('ohmi-ai',{body:{...input,requestId:crypto.randomUUID()}}));assert.equal(cached.ok,true);assert.equal(cached.cached,true);assert.equal(cached.data.id,result.data.id);assert.equal(check(await a.from('ohmi_ai_requests').select('id')).length,before);
  const step=Math.min(1,payload.steps.length-1);check(await a.rpc('ohmi_save_tutorial_progress',{p_analysis_id:result.data.id,p_current_step:step,p_completed:[0]}));

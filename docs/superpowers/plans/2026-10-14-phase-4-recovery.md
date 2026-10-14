@@ -46,11 +46,11 @@
 
 **Interfaces:** `testSavedTutorLive(env,clients,fixtures,query)` uses the existing guarded fixture query and cleanup; `OHMI_AI_SAVED_TUTOR=1` selects it. Model metadata must explicitly say `offline-test-fixture`, not impersonate an AI provider.
 
-- [ ] Create a concise manually verified LED fixture: 5 V, 2 V drop, 220 ohms, approximately 13.6 mA; quantities 1 each; series resistor/polarity; complete D9 setup()/loop() code labeled untested.
-- [ ] Add a self-check that rejects the recorded 9 mA error and validates the fixture with the actual parser, before any live fixture writes.
-- [ ] Create only guarded disposable users/owned file/analysis rows; assert second-account denial, progress save/reload and deletion. No AI requests or fabricated usage rows.
-- [ ] Run the real extension against Supabase with a simulated editor: saved tutor resume/completion, current-step chat context, general chat, responsive layout. Capture output in this plan's ignored workspace.
-- [ ] Report it as a real backend/UI fixture check, not fresh AI generation; commit passing changes.
+- [x] Create a concise manually verified LED fixture: 5 V, 2 V drop, 220 ohms, approximately 13.6 mA; quantities 1 each; series resistor/polarity; complete D9 setup()/loop() code labeled untested.
+- [x] Add a self-check that rejects the recorded 9 mA error and validates the fixture with the actual parser, before any live fixture writes.
+- [x] Create only guarded disposable users/owned file/analysis rows; assert second-account denial, progress save/reload and deletion. No AI requests or fabricated usage rows.
+- [x] Run the real extension against Supabase with a simulated editor: saved tutor resume/completion, current-step chat context, general chat, responsive layout. Capture output in this plan's ignored workspace.
+- [x] Report it as a real backend/UI fixture check, not fresh AI generation; commit passing changes.
 
 ### Task 3: Final deployment, controlled live checks and report
 
