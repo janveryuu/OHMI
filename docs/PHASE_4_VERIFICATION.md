@@ -1,4 +1,4 @@
-# Phase 4 verification — candidate 0.4.0
+# Phase 4 verification â€” candidate 0.4.0
 
 **Status: implementation checkpoint; Phase 4 is not fully verified.** The complete live assignment/tutorial suite has not passed. No Phase 5 work was started.
 
@@ -76,7 +76,7 @@ On the last successful format, set `OHMI_AI_LANGUAGES='1'` to verify Filipino/Ta
 The harness first reads UTC allowance and refuses an analysis that cannot fit, before creating test accounts or invoking AI. A successful format checks declared quantities, structured teaching steps, saved progress, cache reuse, UI and two-user isolation. Live generation, complete tutor accuracy and multilingual explanations remain unverified in this continuation; Phase 4 stays incomplete.
 
 
-## Usage policy update � 14 October 2026
+## Usage policy update — 14 October 2026
 
 The owner explicitly authorized removing OHMI's internal daily token cap. This supersedes the earlier allowance/reset gate above. Migration `20261014055307_request_based_ai_usage.sql` is applied to the existing live project; `ohmi-ai` is redeployed. No usage rows were deleted or reset by the migration.
 
