@@ -4,5 +4,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "supabase"
+  ]
 }

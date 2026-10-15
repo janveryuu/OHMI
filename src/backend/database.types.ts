@@ -103,12 +103,220 @@ export type Database = {
         }
         Relationships: []
       }
+      ohmi_analyses: {
+        Row: {
+          id: string
+          user_id: string
+          assignment_id: string | null
+          language: string
+          payload: Json
+          model: string
+          created_at: string
+          schema_version: number
+          artifact_kind: 'analysis' | 'tutorial'
+          provider: string
+          source_hash: string | null
+          prompt_version: number
+          fingerprint: string | null
+          title: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          assignment_id?: string | null
+          language: string
+          payload: Json
+          model: string
+          created_at?: string
+          schema_version?: number
+          artifact_kind?: 'analysis' | 'tutorial'
+          provider?: string
+          source_hash?: string | null
+          prompt_version?: number
+          fingerprint?: string | null
+          title?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          assignment_id?: string | null
+          language?: string
+          payload?: Json
+          model?: string
+          created_at?: string
+          schema_version?: number
+          artifact_kind?: 'analysis' | 'tutorial'
+          provider?: string
+          source_hash?: string | null
+          prompt_version?: number
+          fingerprint?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      ohmi_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          analysis_id: string | null
+          title: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          analysis_id?: string | null
+          title?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          analysis_id?: string | null
+          title?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ohmi_messages: {
+        Row: {
+          id: string
+          user_id: string
+          conversation_id: string
+          role: 'user' | 'assistant'
+          content: string
+          position: number
+          request_id: string
+          created_at: string
+          structured_result: Json | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          conversation_id: string
+          role: 'user' | 'assistant'
+          content: string
+          position: number
+          request_id: string
+          created_at?: string
+          structured_result?: Json | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          conversation_id?: string
+          role?: 'user' | 'assistant'
+          content?: string
+          position?: number
+          request_id?: string
+          created_at?: string
+          structured_result?: Json | null
+        }
+        Relationships: []
+      }
+      ohmi_tutorial_progress: {
+        Row: {
+          analysis_id: string
+          user_id: string
+          current_step: number
+          completed: number[]
+          updated_at: string
+        }
+        Insert: {
+          analysis_id: string
+          user_id: string
+          current_step?: number
+          completed?: number[]
+          updated_at?: string
+        }
+        Update: {
+          analysis_id?: string
+          user_id?: string
+          current_step?: number
+          completed?: number[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ohmi_ai_requests: {
+        Row: {
+          id: string
+          user_id: string | null
+          kind: string
+          input_hash: string
+          conversation_id: string | null
+          assignment_id: string | null
+          language: string
+          model: string
+          status: 'pending' | 'completed' | 'failed'
+          result_id: string | null
+          reserved_tokens: number
+          input_tokens: number | null
+          output_tokens: number | null
+          accounted_tokens: number | null
+          error_code: string | null
+          error_message: string | null
+          created_at: string
+          finished_at: string | null
+        }
+        Insert: {
+          id: string
+          user_id?: string | null
+          kind: string
+          input_hash: string
+          conversation_id?: string | null
+          assignment_id?: string | null
+          language: string
+          model?: string
+          status?: 'pending' | 'completed' | 'failed'
+          result_id?: string | null
+          reserved_tokens: number
+          input_tokens?: number | null
+          output_tokens?: number | null
+          accounted_tokens?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          created_at?: string
+          finished_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          kind?: string
+          input_hash?: string
+          conversation_id?: string | null
+          assignment_id?: string | null
+          language?: string
+          model?: string
+          status?: 'pending' | 'completed' | 'failed'
+          result_id?: string | null
+          reserved_tokens?: number
+          input_tokens?: number | null
+          output_tokens?: number | null
+          accounted_tokens?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          created_at?: string
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ohmi_save_tutorial_progress: {
+        Args: {
+          p_analysis_id: string
+          p_current_step: number
+          p_completed: number[]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -94,4 +94,39 @@ describe('worker failure handling', () => {
     expect(mock.auth.signInWithOAuth).toHaveBeenCalledWith({ provider: 'google', options: { redirectTo: 'https://ikemolangalcofljjajakagdnfdpnakh.chromiumapp.org/', skipBrowserRedirect: true } });
     expect(mock.removeItem).toHaveBeenCalledTimes(2);
   });
+  it('forwards ai.chat with bearer token and active account verification', async () => {
+    const { handleRequest } = await service();
+    const fakeFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      requestId: 'req-1',
+      result: { status: 'answer', answer: 'A resistor limits current.' }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fakeFetch);
+
+    const res = await handleRequest({
+      action: 'ai.chat',
+      payload: {
+        accountId: 'owner',
+        requestId: 'req-1',
+        message: 'What does a resistor do?',
+        language: 'english'
+      }
+    });
+
+    expect(res).toEqual({
+      ok: true,
+      requestId: 'req-1',
+      result: { status: 'answer', answer: 'A resistor limits current.' }
+    });
+    expect(fakeFetch).toHaveBeenCalledWith(
+      'https://test.supabase.co/functions/v1/ohmi-ai',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-session'
+        })
+      })
+    );
+  });
 });
+

@@ -184,6 +184,131 @@ export async function handleRequest(request: Request): Promise<unknown> {
     else result = await client.from('ohmi_assignment_steps').delete().eq('id', String(payload.id)).eq('user_id', user.id);
     fail(result.error); void notifyAccount(); return null;
   }
+  if (action.startsWith('conversations.')) {
+    if (action === 'conversations.list') {
+      const result = await client
+        .from('ohmi_conversations')
+        .select('id,title,analysis_id,created_at,updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+      fail(result.error);
+      return result.data;
+    }
+    if (action === 'conversations.open') {
+      const convId = String(payload.id);
+      const [convRes, msgRes] = await Promise.all([
+        client.from('ohmi_conversations').select('id,title,analysis_id,created_at,updated_at').eq('id', convId).eq('user_id', user.id).single(),
+        client.from('ohmi_messages').select('id,role,content,position,created_at,structured_result').eq('conversation_id', convId).eq('user_id', user.id).order('position', { ascending: true }).limit(50)
+      ]);
+      fail(convRes.error);
+      fail(msgRes.error);
+      return { conversation: convRes.data, messages: msgRes.data };
+    }
+    if (action === 'conversations.delete') {
+      const result = await client.from('ohmi_conversations').delete().eq('id', String(payload.id)).eq('user_id', user.id);
+      fail(result.error);
+      return null;
+    }
+  }
+  if (action.startsWith('analyses.')) {
+    if (action === 'analyses.get') {
+      const result = await client
+        .from('ohmi_analyses')
+        .select('id,assignment_id,language,payload,model,schema_version,artifact_kind,provider,source_hash,prompt_version,fingerprint,title,created_at')
+        .eq('id', String(payload.id))
+        .eq('user_id', user.id)
+        .single();
+      fail(result.error);
+      return result.data;
+    }
+    if (action === 'analyses.list') {
+      let query = client
+        .from('ohmi_analyses')
+        .select('id,assignment_id,language,model,schema_version,artifact_kind,provider,title,created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (payload.assignmentId) {
+        query = query.eq('assignment_id', String(payload.assignmentId));
+      }
+      const result = await query;
+      fail(result.error);
+      return result.data;
+    }
+  }
+  if (action.startsWith('progress.')) {
+    if (action === 'progress.get') {
+      const result = await client
+        .from('ohmi_tutorial_progress')
+        .select('analysis_id,current_step,completed,updated_at')
+        .eq('analysis_id', String(payload.analysisId))
+        .eq('user_id', user.id)
+        .maybeSingle();
+      fail(result.error);
+      return result.data;
+    }
+    if (action === 'progress.save') {
+      const analysisId = String(payload.analysisId);
+      const currentStep = Number(payload.currentStep);
+      const completed = Array.isArray(payload.completed) ? (payload.completed as number[]) : [];
+      const result = await client.rpc('ohmi_save_tutorial_progress', {
+        p_analysis_id: analysisId,
+        p_current_step: currentStep,
+        p_completed: completed
+      });
+      fail(result.error);
+      return null;
+    }
+  }
+  if (action === 'ai.chat') {
+    const session = await client.auth.getSession();
+    fail(session.error);
+    if (!session.data.session || session.data.session.user.id !== user.id) {
+      throw new Error('Account changed. Sign in again before chatting.');
+    }
+    const token = session.data.session.access_token;
+    const edgeUrl = `${backend!.config.url}/functions/v1/ohmi-ai`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 28000);
+
+    try {
+      const res = await fetch(edgeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          version: 1,
+          requestId: payload.requestId,
+          operation: payload.operation || 'chat',
+          language: payload.language,
+          message: payload.message,
+          code: payload.code,
+          context: payload.context,
+          calculation: payload.calculation,
+          assignmentId: payload.assignmentId,
+          conversationId: payload.conversationId
+        }),
+        signal: controller.signal
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'AI assistance failed.');
+      }
+      return data;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('AI response timed out after 28 seconds. Try again.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   throw new Error('Unknown request.');
 }
 

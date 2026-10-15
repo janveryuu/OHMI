@@ -55,3 +55,86 @@ describe('assignment file validation', () => {
     expect(validateFile({ name: 'lab.jpg', size: 20, mime: 'image/jpeg', signature: [255, 216, 255] }).extension).toBe('jpg');
   });
 });
+
+describe('ai.chat request validation', () => {
+  const dummyAcc = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const dummyReq = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  it('accepts valid chat requests and bounds length/context', () => {
+    const valid = validateRequest(message('ai.chat', {
+      accountId: dummyAcc,
+      requestId: dummyReq,
+      message: 'Hello OHMI',
+      language: 'taglish'
+    }), content, id);
+    expect(valid.action).toBe('ai.chat');
+    expect(valid.payload.message).toBe('Hello OHMI');
+  });
+
+  it('rejects missing requestId, oversized message, or invalid language', () => {
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, message: 'Hi' }), content, id)).toThrow();
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'x'.repeat(2001), language: 'english' }), content, id)).toThrow();
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'spanish' }), content, id)).toThrow();
+  });
+
+  it('validates optional calculation payload in ai.chat', () => {
+    const validCalc = validateRequest(message('ai.chat', {
+      accountId: dummyAcc,
+      requestId: dummyReq,
+      message: 'Calculate LED resistor',
+      language: 'english',
+      calculation: {
+        type: 'led_resistor',
+        operands: { supplyVoltage: 5, forwardVoltage: 2, targetCurrent: 0.015 }
+      }
+    }), content, id);
+    expect(validCalc.action).toBe('ai.chat');
+
+    // Rejects unsupported calculation type
+    expect(() => validateRequest(message('ai.chat', {
+      accountId: dummyAcc,
+      requestId: dummyReq,
+      message: 'Calc',
+      language: 'english',
+      calculation: { type: 'unsupported_formula', operands: {} }
+    }), content, id)).toThrow('Unsupported calculation type.');
+  });
+});
+
+describe('durable history actions validation', () => {
+  const dummyAcc = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const dummyId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  it('validates conversations actions', () => {
+    expect(validateRequest(message('conversations.list', { accountId: dummyAcc }), content, id).action).toBe('conversations.list');
+    expect(validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.open');
+    expect(validateRequest(message('conversations.delete', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.delete');
+
+    // Missing id for open/delete
+    expect(() => validateRequest(message('conversations.open', { accountId: dummyAcc }), content, id)).toThrow();
+    expect(() => validateRequest(message('conversations.delete', { accountId: dummyAcc, id: 'invalid-uuid' }), content, id)).toThrow();
+  });
+
+  it('validates analyses actions', () => {
+    expect(validateRequest(message('analyses.get', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('analyses.get');
+    expect(validateRequest(message('analyses.list', { accountId: dummyAcc }), content, id).action).toBe('analyses.list');
+    expect(validateRequest(message('analyses.list', { accountId: dummyAcc, assignmentId: dummyId }), content, id).action).toBe('analyses.list');
+
+    expect(() => validateRequest(message('analyses.get', { accountId: dummyAcc, id: 'bad' }), content, id)).toThrow();
+    expect(() => validateRequest(message('analyses.list', { accountId: dummyAcc, assignmentId: 'bad' }), content, id)).toThrow();
+  });
+
+  it('validates tutorial progress actions', () => {
+    expect(validateRequest(message('progress.get', { accountId: dummyAcc, analysisId: dummyId }), content, id).action).toBe('progress.get');
+    expect(validateRequest(message('progress.save', {
+      accountId: dummyAcc,
+      analysisId: dummyId,
+      currentStep: 2,
+      completed: [0, 1]
+    }), content, id).action).toBe('progress.save');
+
+    // Rejects invalid step bounds or non-integers
+    expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: 25, completed: [] }), content, id)).toThrow();
+    expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: -1, completed: [] }), content, id)).toThrow();
+    expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: 1, completed: [30] }), content, id)).toThrow();
+  });
+});

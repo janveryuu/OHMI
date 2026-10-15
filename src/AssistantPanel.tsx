@@ -8,7 +8,22 @@ import type { useAccount } from './useAccount';
 import type { Assignment } from './backend/contracts';
 
 type SampleState = 'empty' | 'loading' | 'ready';
-type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language'] };
+type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; isAi?: boolean };
+
+function renderMessageText(text: string) {
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('```') && part.endsWith('```')) {
+      const codeLines = part.slice(3, -3).replace(/^[a-zA-Z0-9_-]+\r?\n/, '');
+      return (
+        <pre key={index} className="ohmi-code-block" style={{ background: 'rgba(0,0,0,0.06)', padding: '6px 8px', borderRadius: '4px', overflowX: 'auto', fontSize: '0.85em' }}>
+          <code>{codeLines}</code>
+        </pre>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
 type Props = {
   imageUrl: string;
   preferences: Preferences;
@@ -90,16 +105,6 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   useEffect(() => { if (!open) setMore(false); }, [open]);
 
   useEffect(() => {
-    if (pendingReply === null) return;
-    const timer = window.setTimeout(() => {
-      setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: demoReply(pendingReply), language: pendingReply }]);
-      setPendingReply(null);
-      onMotion('happy');
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [pendingReply, onMotion]);
-
-  useEffect(() => {
     if (assignment !== 'loading') return;
     const timer = window.setTimeout(() => { setAssignment('ready'); onMotion('happy'); }, 600);
     return () => window.clearTimeout(timer);
@@ -115,15 +120,108 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     if (section === 'chat' && chatLogRef.current) chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
   }, [messages, pendingReply, section]);
 
-  const send = () => {
+  const send = async () => {
     const text = draft.trim();
     if (!text || pendingReply !== null) return;
+    const currentUserId = account.state.user?.id;
     setMessages((current) => [...current, { id: ++messageId.current, role: 'user', text, attachment: attached }]);
     setDraft('');
     setAttached(false);
     setNotice('');
     setPendingReply(preferences.language);
     onMotion('thinking');
+
+    if (!currentUserId || attached) {
+      window.setTimeout(() => {
+        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: demoReply(preferences.language), language: preferences.language, isAi: false }]);
+        setPendingReply(null);
+        onMotion('happy');
+      }, 650);
+      return;
+    }
+
+    try {
+      const chatContext = messages.slice(-4).map((m) => ({
+        role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        text: m.text
+      }));
+
+      const res = await request('ai.chat', {
+        accountId: currentUserId,
+        requestId: crypto.randomUUID(),
+        message: text,
+        language: preferences.language,
+        context: chatContext
+      }) as { ok?: boolean; result?: { answer?: string } } | null;
+
+      if (account.state.user?.id !== currentUserId) return;
+
+      const answer = res?.result?.answer;
+      if (answer) {
+        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: answer, language: preferences.language, isAi: true }]);
+        onMotion('happy');
+      } else {
+        setNotice('No answer received from AI tutor.');
+      }
+    } catch (err: unknown) {
+      if (account.state.user?.id !== currentUserId) return;
+      const errMsg = err instanceof Error ? err.message : 'AI request failed.';
+      setNotice(errMsg);
+      onMotion('idle');
+    } finally {
+      if (account.state.user?.id === currentUserId) {
+        setPendingReply(null);
+      }
+    }
+  };
+
+  const analyzeAssignment = async (item: Assignment) => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId || pendingReply !== null) return;
+    navigate('chat');
+    setNotice('');
+    setPendingReply(preferences.language);
+    onMotion('thinking');
+    const isImg = item.mime_type.startsWith('image/');
+    const op = isImg ? 'image' : 'pdf';
+    setMessages((curr) => [...curr, {
+      id: ++messageId.current,
+      role: 'user',
+      text: `Analyze my saved ${isImg ? 'circuit screenshot' : 'assignment'}: ${item.original_name}`
+    }]);
+
+    try {
+      const res = await request('ai.chat', {
+        accountId: currentUserId,
+        requestId: crypto.randomUUID(),
+        operation: op,
+        assignmentId: item.id,
+        message: `Please inspect this ${isImg ? 'circuit screenshot' : 'electronics assignment'}. Identify visible components, connections, and any potential issues or uncertainties.`,
+        language: preferences.language
+      }) as { ok?: boolean; result?: { answer?: string } } | null;
+
+      if (account.state.user?.id !== currentUserId) return;
+      const answer = res?.result?.answer;
+      if (answer) {
+        setMessages((curr) => [...curr, {
+          id: ++messageId.current,
+          role: 'ohmi',
+          text: answer,
+          language: preferences.language,
+          isAi: true
+        }]);
+        onMotion('happy');
+      } else {
+        setNotice('No analysis response received.');
+        onMotion('idle');
+      }
+    } catch (err: unknown) {
+      if (account.state.user?.id !== currentUserId) return;
+      setNotice(err instanceof Error ? err.message : 'Analysis failed.');
+      onMotion('idle');
+    } finally {
+      if (account.state.user?.id === currentUserId) setPendingReply(null);
+    }
   };
 
   const unavailable = () => setNotice('AI analysis is not connected. Use a built-in sample here, or save real files privately in Assignments.');
@@ -167,18 +265,18 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label="Local demo conversation" aria-live="polite" tabIndex={0}>
           {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>What’s puzzling you? Try a question about the sample LED circuit.</p></div>}
           {messages.map((message) => <div key={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
-            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : 'Fixed sample reply'}</span>
-            <p lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}>{message.text}</p>
+            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
+            <div lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}>{renderMessageText(message.text)}</div>
             {message.attachment && <span className="ohmi-file-chip"><Icon name="assignments" size={14} />led-lab.pdf (sample)</span>}
           </div>)}
           {pendingReply !== null && <p className="ohmi-loading" role="status"><span className="ohmi-loading-dot" />Loading a sample reply…</p>}
         </div>
         {messages.length === 0 && <button type="button" className="ohmi-suggestion" onClick={() => { setDraft('What does a resistor do?'); inputRef.current?.focus(); }}>What does a resistor do?</button>}
-        <form className="ohmi-compose" onSubmit={(event) => { event.preventDefault(); send(); }}>
+        <form className="ohmi-compose" onSubmit={(event) => { event.preventDefault(); void send(); }}>
           <label htmlFor="ohmi-question" className="ohmi-sr-only">Your demo question</label>
           {attached && <div className="ohmi-file-chip"><Icon name="assignments" size={16} /><span>led-lab.pdf (sample)</span><button type="button" className="ohmi-icon-button" aria-label="Remove sample attachment" onClick={() => setAttached(false)}><Icon name="close" size={14} /></button></div>}
           <textarea ref={inputRef} id="ohmi-question" name="question" autoComplete="off" rows={2} maxLength={2000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask about a component or concept…" aria-describedby="ohmi-chat-help" onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); }
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); }
           }} />
           <div className="ohmi-compose-actions"><button type="button" className="ohmi-icon-button" aria-label="Use sample attachment" title="Attach the built-in sample; real files unavailable" onClick={() => setAttached(true)} disabled={attached}><Icon name="attachment" /></button><span>Local demo</span><button type="submit" className="ohmi-button ohmi-primary" disabled={!draft.trim() || pendingReply !== null}><Icon name="send" size={16} />Send demo</button></div>
           <p id="ohmi-chat-help">Fixed sample replies. Real file attachments are unavailable.</p>
@@ -186,7 +284,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </div>}
 
       {section === 'assignments' && <>
-        <PrivateAssignments {...account} refresh={account.refresh} onGuide={(item) => { setSavedAssignment(item); navigate('guide'); }} />
+        <PrivateAssignments {...account} refresh={account.refresh} onAnalyze={analyzeAssignment} onGuide={(item) => { setSavedAssignment(item); navigate('guide'); }} />
         <p className="ohmi-sample-divider">Local demonstration — separate from your saved files</p>
         {assignment !== 'ready' ? <UploadPreview kind="assignment" state={assignment} onUnavailable={unavailable} onSample={() => { setAssignment('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
           <div className="ohmi-sample-file"><span className="ohmi-feature-icon"><Icon name="assignments" /></span><div><strong>led-lab.pdf</strong><p>Built-in sample assignment</p></div><button type="button" className="ohmi-icon-button" aria-label="Remove sample assignment" onClick={() => setAssignment('empty')}><Icon name="close" size={16} /></button></div>

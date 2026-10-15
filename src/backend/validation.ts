@@ -1,7 +1,17 @@
 import { isCircuitEditorUrl } from '../editor-url';
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const actions = ['local.read', 'local.position', 'local.preferences', 'account.state', 'account.open', 'auth.signIn', 'auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover', 'auth.password', 'auth.google', 'auth.signOut', 'profile.language', 'profile.name', 'files.prepare', 'files.finish', 'files.open', 'files.delete', 'steps.list', 'steps.add', 'steps.update', 'steps.delete'] as const;
+const actions = [
+  'local.read', 'local.position', 'local.preferences', 'account.state', 'account.open',
+  'auth.signIn', 'auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover', 'auth.password', 'auth.google', 'auth.signOut',
+  'profile.language', 'profile.name',
+  'files.prepare', 'files.finish', 'files.open', 'files.delete',
+  'steps.list', 'steps.add', 'steps.update', 'steps.delete',
+  'conversations.list', 'conversations.open', 'conversations.delete',
+  'analyses.get', 'analyses.list',
+  'progress.get', 'progress.save',
+  'ai.chat'
+] as const;
 export type Action = typeof actions[number];
 export type Request = { action: Action; payload: Record<string, unknown> };
 type Sender = { id?: string; url?: string; tab?: { id?: number }; frameId?: number };
@@ -29,7 +39,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   const action = request.action as Action;
   if (trustedOnly.has(action) && !trusted) throw new Error('Open OHMI Account to use this action.');
   const payload = object(request.payload ?? {});
-  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.')) uuid(payload.accountId);
+  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('conversations.') || action.startsWith('analyses.') || action.startsWith('progress.') || action === 'ai.chat') uuid(payload.accountId);
   if (action === 'local.position') {
     const position = object(payload.position);
     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || typeof payload.open !== 'boolean') throw new Error('Invalid mascot position.');
@@ -45,11 +55,34 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (['auth.confirm', 'auth.recover'].includes(action) && (typeof payload.token !== 'string' || !/^\d{6,10}$/.test(payload.token))) throw new Error('Enter the verification code from your email.');
   if (action === 'profile.language' && !['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
   if (action === 'profile.name' && (typeof payload.name !== 'string' || payload.name.length > 80 || /[\x00-\x1f]/.test(payload.name))) throw new Error('Use a name of at most 80 characters.');
-  if (['files.finish', 'files.open', 'files.delete', 'steps.update', 'steps.delete'].includes(action)) uuid(payload.id);
+  if (['files.finish', 'files.open', 'files.delete', 'steps.update', 'steps.delete', 'conversations.open', 'conversations.delete', 'analyses.get'].includes(action)) uuid(payload.id);
   if (['steps.list', 'steps.add'].includes(action)) uuid(payload.assignmentId);
+  if (action === 'analyses.list' && payload.assignmentId !== undefined) uuid(payload.assignmentId);
+  if (['progress.get', 'progress.save'].includes(action)) uuid(payload.analysisId);
+  if (action === 'progress.save') {
+    if (typeof payload.currentStep !== 'number' || payload.currentStep < 0 || payload.currentStep > 23 || !Number.isInteger(payload.currentStep)) throw new Error('Invalid step index.');
+    if (!Array.isArray(payload.completed) || payload.completed.length > 24 || payload.completed.some(s => typeof s !== 'number' || s < 0 || s > 23 || !Number.isInteger(s))) throw new Error('Invalid completed steps.');
+  }
   if (action === 'steps.add') payload.title = text(payload.title, 500);
   if (action === 'steps.update' && typeof payload.completed !== 'boolean') throw new Error('Invalid step state.');
   if (action === 'files.prepare') validateFile(payload);
+  if (action === 'ai.chat') {
+    uuid(payload.requestId);
+    payload.message = text(payload.message, 2000);
+    if (!['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
+    if (payload.code !== undefined && (typeof payload.code !== 'string' || payload.code.length > 8000)) throw new Error('Invalid code length.');
+    if (payload.assignmentId !== undefined) uuid(payload.assignmentId);
+    if (payload.conversationId !== undefined) uuid(payload.conversationId);
+    if (payload.context !== undefined && (!Array.isArray(payload.context) || payload.context.length > 4)) throw new Error('Invalid context.');
+    if (payload.calculation !== undefined) {
+      if (typeof payload.calculation !== 'object' || payload.calculation === null) throw new Error('Invalid calculation payload.');
+      const calc = payload.calculation as Record<string, unknown>;
+      if (!['ohms_law', 'led_resistor', 'series_resistance', 'parallel_resistance', 'resistor_power'].includes(String(calc.type))) {
+        throw new Error('Unsupported calculation type.');
+      }
+      if (typeof calc.operands !== 'object' || calc.operands === null) throw new Error('Invalid calculation operands.');
+    }
+  }
   return { action, payload };
 }
 
