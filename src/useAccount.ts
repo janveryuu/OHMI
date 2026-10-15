@@ -10,26 +10,19 @@ export function useAccount() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const sequence = useRef(0);
-  const owner = useRef<string | null>(null);
-  const refresh = useCallback(async (accountId?: string | null) => {
+  const refresh = useCallback(async () => {
     const current = ++sequence.current;
     setLoading(true);
-    // Owner hints only invalidate views; account.state still verifies the current user.
-    if (accountId !== undefined && accountId !== owner.current) { owner.current = null; setState(empty); setError(''); }
     try {
       const next = await request<AccountState>('account.state');
-      if (current === sequence.current) { owner.current = next.user?.id ?? null; setState(next); setError(next.storageError ?? ''); }
+      if (current === sequence.current) { setState(next); setError(next.storageError ?? ''); }
     } catch (failure) {
-      if (current === sequence.current) { owner.current = null; setState(empty); setError(failure instanceof Error ? failure.message : 'Account disconnected. Retry.'); }
+      if (current === sequence.current) { setState(empty); setError(failure instanceof Error ? failure.message : 'Account disconnected. Retry.'); }
     } finally { if (current === sequence.current) setLoading(false); }
   }, []);
   useEffect(() => {
     void refresh();
-    const changed = (message: { channel?: string; event?: string; accountId?: unknown }, sender: { id?: string }) => {
-      if (sender.id === browser.runtime.id && message?.channel === 'ohmi' && message.event === 'account.changed') {
-        void refresh(typeof message.accountId === 'string' || message.accountId === null ? message.accountId : null);
-      }
-    };
+    const changed = (message: { channel?: string; event?: string }) => { if (message?.channel === 'ohmi' && message.event === 'account.changed') void refresh(); };
     const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
     browser.runtime.onMessage.addListener(changed);
     window.addEventListener('focus', visible);

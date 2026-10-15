@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -12,149 +12,8 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
-      ohmi_ai_provider_backoffs: {
-        Row: { model: string; blocked_until: string }
-        Insert: { model: string; blocked_until: string }
-        Update: { model?: string; blocked_until?: string }
-        Relationships: []
-      }
-      ohmi_ai_requests: {
-        Row: {
-          accounted_tokens: number | null
-          assignment_id: string | null
-          conversation_id: string | null
-          created_at: string
-          finished_at: string | null
-          id: string
-          input_hash: string
-          input_tokens: number | null
-          kind: string
-          language: string
-          model: string
-          output_tokens: number | null
-          reserved_tokens: number
-          result_id: string | null
-          status: string
-          user_id: string | null
-        }
-        Insert: {
-          accounted_tokens?: number | null
-          assignment_id?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          finished_at?: string | null
-          id: string
-          input_hash: string
-          input_tokens?: number | null
-          kind: string
-          language: string
-          model?: string
-          output_tokens?: number | null
-          reserved_tokens: number
-          result_id?: string | null
-          status?: string
-          user_id?: string | null
-        }
-        Update: {
-          accounted_tokens?: number | null
-          assignment_id?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          finished_at?: string | null
-          id?: string
-          input_hash?: string
-          input_tokens?: number | null
-          kind?: string
-          language?: string
-          model?: string
-          output_tokens?: number | null
-          reserved_tokens?: number
-          result_id?: string | null
-          status?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ohmi_ai_requests_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ohmi_ai_requests_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ohmi_analyses: {
-        Row: {
-          assignment_id: string
-          created_at: string
-          id: string
-          language: string
-          model: string
-          payload: Json
-          user_id: string
-        }
-        Insert: {
-          assignment_id: string
-          created_at?: string
-          id?: string
-          language: string
-          model: string
-          payload: Json
-          user_id: string
-        }
-        Update: {
-          assignment_id?: string
-          created_at?: string
-          id?: string
-          language?: string
-          model?: string
-          payload?: Json
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ohmi_analyses_assignment_id_user_id_fkey"
-            columns: ["assignment_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_assignments"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
       ohmi_assignment_steps: {
         Row: {
           assignment_id: string
@@ -223,82 +82,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ohmi_conversations: {
-        Row: {
-          analysis_id: string | null
-          created_at: string
-          id: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          analysis_id?: string | null
-          created_at?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          analysis_id?: string | null
-          created_at?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ohmi_conversations_analysis_id_user_id_fkey"
-            columns: ["analysis_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_analyses"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
-      ohmi_messages: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          position: number
-          request_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          position: number
-          request_id: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          position?: number
-          request_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ohmi_messages_conversation_id_user_id_fkey"
-            columns: ["conversation_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_conversations"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
       ohmi_profiles: {
         Row: {
           created_at: string
@@ -320,78 +103,12 @@ export type Database = {
         }
         Relationships: []
       }
-      ohmi_tutorial_progress: {
-        Row: {
-          analysis_id: string
-          completed: number[]
-          current_step: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          analysis_id: string
-          completed?: number[]
-          current_step?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          analysis_id?: string
-          completed?: number[]
-          current_step?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ohmi_tutorial_progress_analysis_id_user_id_fkey"
-            columns: ["analysis_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "ohmi_analyses"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      ohmi_defer_ai_provider: {
-        Args: { p_model: string; p_retry_after: number }
-        Returns: undefined
-      }
-      ohmi_complete_ai: {
-        Args: {
-          p_accounted_tokens?: number
-          p_input_tokens: number
-          p_model?: string
-          p_output: Json
-          p_output_tokens: number
-          p_request_id: string
-        }
-        Returns: Json
-      }
-      ohmi_reserve_ai: {
-        Args: {
-          p_hash: string
-          p_kind: string
-          p_language: string
-          p_estimated_tokens?: number
-          p_request_id: string
-          p_target: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
-      ohmi_save_tutorial_progress: {
-        Args: {
-          p_analysis_id: string
-          p_completed: number[]
-          p_current_step: number
-        }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -520,9 +237,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

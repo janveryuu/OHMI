@@ -9,6 +9,5 @@ coverage/
 *.key
 *.log
 .superpowers/
-.local-tests/
 supabase/.temp/
 supabase/.branches/

@@ -1,12 +1,14 @@
 # OHMI — Your Circuit Buddy
 
-Phase 4 candidate, version **0.4.0**: authenticated AI chat/history, assignment analysis and saved tutorials, alongside existing accounts and the approved mascot. Live file-analysis verification remains blocked by provider failures and the project reservation cap. See [Phase 4 verification](docs/PHASE_4_VERIFICATION.md). Email confirmation/password reset remain **pending custom SMTP**. Circuit checking remains a sample.
+Phase 3, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed. AI and circuit checking still use samples.
+
+Phase 4 has been rolled back and will be redesigned from scratch with Antigravity. No live AI integration is included in this foundation. See the [rollback record](docs/PHASE_4_ROLLBACK.md) for backups, verification and retained live database resources. Phase 5 has not begun.
 
 ## Load or update
 
 1. Use Node.js 22.12+ (verified with 24.16.0). Copy `.env.example` to ignored `.env` for a new checkout. See [Phase 3 setup](docs/PHASE_3_SETUP.md). Use only the project URL and publishable key.
 2. Run `npm ci`, then `npm run build`.
-3. In `chrome://extensions`, enable Developer mode and load `.output/chrome-mv3`. For the existing installation, click **Reload** and confirm **0.4.0**. Keep the original absolute build path to retain the registered extension ID.
+3. In `chrome://extensions`, enable Developer mode and load `.output/chrome-mv3`. For the existing installation, click **Reload** and confirm **0.3.0**. Keep the original absolute build path to retain the registered extension ID.
 4. Refresh your [Tinkercad Circuits](https://www.tinkercad.com) editor. Open OHMI → Settings → **Sign in to OHMI** → **Continue with Google**.
 
 Authentication and real uploads use an extension-owned Account page. Passwords and upload authorization never enter Tinkercad. After source changes, rebuild, reload the extension, and refresh the editor. `npm run dev` is available.
@@ -15,19 +17,11 @@ Authentication and real uploads use an extension-owned Account page. Passwords a
 
 - Google sign-in/sign-out, display name, persistent session, and on-demand expired-session refresh.
 - Private PDF/PNG/JPG uploads up to **10 MiB**, actual byte progress, 60-second signed retrieval links, confirmed deletion, and recoverable incomplete uploads.
-- Student-written assignment steps and completion saved in Supabase. Manual steps remain available alongside AI tutorials.
+- Student-written assignment steps and completion saved in Supabase. No AI generation.
 - Account language synchronization. Appearance, animations, mascot placement/open state remain device-local.
 - Existing confirmed email accounts can sign in. New email confirmation and reset actions remain gated until SMTP is ready.
 
 Find real files in **Assignments**, above the sample analysis flow. **Upload assignment** opens Account. Sample upload areas do not analyze real files; use the private assignment controls to save documents.
-
-## Phase 4 candidate
-
-- Groq `qwen/qwen3.8-27b` is the only active provider for chat, images, PDF tutorials and follow-up explanations. PDF text and relevant rendered diagrams are prepared locally; raw PDFs are never sent to Groq. Gemini 3.8/3.6 integrations remain in source, with automatic routing disabled. Existing saved tutorials remain available.
-- Ask saves private conversations. Assignments provides explicit Analyze controls and cached analyses. Guide restores owned step position/completion; step questions use owned assignment context. Guest samples remain available.
-- Provider keys remain server-side in Supabase secrets and ignored local environment files used for diagnostics; none are bundled in the extension. Provider accounts were confirmed free by the owner; OHMI does not enable billing. Free-tier Google inputs may be used to improve Google products.
-- The Edge Function requires a verified account. Server protections: six requests/user/minute, one active/user, bounded input/output and retries. No internal daily project token or request cap; provider free-tier quotas apply. Reservations estimate the actual request, while successful token usage remains separately recorded.
-- Provider failures return without automatic retries or fallback calls; unsafe/invalid responses are rejected. Failed-attempt estimates remain separate from provider-reported successful usage and do not impose a daily cap. Availability and AI accuracy are not guaranteed.
 
 ## Preserved Phase 1/2 behavior
 
@@ -50,7 +44,7 @@ npm run build
 npm run test:browser
 ```
 
-Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots go to `docs/screenshots`, or the directory selected by `OHMI_SCREENSHOT_DIR`. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
+Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots go to `docs/screenshots`. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
 
 With Docker Desktop:
 
@@ -63,7 +57,7 @@ Local tests discover localhost credentials in memory and clean disposable users/
 
 ## Manual checks
 
-1. Reload 0.4.0 and refresh Circuits. Check one mascot; none on dashboards or the 3D editor.
+1. Reload 0.3.0 and refresh Circuits. Check one mascot; none on dashboards or the 3D editor.
 2. Sign in with Google, save a name, restart Chrome, and verify account/files return.
 3. Upload PDF/PNG/JPG, open the file, save/check steps, and delete it. Another account must not see it.
 4. Cancel Google login and retry. Check account switching in two open Account pages.
@@ -74,7 +68,7 @@ Local tests discover localhost credentials in memory and clean disposable users/
 
 Email verification is **not disabled**. Keep `WXT_EMAIL_DELIVERY_READY=false` until custom SMTP and prepared OTP templates are verified. Rotate privileged keys previously exposed in chat; this implementation never used or committed them. Other machines need the original registered extension's public manifest key for stable identity.
 
-Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload; real assignment steps persist. Facial animation frames still need owner approval. Phase 4 remains incomplete until the live file-analysis and contextual tutorial checks pass. Phase 5 has not started.
+Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload; real assignment steps persist. Facial animation frames still need owner approval. Phase 4 has not started.
 
 ## References
 

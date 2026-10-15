@@ -7,7 +7,7 @@ import { testPhase2 } from './phase2.mjs';
 import { testPhase3 } from './phase3.mjs';
 
 const extension = resolve('.output/chrome-mv3');
-const screenshots = resolve(process.env.OHMI_SCREENSHOT_DIR??'docs/screenshots');
+const screenshots = resolve('docs/screenshots');
 const profile = await mkdtemp(join(tmpdir(), 'ohmi-browser-'));
 const errors = [];
 const context = await chromium.launchPersistentContext(profile, {

@@ -4,4 +4,4 @@ export type Assignment = { id: string; original_name: string; mime_type: string;
 export type AssignmentStep = { id: string; assignment_id: string; title: string; completed: boolean; created_at: string };
 export type AccountState = { configured: boolean; user: { id: string; email: string } | null; profile: Profile | null; assignments: Assignment[]; recovery: boolean; storageError?: string };
 export type UploadAuthorization = { id: string; url: string; key: string; token: string; mime: string };
-export type Response<T> = { ok: true; data: T } | { ok: false; error: string; code?: string };
+export type Response<T> = { ok: true; data: T } | { ok: false; error: string };

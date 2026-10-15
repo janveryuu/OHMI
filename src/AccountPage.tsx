@@ -5,8 +5,6 @@ import { PrivateAssignments } from './PrivateAssignments';
 import { AssignmentSteps } from './AssignmentSteps';
 import { validateFile, type Action } from './backend/validation';
 import type { Assignment, UploadAuthorization } from './backend/contracts';
-import { AiTutor } from './ai/AiTutor';
-import { AiChat,type ChatContext } from './ai/AiChat';
 
 type Mode = 'login' | 'signup' | 'confirm' | 'forgot' | 'recover' | 'reset';
 const headings: Record<Mode, string> = { login: 'Your OHMI account', signup: 'Create your OHMI account', confirm: 'Confirm your email', forgot: 'Reset your password', recover: 'Verify your recovery code', reset: 'Choose a new password' };
@@ -25,7 +23,6 @@ export function AccountPage() {
   const [percent, setPercent] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Assignment | null>(null);
-  const [analysis,setAnalysis]=useState<string>();const [chat,setChat]=useState<ChatContext>();
   const fileRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const uploadSequence = useRef(0);
@@ -33,7 +30,7 @@ export function AccountPage() {
   const emailReady = import.meta.env.WXT_EMAIL_DELIVERY_READY === 'true';
   useEffect(() => { setName(account.state.profile?.display_name ?? ''); setSelected(null); if (account.state.recovery) setMode('reset'); }, [account.state.user?.id, account.state.profile?.display_name, account.state.recovery]);
   useEffect(() => () => { uploadSequence.current++; xhrRef.current?.abort(); }, []);
-  useEffect(() => { uploadSequence.current++; xhrRef.current?.abort(); setFile(null);setAnalysis(undefined);setChat(undefined); if (fileRef.current) fileRef.current.value = ''; }, [account.state.user?.id]);
+  useEffect(() => { uploadSequence.current++; xhrRef.current?.abort(); setFile(null); if (fileRef.current) fileRef.current.value = ''; }, [account.state.user?.id]);
   const changeMode = (next: Mode) => { setMode(next); setPassword(''); setToken(''); setError(''); setNotice(''); };
   const run = async (action: Action, payload: Record<string, unknown> = {}, success?: () => void) => {
     if (busy || uploading || account.loading) return;
@@ -96,7 +93,7 @@ export function AccountPage() {
       setError(message); await account.refresh();
     } finally { xhrRef.current = null; setUploading(false); }
   };
-  return <div className="ohmi-root ohmi-account-root">{account.loading&&<p role="status">Checking your account…</p>}<main className="ohmi-account-card" style={account.loading&&account.state.user?{visibility:'hidden'}:undefined}>
+  return <div className="ohmi-root ohmi-account-root"><main className="ohmi-account-card">
     <header className="ohmi-account-brand"><img src="/assets/mascot/ohmi-pixel-front.png" alt="OHMI mascot" width={56} height={56} /><div><strong translate="no">OHMI</strong><p>Your circuit buddy</p></div></header>
     <h1>{showAccount ? 'Your private workspace' : headings[mode]}</h1>
     <p className="ohmi-muted">{showAccount ? 'Manage your account and saved assignments.' : 'Sign in securely in this extension-owned page.'}</p>
@@ -110,7 +107,7 @@ export function AccountPage() {
       <form className="ohmi-account-form" onSubmit={(event) => { event.preventDefault(); void run('profile.name', { name }, () => setNotice('Account name saved.')); }}><label htmlFor="ohmi-display-name">Display name</label><input id="ohmi-display-name" name="name" autoComplete="name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /><button type="submit" className="ohmi-button ohmi-secondary" disabled={busy || uploading || account.loading}>Save account name</button></form>
       <div className="ohmi-account-actions"><button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => changeMode('forgot')}>Reset password</button><button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => { void run('auth.signOut', {}, () => { changeMode('login'); setFile(null); setSelected(null); }); }}>Sign out</button></div>
       <section id="upload" className="ohmi-account-upload"><h2>Upload an assignment</h2><p className="ohmi-muted">PDF, PNG, or JPG. Maximum 10 MiB. Private to your account.</p><label htmlFor="ohmi-assignment-file">Assignment file</label><input ref={fileRef} id="ohmi-assignment-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" disabled={uploading || busy || account.loading} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPercent(null); setError(''); }} />{file && <p className="ohmi-muted">{file.name}</p>}<button type="button" className="ohmi-button ohmi-primary ohmi-full-width" disabled={!file || uploading || busy || account.loading} onClick={() => { void upload(); }}>{uploading ? 'Uploading assignment…' : 'Save private assignment'}</button>{percent !== null && <div className="ohmi-upload-progress"><progress aria-label="Assignment upload progress" value={percent} max={100} /><p role="status" className="ohmi-muted">{uploading ? percent >= 99 ? 'Verifying upload…' : `Uploading ${percent}%` : percent === 100 ? 'Upload complete' : 'Upload stopped'}</p></div>}{uploading && <button type="button" className="ohmi-text-button" onClick={() => xhrRef.current?.abort()} disabled={!xhrRef.current}>Cancel upload</button>}</section>
-      {chat&&account.state.user?<><button type="button" className="ohmi-text-button" onClick={()=>setChat(undefined)}>Back to AI tutorial</button><AiChat key={account.state.user.id+chat.analysisId+chat.stepIndex} accountId={account.state.user.id} context={chat} onMotion={()=>{}}/></>:analysis&&account.state.user?<AiTutor key={account.state.user.id+analysis} accountId={account.state.user.id} analysisId={analysis} onAsk={setChat} onBack={()=>setAnalysis(undefined)}/>:selected && account.state.user ? <AssignmentSteps key={account.state.user.id + selected.id} accountId={account.state.user.id} assignment={selected} onBack={() => setSelected(null)} /> : <PrivateAssignments key={account.state.user?.id??'guest'} {...account} refresh={account.refresh} onGuide={setSelected} onAiGuide={setAnalysis} onUpload={() => fileRef.current?.focus()} />}
+      {selected && account.state.user ? <AssignmentSteps key={account.state.user.id + selected.id} accountId={account.state.user.id} assignment={selected} onBack={() => setSelected(null)} /> : <PrivateAssignments {...account} refresh={account.refresh} onGuide={setSelected} onUpload={() => fileRef.current?.focus()} />}
     </> : <>
       {mode === 'login' && <button type="button" className="ohmi-button ohmi-secondary ohmi-full-width" disabled={busy || account.loading || !account.state.configured} onClick={() => { void run('auth.google'); }}>Continue with Google</button>}
       <form className="ohmi-account-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
@@ -121,6 +118,6 @@ export function AccountPage() {
       </form>
       <div className="ohmi-account-actions">{mode === 'login' ? <><button type="button" className="ohmi-text-button" disabled={busy} onClick={() => changeMode('signup')}>Create account</button><button type="button" className="ohmi-text-button" disabled={busy} onClick={() => changeMode('forgot')}>Forgot password?</button><button type="button" className="ohmi-text-button" disabled={busy} onClick={() => changeMode('confirm')}>Enter confirmation code</button></> : <><button type="button" className="ohmi-text-button" disabled={busy} onClick={() => changeMode('login')}>Back to sign in</button>{mode === 'confirm' && <button type="button" className="ohmi-text-button" disabled={busy || !email} onClick={() => { void run('auth.resend', { email }); }}>Resend confirmation code</button>}{mode === 'recover' && <button type="button" className="ohmi-text-button" disabled={busy || !email} onClick={() => { void run('auth.forgot', { email }); }}>Resend recovery code</button>}</>}</div>
     </>}
-    <footer className="ohmi-account-footer">OHMI is an independent learning companion. AI guidance can be mistaken. Circuit checking remains a sample preview.</footer>
+    <footer className="ohmi-account-footer">OHMI is an independent learning companion. AI and circuit checking remain sample previews.</footer>
   </main></div>;
 }

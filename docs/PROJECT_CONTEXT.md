@@ -1,3 +1,5 @@
+> Current state, 15 October 2026: restored to verified Phase 3 (0.3.0). Phase 4 was rolled back and will be redesigned from scratch using Antigravity; do not resume the old implementation or begin Phase 5. See [PHASE_4_ROLLBACK.md](PHASE_4_ROLLBACK.md). The product vision below is historical context, not approval to rebuild.
+>
 > This is the original Phase 0 brief, preserved for reference. Sections 9–10 describe the initial context task; later user instructions set the active phase.
 
 > Mascot authority: [OHMI_MASCOT.md](OHMI_MASCOT.md) defines the approved pixel-art PNG assets. Use its front image for the future floating mascot and its six-view sheet for future animation reference. The original 3D-style wording below is historical; these assets are 2D illustrations, not rigged models.
