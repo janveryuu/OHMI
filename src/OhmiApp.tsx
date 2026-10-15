@@ -157,7 +157,7 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
           }}
           style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, maxHeight: rect.height }}
         >
-          <AssistantPanel imageUrl={imageUrl} preferences={preferences} onPreferencesChange={savePreferences} onMotion={reactTo} onClose={() => setPanelOpen(false)} closeRef={closeRef} open={open} systemReducedMotion={systemReducedMotion} preferenceError={preferenceError} account={account} />
+          <AssistantPanel key={account.state.user?.id ?? 'signed-out'} imageUrl={imageUrl} preferences={preferences} onPreferencesChange={savePreferences} onMotion={reactTo} onClose={() => setPanelOpen(false)} closeRef={closeRef} open={open} systemReducedMotion={systemReducedMotion} preferenceError={preferenceError} account={account} />
         </section>
 
       <button

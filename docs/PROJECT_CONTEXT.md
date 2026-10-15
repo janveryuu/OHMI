@@ -1,4 +1,4 @@
-> Current state, 15 October 2026: restored to verified Phase 3 (0.3.0). Phase 4 was rolled back and will be redesigned from scratch using Antigravity; do not resume the old implementation or begin Phase 5. See [PHASE_4_ROLLBACK.md](PHASE_4_ROLLBACK.md). The product vision below is historical context, not approval to rebuild.
+> Current state, 15 October 2026: Phase 3 (0.3.0), stabilized on `codex/stabilize-phases-1-3`. See [current verification and remaining gates](PHASES_1-3_STABILIZATION.md) and [Antigravity handoff](ANTIGRAVITY_HANDOFF.md). Phase 4 was rolled back and will be redesigned from scratch; do not resume the old implementation or begin Phase 5. Seven migration files preserve existing hosted history; retained Phase 4 tables are dormant. Original-path extension identity and unverified privileged-key rotation remain explicit owner requirements. The product vision below is historical context, not approval to rebuild.
 >
 > This is the original Phase 0 brief, preserved for reference. Sections 9–10 describe the initial context task; later user instructions set the active phase.
 

@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { loadEnv } from 'vite';
 
 const env = loadEnv('production', '.', 'WXT_');
+if (!env.WXT_EXTENSION_PUBLIC_KEY) console.warn('OHMI extension identity depends on its build path. Preserve the registered installation path until its public manifest key is available.');
 const backendOrigin = env.WXT_SUPABASE_URL && /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(env.WXT_SUPABASE_URL) ? new URL(env.WXT_SUPABASE_URL).origin : undefined;
 
 export default defineConfig({

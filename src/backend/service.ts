@@ -190,7 +190,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
 export function publicError(error: unknown): string {
   const value = error as { code?: string; message?: string };
   if (value?.code === 'invalid_credentials') return 'Email or password is incorrect.';
-  if (value?.code === 'email_not_confirmed') return 'Confirm your email using the code before signing in.';
+  if (value?.code === 'email_not_confirmed') return import.meta.env.WXT_EMAIL_DELIVERY_READY === 'true' ? 'Confirm your email using the code before signing in.' : 'Email confirmation is pending email delivery setup. Use Google sign-in or an existing confirmed account.';
   if (value?.code === 'otp_expired') return 'That code expired or is invalid. Request another code.';
   if (value?.code === 'over_email_send_rate_limit') return 'Too many email requests. Wait a few minutes before retrying.';
   if (value?.code === 'PGRST205' || value?.code === '42P01') return 'Private storage setup is pending. Ask the project owner to apply the OHMI migration.';

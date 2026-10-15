@@ -41,10 +41,10 @@ export async function testPhase2(page, screenshots) {
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   await page.getByRole('button', { name: 'Assignments', exact: true }).click();
   assert.equal(await page.locator('.ohmi-upload').count(), 1, 'Assignment empty state');
-  assert.equal(await page.getByRole('button', { name: 'Choose file — unavailable', exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole('button', { name: 'Analyze file — unavailable', exact: true }).isDisabled(), true);
   await page.locator('.ohmi-upload').dispatchEvent('drop');
   await page.getByRole('alert').waitFor();
-  assert.match(await page.getByRole('alert').innerText(), /Real uploads aren’t connected/);
+  assert.match(await page.getByRole('alert').innerText(), /AI analysis is not connected/);
   await page.getByRole('button', { name: 'Dismiss notice', exact: true }).click();
   await page.getByRole('button', { name: 'Use sample assignment', exact: true }).click();
   await page.getByText('Loading the built-in assignment preview…', { exact: true }).waitFor();

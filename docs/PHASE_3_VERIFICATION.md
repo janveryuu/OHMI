@@ -1,5 +1,7 @@
 # Phase 3 verification — version 0.3.0
 
+> Historical Phase 3 acceptance evidence follows. For current stabilization, migration reconciliation, account privacy, email gating and manual security/identity gates, read [Phase 1–3 stabilization](PHASES_1-3_STABILIZATION.md) and [Antigravity handoff](ANTIGRAVITY_HANDOFF.md).
+
 ## Accepted scope
 
 Google authentication, private assignments, profiles/language, and saved student-written steps. The owner explicitly deferred email confirmation/password reset until custom SMTP; verification remains required and those delivery-dependent actions are gated. Phase 4 is excluded.
@@ -43,7 +45,7 @@ A separate fresh reviewer inspected the whole change against Phase 2 commit `1f8
 
 **Additional verified fixes:** cancellation cleanup could leave the auth lock set if Chrome storage failed (RED → GREEN unit regression). Saved-step checkbox now updates immediately and rolls back on save failure; the original failing live checkbox test passes, and completion persists across reload/restart. Language controls wait for account loading before changes; two-account language restoration passes.
 
-**Deferred minor:** legacy sample upload copy still says real uploads are unavailable. It refers to the sample analysis/circuit area; functional private uploads appear separately above it. README clarifies the distinction. Clarify this sample copy in a later UI change.
+**Resolved during stabilization:** sample copy now distinguishes demonstration-only AI analysis from functional private assignment uploads.
 
 ## Decisions and costs
 

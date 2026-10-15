@@ -28,7 +28,7 @@ These obsolete live resources remain intentionally preserved and require a separ
 - Six applied Phase 4 migration records: `20261013172020`, `20261013173243`, `20261013174603`, `20261013181631`, `20261014055307`, `20261014065738`. The Phase 3 record `20261012141823` remains. Original SQL is in the backup branch/bundle.
 - Existing Gemini/Groq provider secrets and free-tier flags remain server-side as requested. Credentials are not copied into this document or the rollback commit.
 
-The checkout has only the Phase 3 migration source while the existing hosted database retains later migration history. Reconcile that history explicitly before any future migration push or repair. Do not mark remote migrations unapplied or run destructive reset/drop operations to conceal this difference. New local databases can use the restored Phase 3 migration without altering the hosted project.
+At rollback time, the checkout had only Phase 3 migration source. The subsequent [Phase 1–3 stabilization](PHASES_1-3_STABILIZATION.md) recovered the six original Phase 4 migration files without executing SQL. All seven now match hosted history. Retained schema/data still require deliberate forward-compatible integration; never mark remote migrations unapplied or run destructive reset/drop operations to conceal them. New local databases replay all seven files.
 
 ## Verification
 

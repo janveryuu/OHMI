@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname, basename } from 'node:path';
 import { chromium } from 'playwright';
@@ -7,7 +7,8 @@ import { chromium } from 'playwright';
 export async function testExtensionBackend(fixtures) {
   const profile = await mkdtemp(join(tmpdir(), 'ohmi-account-test-'));
   const extension = resolve('.output/chrome-mv3');
-  const screenshots = resolve('docs/screenshots');
+  const screenshots = resolve(process.env.OHMI_SCREENSHOTS_DIR || '.superpowers/stabilization-2026-10-15/screenshots');
+  await mkdir(screenshots, { recursive: true });
   let context;
   const launch = async () => {
     const next = await chromium.launchPersistentContext(profile, { headless: true, channel: process.env.OHMI_CHROMIUM_PATH ? undefined : 'chromium', executablePath: process.env.OHMI_CHROMIUM_PATH, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`], reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } });
@@ -66,6 +67,7 @@ export async function testExtensionBackend(fixtures) {
     const editor = await context.newPage();
     await editor.goto('https://www.tinkercad.com/things/private-test/editel');
     await editor.getByRole('button', { name: 'Open OHMI assistant', exact: true }).click();
+    await editor.getByText('Private account. AI features remain samples.', { exact: true }).waitFor();
     await editor.getByRole('button', { name: 'Open Settings', exact: true }).click();
     await editor.getByText(fixtures[0].email, { exact: true }).waitFor();
     await editor.getByLabel('Explanation language', { exact: true }).selectOption('taglish');
@@ -97,6 +99,7 @@ export async function testExtensionBackend(fixtures) {
 
     await account.getByRole('button', { name: 'Sign out', exact: true }).click();
     await account.getByRole('button', { name: 'Sign in', exact: true }).waitFor();
+    await editor.getByText('Sign in for storage. AI features remain samples.', { exact: true }).waitFor();
     await login(fixtures[1]);
     const stale = await oldAccount.evaluate(accountId => chrome.runtime.sendMessage({ channel: 'ohmi', action: 'profile.name', payload: { accountId, name: 'Stale account A input' } }), fixtures[0].id);
     assert.equal(stale.ok, false, 'Stale Account A action cannot write to B');
@@ -106,14 +109,18 @@ export async function testExtensionBackend(fixtures) {
     await oldAccount.close();
     assert.equal(await account.locator('.ohmi-file-list li').count(), 0, 'Account B cannot see account A file');
     await editor.bringToFront();
+    await editor.getByText('Private account. AI features remain samples.', { exact: true }).waitFor();
     await editor.getByRole('button', { name: 'Open Settings', exact: true }).click();
     await editor.getByText(fixtures[1].email, { exact: true }).waitFor();
     try { await editor.waitForFunction(() => document.querySelector('ohmi-companion').shadowRoot.querySelector('#ohmi-language').value === 'english'); }
     catch (error) { console.log('Language switch diagnostics:', await editor.getByLabel('Explanation language', { exact: true }).inputValue(), await editor.locator('.ohmi-setting').first().innerText()); throw error; }
     await account.getByRole('button', { name: 'Sign out', exact: true }).click();
     await account.getByRole('button', { name: 'Sign in', exact: true }).waitFor();
+    await editor.getByText('Sign in for storage. AI features remain samples.', { exact: true }).waitFor();
     await login(fixtures[0]);
     await editor.bringToFront();
+    await editor.getByText('Private account. AI features remain samples.', { exact: true }).waitFor();
+    await editor.getByRole('button', { name: 'Open Settings', exact: true }).click();
     await editor.getByText(fixtures[0].email, { exact: true }).waitFor();
     await editor.waitForFunction(() => document.querySelector('ohmi-companion').shadowRoot.querySelector('#ohmi-language').value === 'taglish');
 

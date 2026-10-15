@@ -43,6 +43,12 @@ describe('worker failure handling', () => {
     for (const action of ['auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover', 'auth.password'] as const) await expect(handleRequest({ action, payload: {} })).rejects.toThrow('pending email delivery');
     expect(mock.auth.signUp).not.toHaveBeenCalled();
   });
+  it('explains unconfirmed-account login without directing users into unavailable email delivery', async () => {
+    const { publicError } = await service();
+    expect(publicError({ code: 'email_not_confirmed' })).toContain('pending email delivery setup');
+    vi.stubEnv('WXT_EMAIL_DELIVERY_READY', 'true');
+    expect(publicError({ code: 'email_not_confirmed' })).toBe('Confirm your email using the code before signing in.');
+  });
   it('keeps metadata when object deletion fails', async () => {
     const { handleRequest } = await service();
     mock.remove.mockResolvedValue({ error: new Error('storage unavailable') });

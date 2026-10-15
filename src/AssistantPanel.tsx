@@ -42,9 +42,9 @@ function UploadPreview({ kind, state, onSample, onUnavailable }: { kind: 'assign
     <span className="ohmi-upload-icon"><Icon name="upload" size={26} /></span>
     <strong>{kind === 'assignment' ? 'Your next circuit challenge' : 'Take a closer look at a circuit'}</strong>
     <p>{kind === 'assignment' ? 'PDF, PNG, or JPG assignment' : 'PNG or JPG circuit screenshot'}</p>
-    <button type="button" className="ohmi-button ohmi-secondary" disabled>Choose file — unavailable</button>
-    <p>Real uploads aren’t connected yet.</p>
-    <button type="button" className="ohmi-text-button" onClick={onUnavailable}>Why is upload unavailable?</button>
+    <button type="button" className="ohmi-button ohmi-secondary" disabled>Analyze file — unavailable</button>
+    <p>AI analysis is a demonstration. Save real files privately using Upload assignment in Your assignments.</p>
+    <button type="button" className="ohmi-text-button" onClick={onUnavailable}>About sample analysis</button>
     <button type="button" className="ohmi-button ohmi-primary" onClick={onSample} disabled={state === 'loading'}>
       {state === 'loading' ? 'Loading saved example…' : kind === 'assignment' ? 'Use sample assignment' : 'Use sample circuit'}
     </button>
@@ -64,7 +64,6 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [step, setStep] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
   const [savedAssignment, setSavedAssignment] = useState<Assignment | null>(null);
-  useEffect(() => { setSavedAssignment(null); }, [account.state.user?.id]);
   const messageId = useRef(0);
   const contentRef = useRef<HTMLElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
@@ -127,7 +126,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     onMotion('thinking');
   };
 
-  const unavailable = () => setNotice('Real uploads aren’t connected. Use a built-in sample to explore this screen.');
+  const unavailable = () => setNotice('AI analysis is not connected. Use a built-in sample here, or save real files privately in Assignments.');
   const currentStep = GUIDE_STEPS[step]!;
   const motionAvailable = preferences.animations && !systemReducedMotion;
 

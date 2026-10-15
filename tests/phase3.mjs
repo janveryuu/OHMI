@@ -14,11 +14,12 @@ export async function testPhase3(context, page, screenshots) {
   await account.setViewportSize({ width: 320, height: 600 });
   assert.equal(await account.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Account fits small screens');
   await account.screenshot({ path: join(screenshots, 'phase-3-account-small.png'), fullPage: true });
-  await account.getByRole('button', { name: 'Create account', exact: true }).click();
-  assert.equal(await account.getByLabel('Password', { exact: true }).getAttribute('autocomplete'), 'new-password');
-  await account.getByRole('button', { name: 'Back to sign in', exact: true }).click();
-  await account.getByRole('button', { name: 'Forgot password?', exact: true }).click();
-  await account.getByRole('heading', { name: 'Reset your password', exact: true }).waitFor();
+  await account.getByText('Email confirmation and password reset are pending email delivery setup. Use Google sign-in for now.', { exact: true }).waitFor();
+  for (const name of ['Create account', 'Forgot password?', 'Enter confirmation code']) {
+    assert.equal(await account.getByRole('button', { name, exact: true }).isDisabled(), true, `${name} is gated until email delivery works`);
+  }
+  assert.equal(await account.getByRole('button', { name: 'Continue with Google', exact: true }).isEnabled(), true);
+  assert.equal(await account.getByRole('button', { name: 'Sign in', exact: true }).isEnabled(), true);
   await account.close();
-  console.log('PASS Phase 3 account UI: trusted page, password manager labels, no credentials in host DOM, small layout, registration and recovery navigation.');
+  console.log('PASS Phase 3 account UI: trusted page, password manager labels, no credentials in host DOM, small layout, email workflows gated, Google and existing-account sign-in available.');
 }

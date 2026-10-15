@@ -4,6 +4,8 @@ Phase 3, version **0.3.0**: Supabase accounts, private assignments, saved steps,
 
 Phase 4 has been rolled back and will be redesigned from scratch with Antigravity. No live AI integration is included in this foundation. See the [rollback record](docs/PHASE_4_ROLLBACK.md) for backups, verification and retained live database resources. Phase 5 has not begun.
 
+Current branch: `codex/stabilize-phases-1-3`. Read [stabilization evidence and six finding statuses](docs/PHASES_1-3_STABILIZATION.md) and [Antigravity handoff](docs/ANTIGRAVITY_HANDOFF.md). Migration history is reconciled; account-switch drafts/messages are cleared; email-only entry points are gated. Portable identity and privileged-key rotation verification remain manual requirements.
+
 ## Load or update
 
 1. Use Node.js 22.12+ (verified with 24.16.0). Copy `.env.example` to ignored `.env` for a new checkout. See [Phase 3 setup](docs/PHASE_3_SETUP.md). Use only the project URL and publishable key.
@@ -44,7 +46,7 @@ npm run build
 npm run test:browser
 ```
 
-Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots go to `docs/screenshots`. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
+Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots default to ignored `.superpowers/stabilization-2026-10-15/screenshots`; set `OHMI_SCREENSHOTS_DIR` to override. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
 
 With Docker Desktop:
 
@@ -68,7 +70,7 @@ Local tests discover localhost credentials in memory and clean disposable users/
 
 Email verification is **not disabled**. Keep `WXT_EMAIL_DELIVERY_READY=false` until custom SMTP and prepared OTP templates are verified. Rotate privileged keys previously exposed in chat; this implementation never used or committed them. Other machines need the original registered extension's public manifest key for stable identity.
 
-Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload; real assignment steps persist. Facial animation frames still need owner approval. Phase 4 has not started.
+Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload or account change; real assignment steps persist. Facial animation frames still need owner approval. The old Phase 4 implementation is archived; its rebuild has not begun.
 
 ## References
 
