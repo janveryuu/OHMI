@@ -285,10 +285,48 @@ Review of the Phase 5 acceptance criteria defined in Section 9.4 of `docs/PHASE_
 
 ---
 
-## 8. Invariants & Constraints Maintained
+## 8. Approved Phase 5 Deployment Actions
 
-1. **Strictly Offline & No Remote Mutations:** Zero live AI provider calls and zero hosted Supabase migrations were executed. All AI responses were mocked using deterministic fixtures.
-2. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault (`CodexSecondBrain`) was never accessed.
-3. **Mascot Invariance:** Approved pixel-art mascot PNGs (`ohmi-pixel-front.png` and `ohmi-pixel-turnaround.png`) remain 100% bit-for-bit identical to source SHA-256 hashes.
-4. **Landing Page Integrity:** The `website/` directory is 100% untouched and clean.
-5. **Phase Gate:** Milestone 5 verification is complete; execution is stopped and awaiting user review before any remote Git push or Phase 6 initiation.
+Per official user authorization on 16 October 2026:
+
+### 8.1 GitHub Push Confirmation
+
+- **Repository:** `https://github.com/janveryuu/OHMI.git`
+- **Pushed Branches:**
+  * `codex/phase-5-m1-wip` (WIP development branch)
+  * `codex/phase-5` (canonical Phase 5 milestone branch)
+- **Verified Remote Commit SHA:** `457e499532bca56461046f7499e76cc740068275`
+- **History Preservation:** Remote `main` and unrelated branches were completely untouched; linear development history preserved.
+
+### 8.2 Supabase Migration Confirmation
+
+- **Target Project:** `vhmdgfydvoljzqztuxmu` (`OHMI - YOUR CIRCUIT BODY`)
+- **Dry Run:** Executed `npx supabase db push --dry-run` successfully.
+- **Applied Forward Migrations:**
+  1. `20261016140000_ohmi_phase4_reconcile_replay_and_artifacts.sql` (Replay ordering during provider cooldown and full artifact preservation)
+  2. `20261016170000_ohmi_phase5_circuit_check_artifacts.sql` (Additive `circuit_check` artifact kind, schema version 2, owner-delete policy, and standalone check foreign key relaxation)
+- **Remote Migration Status:** Confirmed via `npx supabase migration list --linked`; all 13 project migrations are fully applied on the remote database.
+- **Database Integrity & Permissions:**
+  * Tested hosted RLS policies: anonymous `SELECT` and `INSERT` on `ohmi_analyses` return `permission denied`.
+  * Verified table constraints and owner access. Existing student assignments, conversation history, and AI usage records are 100% preserved.
+
+### 8.3 Remaining Requirements for Live Production AI
+
+1. **Edge Function Deployment:**
+   - Edge function `ohmi-ai` is currently active at version 13.
+   - The updated local handler supporting V2 version dispatch, strict bounding, and `circuit_check` is ready in `supabase/functions/ohmi-ai/`.
+   - Deploy command (when ready for live requests): `npx supabase functions deploy ohmi-ai`.
+2. **Provider Audience & Paid Services:**
+   - No paid services or key rotations were executed.
+   - Live AI requests remain gated offline by `OHMI_AI_ENABLED=false` until Google Workspace for Education / institutional audience eligibility is finalized.
+
+---
+
+## 9. Invariants & Constraints Maintained
+
+1. **Mascot Invariance:** Approved pixel-art mascot PNGs (`ohmi-pixel-front.png` and `ohmi-pixel-turnaround.png`) remain 100% bit-for-bit identical to source SHA-256 hashes.
+2. **Landing Page Integrity:** The `website/` directory is 100% untouched and clean.
+3. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault (`CodexSecondBrain`) was never accessed.
+4. **Security & Privacy:** Zero student PII transmitted; zero credentials exposed; RLS verified on hosted tables.
+5. **Phase Complete:** Phase 5 is fully implemented, verified, committed, pushed to GitHub, and migrated to Supabase. Phase 6 remains unstarted.
+
