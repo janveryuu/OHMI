@@ -2,9 +2,11 @@
 
 Owner-approved Concept C: bold type and mint horizon. This is a separate static marketing site. The browser extension and backend are unchanged.
 
-Private preview: [OHMI — Your Circuit Buddy](https://ohmi-circuit-buddy.purple-reed-2208.chatgpt.site). Deployment confirmed 16 October 2026; the audience remains owner-private.
+Production: [OHMI — Your Circuit Buddy](https://meetohmi.vercel.app/). Vercel project `meetohmi`, Hobby plan; automatic production deployments use `codex/ohmi-website` with root `website`. See [deployment settings and verification](VERCEL_DEPLOYMENT.md).
 
-`dist/` contains the **hand-authored, deployable source** (HTML, CSS, JavaScript and assets); no build step or app dependencies are required. `.openai/hosting.json` identifies the private Sites deployment. Design source, approval and prompts live in `design/`.
+Earlier owner-private preview: [Sites preview](https://ohmi-circuit-buddy.purple-reed-2208.chatgpt.site).
+
+`dist/` contains the **hand-authored, deployable source** (HTML, CSS, JavaScript and assets). `npm run build --prefix website` validates this output; no compiler or app dependencies are required. `.openai/hosting.json` identifies the earlier private Sites deployment. Design source, approval and prompts live in `design/`.
 
 Preview from the repository root:
 

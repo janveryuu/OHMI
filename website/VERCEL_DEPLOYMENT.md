@@ -17,4 +17,6 @@ This deployment changes no Chrome-extension, Supabase or Phase 4 source. Website
 
 Local Vercel CLI 64.3.1 production builds fail on this Windows host with `spawn cmd.exe ENOENT`; the plain Node static build and browser checks pass. Use Vercel's Linux production builder for the authoritative deployed build. This is an environment limitation, not a claimed successful local Vercel build.
 
-Production verification is pending; do not treat a configured hostname or created project as a successful deployment.
+Production verified on 16 October 2026: https://meetohmi.vercel.app/ serves the website over HTTPS. Vercel's Linux production build is READY for commit `593d04c5f24113809214e7ddf8a7ca8d03769d6a`; the Git push automatically triggered deployment. The upload filter explicitly retains the website ancestor directory for repository-root Git builds.
+
+Live Chromium checks passed at five viewport sizes (320–1505 px): layout, assets, navigation, keyboard tabs/FAQ/skip link, deep links, reduced motion, cursor-following eyes, unavailable download and static fallback. The in-app browser independently confirmed the live page, fonts, mascot and working Arduino tab. No browser or HTTP errors or external runtime requests were recorded by the browser suite. No application environment variables or further domain configuration are required. Physical-device and screen-reader checks were not performed.
