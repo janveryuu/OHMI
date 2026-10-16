@@ -793,6 +793,8 @@ export async function handleCircuitCheckRequest(
     }
   }
 
+  let requirements: Array<{ id: string; text: string; kind?: string }> | undefined;
+
   // If assignment analysis is referenced (for verified requirements)
   if (reqV2.assignmentAnalysisId) {
     let query = userClient
@@ -811,10 +813,31 @@ export async function handleCircuitCheckRequest(
     }
 
     if (analysis.payload?.requirements && Array.isArray(analysis.payload.requirements)) {
-      requirementIds = analysis.payload.requirements
-        .map((r: any) => r?.id)
-        .filter((id: any): id is string => typeof id === 'string');
+      requirements = analysis.payload.requirements
+        .filter((r: any) => r && typeof r.id === 'string' && typeof r.text === 'string')
+        .slice(0, 8)
+        .map((r: any) => ({
+          id: r.id,
+          text: r.text,
+          kind: r.kind || 'requirement'
+        }));
+      requirementIds = requirements.map(r => r.id);
     }
+  }
+
+  // If manual requirement text is provided
+  if (reqV2.requirementText) {
+    const rawLines = reqV2.requirementText
+      .split(/\r?\n/)
+      .map(l => l.trim().replace(/^[-*•\d.)\s]+/, '').trim())
+      .filter(l => l.length > 0);
+    const items = rawLines.length > 0 ? rawLines.slice(0, 8) : [reqV2.requirementText.trim()];
+    requirements = items.map((text, idx) => ({
+      id: `manual-${idx + 1}`,
+      text,
+      kind: 'behavior'
+    }));
+    requirementIds = requirements.map(r => r.id);
   }
 
   // If follow-up on prior check
@@ -841,6 +864,7 @@ export async function handleCircuitCheckRequest(
     imageIds,
     codeLineCount,
     requirementIds,
+    requirements,
     simulationText: reqV2.simulation,
     priorFindingIds
   };
@@ -948,16 +972,7 @@ export async function handleCircuitCheckRequest(
       }
 
       if (!replayedResult) {
-        const { data: analysis } = await adminClient
-          .from('ohmi_analyses')
-          .select('payload')
-          .eq('fingerprint', inputHash)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (analysis?.payload) {
-          replayedResult = analysis.payload;
-        }
+        return errorResponse('unavailable', 'This circuit check was deleted and is no longer available.', 404);
       }
 
       return jsonResponse({
@@ -966,17 +981,9 @@ export async function handleCircuitCheckRequest(
         accountId: user.id,
         operation: 'circuit_check',
         language: reqV2.language,
-        result: replayedResult || {
-          schemaVersion: 2,
-          status: 'reviewed',
-          summary: 'Previously completed circuit check.',
-          findings: [],
-          unknowns: [],
-          questions: [],
-          comparisons: [],
-          steps: [],
-          limitations: []
-        },
+        resultId: reservation.result_id,
+        conversationId: reqV2.conversationId || reservation.conversation_id || undefined,
+        result: replayedResult,
         model: reservation.model || MODEL,
         ...(calculationResult ? { calculation: calculationResult } : {})
       });

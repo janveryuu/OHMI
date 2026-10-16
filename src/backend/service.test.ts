@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mock = vi.hoisted(() => {
   const session = { user: { id: 'owner', email: 'owner@example.test' }, access_token: 'test-session' };
-  const query = { eq: vi.fn(), select: vi.fn(), single: vi.fn(), delete: vi.fn(), update: vi.fn(), upsert: vi.fn(), order: vi.fn(), insert: vi.fn() };
+  const query = { eq: vi.fn(), select: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(), delete: vi.fn(), update: vi.fn(), upsert: vi.fn(), order: vi.fn(), insert: vi.fn() };
   const auth = { onAuthStateChange: vi.fn(), getSession: vi.fn(), getUser: vi.fn(), signInWithOAuth: vi.fn(), exchangeCodeForSession: vi.fn(), signOut: vi.fn(), signUp: vi.fn() };
   return { session, query, auth, remove: vi.fn(), list: vi.fn(), launch: vi.fn(), removeItem: vi.fn(), get: vi.fn(), setAccessLevel: vi.fn() };
 });
@@ -27,6 +27,7 @@ describe('worker failure handling', () => {
     mock.query.eq.mockReturnValue(mock.query); mock.query.select.mockReturnValue(mock.query);
     mock.query.single.mockResolvedValue({ data: { id: 'file', object_path: 'owner/file/assignment.pdf', size_bytes: 12, mime_type: 'application/pdf', status: 'pending' }, error: null });
     mock.query.delete.mockReturnValue(mock.query); mock.query.update.mockReturnValue(mock.query); mock.query.insert.mockReturnValue(mock.query);
+    mock.query.maybeSingle.mockResolvedValue({ data: null, error: null });
     mock.remove.mockResolvedValue({ error: null });
   });
   const service = async () => { const module = await import('./service'); await module.initializeBackend(); return module; };
@@ -206,6 +207,106 @@ describe('worker failure handling', () => {
       action: 'ai.circuit',
       payload: { accountId: 'previous-owner', requestId: 'req-1' }
     })).rejects.toThrow('Account changed');
+  });
+
+  it('handles analyses.delete with owner check', async () => {
+    const { handleRequest } = await service();
+    mock.query.delete.mockReturnValue(mock.query);
+    const res = await handleRequest({
+      action: 'analyses.delete',
+      payload: { accountId: 'owner', id: 'analysis-123' }
+    });
+    expect(res).toBeNull();
+    expect(mock.query.delete).toHaveBeenCalled();
+    expect(mock.query.eq).toHaveBeenCalledWith('id', 'analysis-123');
+    expect(mock.query.eq).toHaveBeenCalledWith('user_id', 'owner');
+  });
+
+  it('rejects stale account before analyses.delete', async () => {
+    const { handleRequest } = await service();
+    await expect(handleRequest({
+      action: 'analyses.delete',
+      payload: { accountId: 'previous-owner', id: 'analysis-123' }
+    })).rejects.toThrow('Account changed');
+  });
+
+  it('handles ai.request.get with result recovery and unavailable state', async () => {
+    const { handleRequest } = await service();
+    // 1. Request found and completed, analysis found
+    mock.query.maybeSingle
+      .mockResolvedValueOnce({
+        data: {
+          id: 'req-1',
+          user_id: 'owner',
+          status: 'completed',
+          operation: 'circuit_check',
+          model: 'gemini-3.5-flash-lite',
+          language: 'english',
+          result_id: 'res-1',
+          created_at: '2026-10-16T12:00:00Z',
+          finished_at: '2026-10-16T12:00:05Z',
+          error_code: null
+        },
+        error: null
+      })
+      .mockResolvedValueOnce({
+        data: {
+          id: 'res-1',
+          payload: { schemaVersion: 2, status: 'reviewed', summary: 'All good' }
+        },
+        error: null
+      });
+
+    const res1 = await handleRequest({
+      action: 'ai.request.get',
+      payload: { accountId: 'owner', requestId: 'req-1' }
+    });
+
+    expect(res1).toEqual({
+      requestId: 'req-1',
+      accountId: 'owner',
+      status: 'completed',
+      operation: 'circuit_check',
+      model: 'gemini-3.5-flash-lite',
+      language: 'english',
+      resultId: 'res-1',
+      result: { schemaVersion: 2, status: 'reviewed', summary: 'All good' },
+      errorCode: null,
+      createdAt: '2026-10-16T12:00:00Z',
+      finishedAt: '2026-10-16T12:00:05Z'
+    });
+
+    // 2. Request completed, but analysis was deleted -> returns unavailable
+    mock.query.maybeSingle
+      .mockResolvedValueOnce({
+        data: {
+          id: 'req-1',
+          user_id: 'owner',
+          status: 'completed',
+          operation: 'circuit_check',
+          model: 'gemini-3.5-flash-lite',
+          language: 'english',
+          result_id: 'res-1',
+          created_at: '2026-10-16T12:00:00Z',
+          finished_at: '2026-10-16T12:00:05Z',
+          error_code: null
+        },
+        error: null
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: null
+      });
+
+    const res2 = await handleRequest({
+      action: 'ai.request.get',
+      payload: { accountId: 'owner', requestId: 'req-1' }
+    });
+
+    expect(res2).toEqual(expect.objectContaining({
+      status: 'unavailable',
+      result: null
+    }));
   });
 });
 

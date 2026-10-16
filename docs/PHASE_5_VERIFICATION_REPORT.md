@@ -1,7 +1,7 @@
 # OHMI Phase 5 Verification Report — AI Circuit Checker
 
 **Date:** 16 October 2026 (Asia/Manila)  
-**Status:** Milestone 1 & 2 (M1 & M2) Verified & Complete  
+**Status:** Milestone 1, 2 & 3 (M1, M2 & M3) Verified & Complete  
 **Base Commit:** `8270725288974b5ca0685d04ca19fa8fd92b5abf` (on `codex/stabilize-phases-1-3`)  
 **Extension ID:** `ikemolangalcofljjajakagdnfdpnakh` (Version 0.3.0 preserved)  
 **Mascot Front PNG SHA-256:** `815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382`  
@@ -77,13 +77,63 @@ Milestone 2 delivers the **bounded AI Circuit Checker handler offline** with str
 
 ---
 
-## 3. Test Execution & Verification Evidence
+## 3. Milestone 3 Deliverables Summary
 
-- **Unit Tests:** 137 tests passed across 14 test files in 1.38s (`npm test`):
+Milestone 3 delivers **secure circuit-check persistence, exact result recovery, account-isolated durable history, owned deletion, and assignment requirement comparisons**:
+
+1. **Additive Forward Migration (`supabase/migrations/20261016170000_ohmi_phase5_circuit_check_artifacts.sql`):**
+   - **Check Constraint Extensions:**
+     * `ohmi_analyses_artifact_kind_check`: Expands allowed kinds to `('analysis', 'tutorial', 'circuit_check')`.
+     * `ohmi_analyses_schema_version_check`: Expands allowed schema versions to `(1, 2)`.
+     * `ohmi_analyses_assignment_id_required`: Relaxes foreign key constraint to `(artifact_kind != 'analysis') OR (assignment_id IS NOT NULL)`, enabling standalone circuit checks while strictly preserving the mandatory assignment link for Phase 4 analyses.
+     * `ohmi_ai_requests_kind_check`: Expands ledger request kinds to `('chat', 'analyze', 'circuit_check')`.
+   - **RLS & Deletion Policy:**
+     * Granted `DELETE` on `ohmi_analyses` to authenticated users.
+     * Created RLS policy `owner_delete`: `((select auth.uid()) = user_id)`.
+   - **Reconciled Edge Ledger Routines (`ohmi_reserve_ai` & `ohmi_complete_ai`):**
+     * `ohmi_reserve_ai`: Supports `circuit_check` kind with atomic quota reservation, cooldown replay, rate limit enforcement, and token bounds.
+     * `ohmi_complete_ai`: Stores exact `CircuitCheckResult` with `artifact_kind = 'circuit_check'`, `schema_version = 2`, neutral conversation user message (`"Circuit review requested"` or `"Follow-up on circuit review requested"`), and a unique per-request fingerprint:  
+       `encode(sha256((job.user_id::text || ':' || job.id::text || ':circuit_check')::bytea), 'hex')`.
+     * Guarantees two distinct request UUIDs with identical evidence maintain independent result records and separate tutorial progress.
+
+2. **Durable History & Recovery Backend Actions (`src/backend/validation.ts` & `src/backend/service.ts`):**
+   - **`analyses.delete`:**
+     * Allows owners to delete their circuit checks or analyses (`where id = payload.id and user_id = user.id`).
+     * Automatically cascades to linked conversations and tutorial progress without deleting assignments or user-defined manual steps.
+     * Protected by account verification and stale-account rejection.
+   - **`ai.request.get`:**
+     * Recovers exact status, model, operation, timestamps, and completed structured payload for a given `requestId`.
+     * Account-isolated: non-owners cannot inspect other users' requests.
+     * Returns `status: 'unavailable'` and `result: null` if the corresponding analysis record was deleted.
+
+3. **Requirement Extraction & Edge Comparison Handling (`supabase/functions/ohmi-ai/handler.ts` & `circuit.ts`):**
+   - **Assignment Analysis Requirements:** Verified requirement extraction from `assignmentAnalysisId`, passing up to 8 server-selected items into evidence.
+   - **Manual Requirement Parsing:** Parses user-supplied `requirementText` into normalized `manual-1` .. `manual-8` requirement items.
+   - **Prompt Comparison Directives:** Updated `buildCircuitPrompt` to format active requirements into instructions for model comparisons (`supported`, `possible_mismatch`, `not_observable`).
+   - **Envelope Result Identifiers:** Edge handler returns `resultId` and `conversationId` in response envelopes for client linking.
+   - **Deleted Check Replay Protection:** Replaying a deleted circuit check immediately yields HTTP 404 with category `'unavailable'`; zero regeneration and zero dummy data resurrection.
+
+4. **Disposable Database Invariants Test Suite (`tests/phase5-database.test.ts`):**
+   - Developed isolated test suite verifying all 8 M3 database invariants:
+     1. `two_users_cannot_read_or_link_each_others_checks`: RLS simulation proves foreign checks cannot be read, deleted, or linked as `previousCheckId`.
+     2. `old_artifacts_survive_forward_migration`: Verified that legacy analysis rows satisfy all updated migration check constraints.
+     3. `concurrent_reservation_calls_admit_one_generation`: Concurrency simulation verifies exactly one worker proceeds while duplicate is rejected or placed in-progress.
+     4. `same_request_cannot_double_finalize`: Finalizing an already completed request throws immediately.
+     5. `two_uuids_with_identical_inputs_keep_distinct_results_and_progress`: Independent fingerprints guarantee separate analyses and isolated tutorial step progress.
+     6. `lost_response_restores_exact_result`: Client reconnection via `ai.request.get` recovers exact completed payload.
+     7. `deleted_result_stays_unavailable`: Deleted check returns 404 unavailable on replay with zero regeneration.
+     8. `assignment_delete_cascade_preserves_unrelated_manual_steps`: Deleting a check or assignment cascades only to its linked conversations/progress, preserving unrelated assignments and manual steps.
+
+---
+
+## 4. Test Execution & Verification Evidence
+
+- **Unit Tests:** 152 tests passed across 15 test files in 1.22s (`npm test`):
+  * `tests/phase5-database.test.ts`: 8 tests covering all Milestone 3 database invariants.
   * `supabase/functions/ohmi-ai/circuit.test.ts`: 24 tests covering all request and result schema validation rules.
-  * `supabase/functions/ohmi-ai/handler.test.ts`: 21 tests covering V1/V2 body size limits (32 KiB vs 6 MiB), version dispatch, 404 on unowned assignments, 400 on visual follow-up misuse, successful atomic completion, cooldown replay without provider call, 409 conflict, 429 in-progress, non-STOP failure ledger recording, and malformed schema rejection.
-  * `src/backend/validation.test.ts`: 16 tests including `ai.circuit` sender gating, account UUID validation, and payload validation.
-  * `src/backend/service.test.ts`: 12 tests including `ai.circuit` bearer token forwarding and stale-account rejection.
+  * `supabase/functions/ohmi-ai/handler.test.ts`: 24 tests covering version dispatch, unowned check rejection, completed replay with `resultId`, 404 on deleted check replay, and `requirementText` comparison parsing.
+  * `src/backend/validation.test.ts`: 17 tests including `analyses.delete` and `ai.request.get` payload validation.
+  * `src/backend/service.test.ts`: 15 tests including `analyses.delete` owner check and `ai.request.get` state recovery.
   * `src/capture.test.ts`: 9 tests covering toolbar coordinator, focus/tab invalidation, and claim handoff.
   * All previous mathematical, Arduino, PDF, image, and Gemini tests passing.
 - **TypeScript Typecheck:** 0 errors (`npm run typecheck`).
@@ -93,13 +143,14 @@ Milestone 2 delivers the **bounded AI Circuit Checker handler offline** with str
   * Phase 1 & 2 mascot movement, Shadow DOM isolation, antenna animation.
   * Phase 3 trusted account UI, Google sign-in.
   * Account privacy resets across synthetic accounts with zero hosted writes.
+  * Phase 5 M1 trusted `/check.html` review UI, crop controls, and zero AI network requests.
 
 ---
 
-## 4. Invariants & Constraints Maintained
+## 5. Invariants & Constraints Maintained
 
-1. **Strictly Offline:** Zero live AI provider calls and zero remote Supabase changes were executed during M2 development and verification.
+1. **Strictly Offline & No Remote Migrations:** Forward migration `20261016170000_ohmi_phase5_circuit_check_artifacts.sql` was authored and validated locally. Zero migrations were executed on the hosted Supabase project (`vhmdgfydvoljzqztuxmu`), and zero live AI provider calls were made.
 2. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault was never accessed.
 3. **Mascot Invariance:** Approved pixel-art mascot PNGs (`ohmi-pixel-front.png` and turnaround sheet) remain bit-for-bit identical to source hashes.
-4. **Non-Disruptive:** Existing V1 chat, tutorial, and multimodal analysis flows remain untouched and 100% covered by regression tests.
-5. **Phase Gate:** Milestone 2 is complete; stopped and awaiting user approval before Milestone 3.
+4. **Non-Disruptive:** Existing Phase 4 assignment analyses, tutorial progress, and conversation models remain 100% functional and backward-compatible.
+5. **Phase Gate:** Milestone 3 is complete; stopped and awaiting user approval before Milestone 4.

@@ -159,9 +159,11 @@ describe('durable history actions validation', () => {
     expect(validateRequest(message('analyses.get', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('analyses.get');
     expect(validateRequest(message('analyses.list', { accountId: dummyAcc }), content, id).action).toBe('analyses.list');
     expect(validateRequest(message('analyses.list', { accountId: dummyAcc, assignmentId: dummyId }), content, id).action).toBe('analyses.list');
+    expect(validateRequest(message('analyses.delete', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('analyses.delete');
 
     expect(() => validateRequest(message('analyses.get', { accountId: dummyAcc, id: 'bad' }), content, id)).toThrow();
     expect(() => validateRequest(message('analyses.list', { accountId: dummyAcc, assignmentId: 'bad' }), content, id)).toThrow();
+    expect(() => validateRequest(message('analyses.delete', { accountId: dummyAcc, id: 'bad' }), content, id)).toThrow();
   });
 
   it('validates tutorial progress actions', () => {
@@ -177,5 +179,11 @@ describe('durable history actions validation', () => {
     expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: 25, completed: [] }), content, id)).toThrow();
     expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: -1, completed: [] }), content, id)).toThrow();
     expect(() => validateRequest(message('progress.save', { accountId: dummyAcc, analysisId: dummyId, currentStep: 1, completed: [30] }), content, id)).toThrow();
+  });
+
+  it('validates ai.request.get actions', () => {
+    expect(validateRequest(message('ai.request.get', { accountId: dummyAcc, requestId: dummyId }), content, id).action).toBe('ai.request.get');
+    expect(() => validateRequest(message('ai.request.get', { accountId: dummyAcc, requestId: 'invalid-uuid' }), content, id)).toThrow();
+    expect(() => validateRequest(message('ai.request.get', { requestId: dummyId }), content, id)).toThrow();
   });
 });

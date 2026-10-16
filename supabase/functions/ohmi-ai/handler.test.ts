@@ -843,5 +843,132 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(res.headers.get('Retry-After')).toBe('10');
       expect(mockFetch).not.toHaveBeenCalled();
     });
+
+    it('replays exact completed result with resultId and conversationId without calling provider', async () => {
+      mockRpc.mockImplementation((fn: string) => {
+        if (fn === 'ohmi_reserve_ai') {
+          return Promise.resolve({
+            data: {
+              fresh: false,
+              status: 'completed',
+              result_id: '11111111-1111-1111-1111-111111111111',
+              conversation_id: '33333333-3333-3333-3333-333333333333'
+            },
+            error: null
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            payload: mockV2CircuitResult
+          },
+          error: null
+        })
+      });
+
+      const req = createRequest({ ...validV2Body, conversationId: '33333333-3333-3333-3333-333333333333' });
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.resultId).toBe('11111111-1111-1111-1111-111111111111');
+      expect(data.conversationId).toBe('33333333-3333-3333-3333-333333333333');
+      expect(data.result).toEqual(mockV2CircuitResult);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 unavailable when replaying a deleted circuit check without calling provider', async () => {
+      mockRpc.mockImplementation((fn: string) => {
+        if (fn === 'ohmi_reserve_ai') {
+          return Promise.resolve({
+            data: {
+              fresh: false,
+              status: 'completed',
+              result_id: '11111111-1111-1111-1111-111111111111'
+            },
+            error: null
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null, // Analysis row was deleted!
+          error: null
+        })
+      });
+
+      const req = createRequest(validV2Body);
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(404);
+      const data = await res.json();
+      expect(data.code).toBe('unavailable');
+      expect(data.error).toContain('deleted');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('accepts requirementText, parses manual items, and validates comparisons', async () => {
+      const mockResultWithManualComp = {
+        ...mockV2CircuitResult,
+        comparisons: [
+          {
+            requirementId: 'manual-1',
+            status: 'supported',
+            explanation: 'LED pin 13 is configured as OUTPUT in setup.',
+            evidence: [{ kind: 'code', startLine: 1, endLine: 1 }]
+          }
+        ]
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: JSON.stringify(mockResultWithManualComp) }] }
+              }
+            ],
+            usageMetadata: { promptTokenCount: 150, candidatesTokenCount: 100 }
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        ...validV2Body,
+        requirementText: 'Use pin 13 for LED control'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.result.comparisons).toHaveLength(1);
+      expect(data.result.comparisons[0].requirementId).toBe('manual-1');
+    });
   });
 });
