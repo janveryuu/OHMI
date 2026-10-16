@@ -1,9 +1,5 @@
 <p align="center">
-  <img src="website/dist/assets/horizon.png" alt="OHMI Starry Horizon Banner" width="100%" style="border-radius: 12px; margin-bottom: 20px;" />
-</p>
-
-<p align="center">
-  <img src="assets/mascot/ohmi-pixel-front.png" alt="OHMI Mascot" width="130" height="130" style="image-rendering: pixelated;" />
+  <img src="assets/ohmi-hero-banner.png" alt="OHMI — Your Circuit Buddy" width="100%" style="border-radius: 12px;" />
 </p>
 
 <h1 align="center">OHMI — Your Circuit Buddy</h1>
