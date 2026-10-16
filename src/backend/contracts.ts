@@ -88,7 +88,7 @@ export interface AnalysisRecord {
   payload: any;
   model: string;
   schema_version: number;
-  artifact_kind: 'analysis' | 'tutorial';
+  artifact_kind: 'analysis' | 'tutorial' | 'circuit_check';
   provider: string;
   source_hash: string | null;
   prompt_version: number;
@@ -207,6 +207,7 @@ export interface CircuitEvidence {
   imageIds: Array<'overview' | 'detail'>;
   codeLineCount?: number;
   requirementIds?: string[];
+  requirements?: Array<{ id: string; text: string; kind?: string }>;
   simulationText?: string;
   priorFindingIds?: string[];
 }

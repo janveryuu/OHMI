@@ -684,8 +684,13 @@ You must output a strictly valid JSON object conforming to the CircuitCheckResul
   if (req.simulation) {
     userPrompt += `\n\nSimulation Diagnostics / Serial Output:\n"""\n${req.simulation}\n"""`;
   }
+  if (evidence.requirements && evidence.requirements.length > 0) {
+    userPrompt += `\n\nStated Assignment Requirements to compare against:\n${evidence.requirements.map(r => `[${r.id}] (${r.kind || 'requirement'}): ${r.text}`).join('\n')}\n(For each requirement ID, evaluate with "supported", "possible_mismatch", or "not_observable" in the "comparisons" array and cite evidence.)`;
+  } else if (evidence.requirementIds && evidence.requirementIds.length > 0) {
+    userPrompt += `\n\nStated Assignment Requirement IDs to compare against:\n${evidence.requirementIds.map(id => `- ${id}`).join('\n')}\n(For each requirement ID, evaluate with "supported", "possible_mismatch", or "not_observable" in the "comparisons" array and cite evidence.)`;
+  }
   if (req.requirementText) {
-    userPrompt += `\n\nStated Assignment Requirements:\n"""\n${req.requirementText}\n"""`;
+    userPrompt += `\n\nStated Manual Requirements (User-provided, unverified):\n"""\n${req.requirementText}\n"""`;
   }
 
   return { systemInstruction, userPrompt };
