@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 const base = process.env.OHMI_WEBSITE_URL || 'http://127.0.0.1:4174';
 const shots = resolve('website/.impeccable/review/motion');
 await mkdir(shots, { recursive:true });
-const browser = await chromium.launch();
+const browser = await chromium.launch({channel:'chrome'});
 const context = await browser.newContext({ viewport:{ width:1366, height:900 } });
 await context.addInitScript(() => {
   window.motionProof = { pending:0, shifts:0, frames:0, longest:0 };
@@ -42,7 +42,14 @@ async function settle() {
 try {
   await page.goto(base);
   await page.evaluate(() => document.fonts.ready);
-  await page.locator('.hero-mascot').evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)));
+  await page.locator('.hero-mascot').evaluate((el) => Promise.all(el.getAnimations().filter(animation=>animation.effect.getTiming().iterations!==Infinity).map((animation) => animation.finished)));
+  const loops = await page.locator('.hero-mascot').evaluate(el=>el.getAnimations().filter(animation=>animation.effect.getTiming().iterations===Infinity).length);
+  assert.equal(loops,1,'Mascot idle repeats');
+  for(const selector of ['.horizon','.stars i']) {
+    assert.equal(await page.locator(selector).first().evaluate(el=>el.getAnimations().some(animation=>animation.effect.getTiming().iterations===Infinity)),true,`${selector} repeats`);
+  }
+  // Freeze independent ambient drift for the assertion that pointer input never moves the body.
+  await page.locator('.hero-mascot').evaluate(el=>el.getAnimations().forEach(animation=>animation.pause()));
   const before = await page.locator('.hero-mascot').boundingBox();
   for (const [name,x,y,sx,sy] of [
     ['up-left',15,15,-1,-1], ['up-right',1350,15,1,-1],
@@ -53,7 +60,7 @@ try {
     for (const eye of await values()) {
       assert.equal(Math.sign(eye.x),sx,`${name}: horizontal gaze`);
       assert.equal(Math.sign(eye.y),sy,`${name}: vertical gaze`);
-      assert.ok(Math.abs(eye.x)<=12/82*100+.01 && Math.abs(eye.y)<=10/126*100+.01,'Bounded pupil travel');
+      assert.ok(Math.abs(eye.x)<=18/86*100+.01 && Math.abs(eye.y)<=14/130*100+.01,'Bounded pupil travel');
       assert.match(eye.mask,/eye-(left|right)-mask.png/);
       assert.match(eye.pupil,/eye-(left|right)-pupil.png/);
     }
@@ -97,7 +104,7 @@ try {
       const geometry = await page.evaluate(()=>{
         const mascot=document.querySelector('.hero-mascot').getBoundingClientRect();
         return {overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,
-          expectedLeft:mascot.left+mascot.width*439/1254,
+          expectedLeft:mascot.left+mascot.width*437/1254,
           actualLeft:document.querySelector('.gaze-left').getBoundingClientRect().left,
           ready:document.querySelector('.hero-mascot').classList.contains('gaze-ready')};
       });

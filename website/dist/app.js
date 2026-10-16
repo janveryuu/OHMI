@@ -44,10 +44,10 @@ window.addEventListener('popstate', restoreTopic);
 
 const mascot = document.querySelector('.hero-mascot');
 const hero = document.querySelector('.hero');
-const gaze = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+const gaze = matchMedia('(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const eyes = [...document.querySelectorAll('.gaze-eyes>span')].map((element, i) => ({
-  element, center:(i ? 772 : 480) / 1254, width:i ? 84 : 82, x:0, y:0,
+  element, center:(i ? 772 : 480) / 1254, width:i ? 88 : 86, x:0, y:0, vx:0, vy:0,
 }));
 let gazeFrame = 0, lastTime = 0, pointer = null, heroVisible = true, eyeAssetsReady = false;
 
@@ -56,20 +56,29 @@ function animateGaze(time) {
   // Read once before writes; viewport coordinates remain correct through scroll and zoom.
   const rect = mascot.getBoundingClientRect();
   const active = pointer && gaze.matches && eyeAssetsReady && heroVisible && !document.hidden;
-  const ease = 1 - Math.exp(-Math.min(time - (lastTime || time - 16), 64) / 75);
+  const dt = Math.min(time - (lastTime || time - 16), 64) / 1000;
+  const frequency = 24;
+  const decay = Math.exp(-frequency * dt);
   lastTime = time;
   let unsettled = false;
   for (const eye of eyes) {
     const dx = active ? pointer.x - rect.left - rect.width * eye.center : 0;
     const dy = active ? pointer.y - rect.top - rect.height * (510 / 1254) : 0;
-    const distance = Math.hypot(dx, dy, Math.max(220, rect.width * .65));
-    const x = dx / distance * 12, y = dy / distance * 10;
-    eye.x += (x - eye.x) * ease;
-    eye.y += (y - eye.y) * ease;
-    if (Math.abs(x - eye.x) + Math.abs(y - eye.y) > .015) unsettled = true;
-    else { eye.x = x; eye.y = y; }
+    const distance = Math.hypot(dx, dy, Math.max(140, rect.width * .45));
+    const x = dx / distance * 18, y = dy / distance * 14;
+    // Exact critically damped spring step: retain velocity during interruption without bounce.
+    for (const [axis, target, velocity] of [['x',x,'vx'],['y',y,'vy']]) {
+      const error = eye[axis] - target;
+      const impulse = (eye[velocity] + frequency * error) * dt;
+      eye[axis] = target + (error + impulse) * decay;
+      eye[velocity] = (eye[velocity] - frequency * impulse) * decay;
+    }
+    const limit = Math.hypot(eye.x / 18, eye.y / 14);
+    if (limit > 1) { eye.x /= limit; eye.y /= limit; }
+    if (Math.abs(x-eye.x)+Math.abs(y-eye.y)+Math.abs(eye.vx)+Math.abs(eye.vy) > .025) unsettled = true;
+    else { eye.x = x; eye.y = y; eye.vx = eye.vy = 0; }
     eye.element.style.setProperty('--look-x', `${eye.x / eye.width * 100}%`);
-    eye.element.style.setProperty('--look-y', `${eye.y / 126 * 100}%`);
+    eye.element.style.setProperty('--look-y', `${eye.y / 130 * 100}%`);
   }
   if (unsettled) gazeFrame = requestAnimationFrame(animateGaze);
   else {
@@ -87,7 +96,7 @@ function restGaze(immediate = false) {
   gazeFrame = lastTime = 0;
   mascot.classList.remove('gaze-engaged');
   for (const eye of eyes) {
-    eye.x = eye.y = 0;
+    eye.x = eye.y = eye.vx = eye.vy = 0;
     eye.element.style.removeProperty('--look-x');
     eye.element.style.removeProperty('--look-y');
   }

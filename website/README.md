@@ -18,6 +18,8 @@ Open http://127.0.0.1:4173. Run `node tests/website.mjs` with that server runnin
 
 Motion checks: `$env:OHMI_WEBSITE_URL='http://127.0.0.1:4173'; node tests/website-motion.mjs`. The motion suite defaults to port 4174 when that environment variable is unset. Eye-layer provenance and motion verification are recorded in [MOTION_VERIFICATION.md](design/MOTION_VERIFICATION.md).
 
+The eye spring and continuous ambient effects respect reduced motion, touch input and offscreen/hidden state. Chrome motion recording can be reproduced with `node tests/website-motion-record.mjs` after saving a baseline snapshot at `.output/motion-v2/before-site/dist`; recordings remain ignored locally.
+
 The learning preview is scripted and makes no AI request. Setup links point to the OHMI repository; this page does not claim Chrome Web Store availability. This website collects no student information and makes no external runtime requests.
 
 Assets: `dist/assets/ohmi.png` is an exact copy of the approved original mascot, SHA-256 `815AD3DFF06433ED9081EF1A73FAC2F97D7943D760E95A9AC11660D11AD39382`. It must remain byte-identical. Special Gothic, Manrope and Silkscreen are self-hosted under their included SIL Open Font Licenses. Generated horizon provenance is recorded in `design/` and in the asset metadata.

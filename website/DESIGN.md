@@ -206,7 +206,7 @@ The generated horizon is separate decorative art. Its final exact prompt is in `
 
 Entrance motion uses a 14px upward arrival with opacity 0.6 to 1 over 0.7s for copy and 0.85s for the mascot, using `cubic-bezier(.16,1,.3,1)`. Hover transitions use 0.2s, with 0.25s transforms. Reduced motion disables all animations and transitions and changes scrolling to automatic. Forced colors adds control/panel borders and hides the horizon and stars.
 
-Motion refinement: copy children arrive with a short bounded stagger. The mascot has one independent 3px idle breath; stars and horizon breathe softly, settling within five seconds. Original source-pixel pupil sprites ease toward a mouse pointer within exact eye masks; no head or body rotation follows the pointer. Neutral, touch and reduced-motion gaze show the original PNG. Offscreen/hidden motion sleeps, and the animation frame loop stops after settling. See `design/MOTION_VERIFICATION.md` for source bounds, asset provenance and verification.
+Motion refinement: copy children arrive with a short bounded stagger. The mascot has an independent continuous 4px idle breath over six seconds. Stars twinkle slowly out of phase; the horizon breathes over eight seconds. Source-pixel pupils use a critically damped spring within source-derived masks, including the original antialiased fringe; no head or body rotation follows the pointer. Neutral, touch and reduced-motion gaze show the original PNG. Offscreen/hidden motion sleeps, and the gaze animation frame loop stops after settling. See `design/MOTION_VERIFICATION.md` for source bounds, asset provenance and verification.
 
 ## Do's and Don'ts
 
