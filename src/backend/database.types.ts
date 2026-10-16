@@ -113,7 +113,7 @@ export type Database = {
           model: string
           created_at: string
           schema_version: number
-          artifact_kind: 'analysis' | 'tutorial'
+          artifact_kind: 'analysis' | 'tutorial' | 'circuit_check'
           provider: string
           source_hash: string | null
           prompt_version: number
@@ -129,7 +129,7 @@ export type Database = {
           model: string
           created_at?: string
           schema_version?: number
-          artifact_kind?: 'analysis' | 'tutorial'
+          artifact_kind?: 'analysis' | 'tutorial' | 'circuit_check'
           provider?: string
           source_hash?: string | null
           prompt_version?: number
@@ -145,7 +145,7 @@ export type Database = {
           model?: string
           created_at?: string
           schema_version?: number
-          artifact_kind?: 'analysis' | 'tutorial'
+          artifact_kind?: 'analysis' | 'tutorial' | 'circuit_check'
           provider?: string
           source_hash?: string | null
           prompt_version?: number
