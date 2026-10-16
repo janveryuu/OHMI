@@ -1207,6 +1207,8 @@ export async function handleCircuitCheckRequest(
     accountId: user.id,
     operation: 'circuit_check',
     language: reqV2.language,
+    resultId: completeRes.data?.id,
+    conversationId: reqV2.conversationId || undefined,
     result: validatedResult,
     model: MODEL,
     ...(calculationResult ? { calculation: calculationResult } : {})
