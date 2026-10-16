@@ -16,6 +16,8 @@ python -m http.server 4173 --bind 127.0.0.1 --directory website/dist
 
 Open http://127.0.0.1:4173. Run `node tests/website.mjs` with that server running. The test uses the repository's existing Playwright installation and writes screenshots to ignored `website/.impeccable/review/`.
 
+Motion checks: `$env:OHMI_WEBSITE_URL='http://127.0.0.1:4173'; node tests/website-motion.mjs`. The motion suite defaults to port 4174 when that environment variable is unset. Eye-layer provenance and motion verification are recorded in [MOTION_VERIFICATION.md](design/MOTION_VERIFICATION.md).
+
 The learning preview is scripted and makes no AI request. Setup links point to the OHMI repository; this page does not claim Chrome Web Store availability. This website collects no student information and makes no external runtime requests.
 
 Assets: `dist/assets/ohmi.png` is an exact copy of the approved original mascot, SHA-256 `815AD3DFF06433ED9081EF1A73FAC2F97D7943D760E95A9AC11660D11AD39382`. It must remain byte-identical. Special Gothic, Manrope and Silkscreen are self-hosted under their included SIL Open Font Licenses. Generated horizon provenance is recorded in `design/` and in the asset metadata.
