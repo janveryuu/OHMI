@@ -61,3 +61,14 @@ Blinking was omitted to preserve the approved eye shapes.
 Physical devices, native browser zoom controls, Safari and screen readers were
 not tested. Existing Impeccable product/sidecar drift was not repaired during
 this motion-only task.
+
+## Production verification
+
+Vercel production deployment of `674bb7dab732c644d7122ccb2016fa1da3e4cf36`
+reached READY on the existing Hobby project `meetohmi`. Both browser suites
+then passed against https://meetohmi.vercel.app/. Production initial layout
+shift measured 0.000622, longest measured application animation-frame callback
+5.1ms, and pending frames after settling zero. The in-app browser independently
+loaded the deployed eye masks and confirmed both pupils responding to pointer
+input. Existing dedicated branch `codex/ohmi-website` and automatic deployments
+remain in use. No environment, billing or backend configuration changed.
