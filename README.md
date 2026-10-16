@@ -1,5 +1,7 @@
 # OHMI — Your Circuit Buddy
 
+The standalone marketing website lives in [`website/`](website/README.md). Its owner-approved Concept C uses bold typography, a mint horizon, and the exact approved mascot. It runs without a build step; see its README for preview and browser checks. The website's learning examples are scripted and separate from the extension.
+
 Phase 3, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed. AI and circuit checking still use samples.
 
 Phase 4 has been rolled back and will be redesigned from scratch with Antigravity. No live AI integration is included in this foundation. See the [rollback record](docs/PHASE_4_ROLLBACK.md) for backups, verification and retained live database resources. Phase 5 has not begun.

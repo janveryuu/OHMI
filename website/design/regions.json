@@ -1,0 +1,150 @@
+{
+  "regions": [
+    {
+      "id": "wordmark",
+      "kind": "text",
+      "box": {
+        "y": 0.03444976076555024,
+        "w": 0.09302325581395349,
+        "h": 0.04114832535885168,
+        "x": 0.0425249169435216
+      },
+      "note": "White OHMI wordmark",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "nav-how",
+      "kind": "text",
+      "box": {
+        "y": 0.04401913875598086,
+        "w": 0.0823920265780731,
+        "h": 0.026794258373205742,
+        "x": 0.6511627906976745
+      },
+      "note": "How it works navigation link",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "nav-faq",
+      "kind": "text",
+      "box": {
+        "y": 0.04401913875598086,
+        "w": 0.029235880398671095,
+        "h": 0.026794258373205742,
+        "x": 0.7574750830564784
+      },
+      "note": "FAQ navigation link",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "nav-action",
+      "kind": "control",
+      "box": {
+        "y": 0.02583732057416268,
+        "w": 0.15946843853820597,
+        "h": 0.05550239234449761,
+        "x": 0.8073089700996677
+      },
+      "note": "Mint pill Meet your buddy",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "headline",
+      "kind": "text",
+      "box": {
+        "y": 0.17033492822966506,
+        "w": 0.587375415282392,
+        "h": 0.21148325358851675,
+        "x": 0.0425249169435216
+      },
+      "note": "A little buddy. A brighter build. Two large white lines",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "body",
+      "kind": "text",
+      "box": {
+        "y": 0.42392344497607654,
+        "w": 0.4398671096345515,
+        "h": 0.10813397129186603,
+        "x": 0.0425249169435216
+      },
+      "note": "Meet OHMI supporting paragraph in pale gray",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "action-primary",
+      "kind": "control",
+      "box": {
+        "y": 0.5674641148325359,
+        "w": 0.1787375415282392,
+        "h": 0.0660287081339713,
+        "x": 0.0425249169435216
+      },
+      "note": "Mint rounded Explore OHMI action",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "action-secondary",
+      "kind": "control",
+      "box": {
+        "y": 0.5684210526315789,
+        "w": 0.17209302325581396,
+        "h": 0.0660287081339713,
+        "x": 0.23189368770764118
+      },
+      "note": "Thin mint rounded See how it works action",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "helper",
+      "kind": "text",
+      "box": {
+        "y": 0.6545454545454545,
+        "w": 0.2425249169435216,
+        "h": 0.02200956937799043,
+        "x": 0.0425249169435216
+      },
+      "note": "Built for curious circuit builders helper copy",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "mascot",
+      "kind": "image",
+      "box": {
+        "y": 0.23253588516746412,
+        "w": 0.3780730897009967,
+        "h": 0.5272727272727272,
+        "x": 0.5700996677740864
+      },
+      "note": "Full mint pixel-art OHMI mascot; exact approved original PNG overrides generated detail",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "horizon",
+      "kind": "image",
+      "box": {
+        "y": 0.6870813397129186,
+        "w": 1,
+        "h": 0.16937799043062202,
+        "x": 0
+      },
+      "bleed": true,
+      "note": "Broad low mint planetary horizon with dark pixel-textured surface",
+      "grid": "A0:J9"
+    },
+    {
+      "id": "bridge",
+      "kind": "text",
+      "box": {
+        "y": 0.9301435406698565,
+        "w": 0.5707641196013289,
+        "h": 0.03923444976076555,
+        "x": 0.21727574750830564
+      },
+      "note": "From your first LED to your next lightbulb moment in mint",
+      "grid": "A0:J9"
+    }
+  ],
+  "allowUncovered": true
+}
