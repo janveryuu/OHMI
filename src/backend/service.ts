@@ -135,7 +135,11 @@ export async function handleRequest(request: Request): Promise<unknown> {
   }
   if (action === 'local.preferences') { await browser.storage.local.set({ ohmiPreferences: readPreferences(payload) }); return null; }
   if (action === 'account.open') { await browser.tabs.create({ url: browser.runtime.getURL('/account.html') + (payload.view === 'upload' ? '#upload' : '') }); return null; }
-  if (action === 'circuit.open') { await browser.tabs.create({ url: browser.runtime.getURL('/check.html') }); return null; }
+  if (action === 'circuit.open') {
+    const query = typeof payload.analysisId === 'string' ? `?analysisId=${encodeURIComponent(String(payload.analysisId))}` : '';
+    await browser.tabs.create({ url: browser.runtime.getURL('/check.html') + query });
+    return null;
+  }
   if (action === 'capture.claim') {
     const callerTabId = typeof payload.callerTabId === 'number' ? payload.callerTabId : -1;
     const session = (await backend?.client?.auth?.getSession())?.data?.session;

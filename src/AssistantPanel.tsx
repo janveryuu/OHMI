@@ -99,6 +99,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [tutorialCompleted, setTutorialCompleted] = useState<number[]>([]);
   const [conversations, setConversations] = useState<ConversationHeader[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [recentChecks, setRecentChecks] = useState<Array<{ id: string; title: string | null; created_at: string }>>([]);
   const lastUserId = useRef(account.state.user?.id);
   const messageId = useRef(0);
   const contentRef = useRef<HTMLElement>(null);
@@ -153,8 +154,57 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       setActiveTutorial(null);
       setConversations([]);
       setShowHistory(false);
+      setRecentChecks([]);
     }
   }, [account.state.user?.id]);
+
+  const loadRecentChecks = async () => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    try {
+      const list = await request<any[]>('analyses.list', { accountId: currentUserId });
+      if (Array.isArray(list)) {
+        setRecentChecks(
+          list
+            .filter((a) => a.artifact_kind === 'circuit_check')
+            .slice(0, 5)
+            .map((a) => ({ id: a.id, title: a.title, created_at: a.created_at }))
+        );
+      }
+    } catch {
+      // non-blocking
+    }
+  };
+
+  useEffect(() => {
+    if (section === 'check' && account.state.user?.id) {
+      void loadRecentChecks();
+    }
+  }, [section, account.state.user?.id]);
+
+  const followCheckSteps = async (checkId: string) => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    try {
+      const full = await request<any>('analyses.get', { accountId: currentUserId, id: checkId });
+      const prog = await request<any>('progress.get', { accountId: currentUserId, analysisId: checkId });
+      if (full?.payload?.steps && Array.isArray(full.payload.steps) && full.payload.steps.length > 0) {
+        setActiveTutorial({
+          id: full.id,
+          title: full.title || 'Circuit Guidance',
+          steps: full.payload.steps
+        });
+        setTutorialStep(prog?.current_step || 0);
+        setTutorialCompleted(Array.isArray(prog?.completed) ? prog.completed : []);
+        setSavedAssignment(null);
+        navigate('guide');
+      } else {
+        setNotice('This circuit check has no steps to follow.');
+      }
+    } catch (err: any) {
+      setNotice(err.message || 'Could not load check steps.');
+    }
+  };
 
   const loadConversations = async () => {
     const currentUserId = account.state.user?.id;
@@ -599,6 +649,38 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
             Open Circuit Review
           </button>
         </div>
+
+        {account.state.user && recentChecks.length > 0 && (
+          <div style={{ padding: '12px', background: 'var(--ohmi-tint)', borderRadius: '10px', marginBottom: '12px' }}>
+            <strong style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>Saved Circuit Reviews</strong>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {recentChecks.map((c) => (
+                <li key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0', borderBottom: '1px solid var(--ohmi-border)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>{c.title || 'Circuit Check'}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--ohmi-muted)' }}>{new Date(c.created_at).toLocaleDateString()} {new Date(c.created_at).toLocaleTimeString()}</span>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                    <button
+                      type="button"
+                      className="ohmi-button ohmi-secondary"
+                      style={{ fontSize: '11px', padding: '2px 8px' }}
+                      onClick={() => { void request('circuit.open', { analysisId: c.id }); }}
+                    >
+                      Open in tab
+                    </button>
+                    <button
+                      type="button"
+                      className="ohmi-button ohmi-secondary"
+                      style={{ fontSize: '11px', padding: '2px 8px' }}
+                      onClick={() => void followCheckSteps(c.id)}
+                    >
+                      Follow in Guide
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {circuit !== 'ready' ? <UploadPreview kind="circuit" state={circuit} onUnavailable={unavailable} onSample={() => { setCircuit('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
           <div className="ohmi-circuit-example" aria-label="Illustrative sample circuit"><div><span>5 V</span><span className="ohmi-example-wire" /><span>LED</span><span className="ohmi-example-wire" /><span>GND</span></div><p>Illustration only. No screenshot taken.</p></div>
           <div className="ohmi-result"><span className="ohmi-badge ohmi-warning-badge">Sample diagnostic notes</span><h4>Add a current-limiting resistor</h4><p>This illustrative circuit omits a series resistor. Choose one using the LED’s ratings and supply voltage.</p><h5>Also review</h5><ul><li>LED anode and cathode orientation.</li><li>Breadboard row connections.</li><li>Tinkercad simulation warnings.</li></ul><p className="ohmi-muted">No circuit was analyzed or electrically verified. These are predefined example notes.</p></div>

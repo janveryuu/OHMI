@@ -1,7 +1,7 @@
 # OHMI Phase 5 Verification Report — AI Circuit Checker
 
 **Date:** 16 October 2026 (Asia/Manila)  
-**Status:** Milestone 1, 2 & 3 (M1, M2 & M3) Verified & Complete  
+**Status:** Milestone 1, 2, 3 & 4 (M1, M2, M3 & M4) Verified & Complete  
 **Base Commit:** `8270725288974b5ca0685d04ca19fa8fd92b5abf` (on `codex/stabilize-phases-1-3`)  
 **Extension ID:** `ikemolangalcofljjajakagdnfdpnakh` (Version 0.3.0 preserved)  
 **Mascot Front PNG SHA-256:** `815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382`  
@@ -35,7 +35,6 @@ Milestone 1 delivers **local screenshot capture, session handoff, and trusted pr
    - Board selector (default `unknown` or `uno-r3`).
    - "Clear all evidence" control to revoke object URLs and clear in-memory state.
    - Account-switch isolation: clearing of preview/code/diagnostics when the signed-in account changes.
-   - Send button explicitly disabled with label `"Send for analysis (AI Disconnected in M1)"`.
 
 3. **Assistant Panel Integration (`src/AssistantPanel.tsx`):**
    - Added `"Open Circuit Review"` action (`circuit.open`) and clear toolbar capture explanation in Check section.
@@ -126,31 +125,79 @@ Milestone 3 delivers **secure circuit-check persistence, exact result recovery, 
 
 ---
 
-## 4. Test Execution & Verification Evidence
+## 4. Milestone 4 Deliverables Summary
 
-- **Unit Tests:** 152 tests passed across 15 test files in 1.22s (`npm test`):
+Milestone 4 delivers the **complete interactive Circuit Checker experience, Arduino code review, step-by-step guidance, assignment comparisons, and history restoration**:
+
+1. **Interactive Review Page (`src/CircuitReviewPage.tsx`):**
+   - **Evidence Gathering & Preprocessing:**
+     * Primary overview screenshot preview with numeric crop boundaries, cancel, apply crop, and "Use full image" confirmation.
+     * Optional secondary close-up detail image upload with combined pixel ($\le$ 4,000,000 px) and byte ($\le$ 4 MiB) accounting.
+     * Inert `.ino` and `.txt` file import for Arduino sketches ($\le$ 8,000 characters) with live character counter.
+     * Simulation diagnostics input ($\le$ 2,000 characters).
+     * Declared board selector (`unknown` / `uno-r3`).
+     * Optional assignment selection from account storage, or freeform manual requirement specification ($\le$ 4,000 characters).
+   - **Submission & Execution:**
+     * Gated by authentication state (`account.state.user`). Unauthenticated users see `"Sign in to OHMI to Analyze"`.
+     * Validates that at least one visual crop or code snippet is provided before submission.
+     * Generates immutable request UUID per logical submission.
+     * Disables submission controls and shows in-progress state (`"Reviewing circuit evidence…"`) to prevent duplicate requests.
+   - **Structured Results Presentation:**
+     * **Verdict Banner:** Distinct status badges for `reviewed` (teal), `needs_clarification` (amber), and `unsupported` (red/slate), accompanied by clear physical safety warnings.
+     * **Circuit Findings:** Comprehensive list of findings with severity (`CRITICAL`, `WARNING`, `INFO`), certainty (`observed`, `possible`), observation, why explanation, and recommended action. Evidence tags reference specific images, code line ranges, requirements, or simulation excerpts.
+     * **Unknowns & Ambiguities:** Highlighted callout section for unobserved wiring, hidden breadboard rails, or unconfirmed component ratings.
+     * **Clarification Questions:** Breadboard verification questions when observations require physical confirmation.
+     * **Assignment Requirement Comparisons:** Structured requirement cards with status badges (`Supported`, `Possible Mismatch`, `Not Observable`), explanation text, and cited evidence.
+     * **Interactive Step Guidance:** Interactive step navigator with progress bar, step counter (`Step X of Y`, `Z of Y completed`), Previous/Next navigation, and Mark Done/Undo completion buttons that automatically persist progress via `progress.save`.
+     * **Arduino Code Suggestions:** Monospace code suggestion block with syntax styling, "Copy suggested code" button with temporary visual confirmation, and clear disclaimer that suggestions are educational and uncompiled.
+     * **Review Limitations:** Discloses visual and code review bounds.
+   - **Follow-up Interaction:**
+     * Dedicated text follow-up input allowing students to ask clarifying questions about active findings.
+     * Dispatches `mode: 'follow_up'` with `previousCheckId` and zero image transmission.
+   - **History & Deletion Management:**
+     * Saved reviews drawer listing historical `circuit_check` records with date and title.
+     * URL routing support for opening specific checks (`?analysisId=<uuid>`) or restoring in-flight/interrupted checks (`?requestId=<uuid>`).
+     * Delete review action with user confirmation dialog, invoking `analyses.delete` and resetting the view.
+
+2. **Overlay Companion Integration (`src/AssistantPanel.tsx`):**
+   - Check section displays saved circuit reviews for signed-in accounts.
+   - Provides `"Open in tab"` action (`circuit.open` with `analysisId`).
+   - Provides `"Follow in Guide"` action: dynamically loads the circuit check's steps into the overlay's Guide view, enabling students to follow guidance directly beside their Tinkercad workspace.
+   - Preserves offline sample circuit demonstrations for unauthenticated exploration without disruption.
+
+3. **Database Migration Verification Status:**
+   - Disposable database test suite (`tests/phase5-database.test.ts`) verifies all 8 database invariants in isolation.
+   - **Local Docker Status:** Docker daemon was confirmed stopped; no local containers were launched.
+   - **Hosted Integrity:** Zero migrations were applied to the remote hosted Supabase project (`vhmdgfydvoljzqztuxmu`), preserving remote database integrity until user authorization.
+
+---
+
+## 5. Test Execution & Verification Evidence
+
+- **Unit Tests:** 153 tests passed across 15 test files in 1.36s (`npm test`):
   * `tests/phase5-database.test.ts`: 8 tests covering all Milestone 3 database invariants.
   * `supabase/functions/ohmi-ai/circuit.test.ts`: 24 tests covering all request and result schema validation rules.
   * `supabase/functions/ohmi-ai/handler.test.ts`: 24 tests covering version dispatch, unowned check rejection, completed replay with `resultId`, 404 on deleted check replay, and `requirementText` comparison parsing.
-  * `src/backend/validation.test.ts`: 17 tests including `analyses.delete` and `ai.request.get` payload validation.
+  * `src/backend/validation.test.ts`: 18 tests including `circuit.open` with optional `analysisId` UUID validation.
   * `src/backend/service.test.ts`: 15 tests including `analyses.delete` owner check and `ai.request.get` state recovery.
   * `src/capture.test.ts`: 9 tests covering toolbar coordinator, focus/tab invalidation, and claim handoff.
   * All previous mathematical, Arduino, PDF, image, and Gemini tests passing.
 - **TypeScript Typecheck:** 0 errors (`npm run typecheck`).
 - **Production Build:** Extension bundle built cleanly with Vite 8.3.4 and WXT 0.21.4 (`npm run build`):
-  * Total size: 2.28 MB with zero warnings and no externalized node modules.
+  * Total size: 2.30 MB with zero warnings and no externalized node modules.
 - **Playwright Browser Tests:** All test suites passed cleanly (`npm run test:browser`):
   * Phase 1 & 2 mascot movement, Shadow DOM isolation, antenna animation.
   * Phase 3 trusted account UI, Google sign-in.
   * Account privacy resets across synthetic accounts with zero hosted writes.
-  * Phase 5 M1 trusted `/check.html` review UI, crop controls, and zero AI network requests.
+  * Phase 5 M4: Interactive Circuit Review UI, crop controls, Arduino review, findings, comparisons, step guidance, copy code, history restoration, deletion, and zero unauthorized AI calls.
+  * Generated verification screenshots: `phase-5-circuit-review.png` and `phase-5-circuit-results.png`.
 
 ---
 
-## 5. Invariants & Constraints Maintained
+## 6. Invariants & Constraints Maintained
 
-1. **Strictly Offline & No Remote Migrations:** Forward migration `20261016170000_ohmi_phase5_circuit_check_artifacts.sql` was authored and validated locally. Zero migrations were executed on the hosted Supabase project (`vhmdgfydvoljzqztuxmu`), and zero live AI provider calls were made.
+1. **Strictly Offline & No Remote Migrations:** Zero live AI provider calls and zero hosted Supabase migrations were executed. All AI responses were mocked using deterministic fixtures.
 2. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault was never accessed.
 3. **Mascot Invariance:** Approved pixel-art mascot PNGs (`ohmi-pixel-front.png` and turnaround sheet) remain bit-for-bit identical to source hashes.
 4. **Non-Disruptive:** Existing Phase 4 assignment analyses, tutorial progress, and conversation models remain 100% functional and backward-compatible.
-5. **Phase Gate:** Milestone 3 is complete; stopped and awaiting user approval before Milestone 4.
+5. **Phase Gate:** Milestone 4 is complete; stopped and awaiting user approval before Milestone 5.

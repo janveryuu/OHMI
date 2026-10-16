@@ -186,4 +186,10 @@ describe('durable history actions validation', () => {
     expect(() => validateRequest(message('ai.request.get', { accountId: dummyAcc, requestId: 'invalid-uuid' }), content, id)).toThrow();
     expect(() => validateRequest(message('ai.request.get', { requestId: dummyId }), content, id)).toThrow();
   });
+
+  it('validates circuit.open with optional analysisId', () => {
+    expect(validateRequest(message('circuit.open', {}), content, id).action).toBe('circuit.open');
+    expect(validateRequest(message('circuit.open', { analysisId: dummyId }), content, id).action).toBe('circuit.open');
+    expect(() => validateRequest(message('circuit.open', { analysisId: 'bad-uuid' }), content, id)).toThrow();
+  });
 });

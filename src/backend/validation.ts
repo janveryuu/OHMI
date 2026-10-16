@@ -58,6 +58,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   }
   if (action === 'local.preferences' && (!['english', 'filipino', 'taglish'].includes(String(payload.language)) || !['light', 'dark'].includes(String(payload.appearance)) || typeof payload.animations !== 'boolean')) throw new Error('Invalid preferences.');
   if (action === 'account.open' && payload.view !== undefined && !['auth', 'upload'].includes(String(payload.view))) throw new Error('Invalid account view.');
+  if (action === 'circuit.open' && payload.analysisId !== undefined) uuid(payload.analysisId);
   if (['auth.signIn', 'auth.signUp', 'auth.confirm', 'auth.resend', 'auth.forgot', 'auth.recover'].includes(action)) {
     const email = text(payload.email, 254);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid email address.');
