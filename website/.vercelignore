@@ -4,3 +4,9 @@
 !package.json
 !build.mjs
 !vercel.json
+!website/
+!website/dist/
+!website/dist/**
+!website/package.json
+!website/build.mjs
+!website/vercel.json
