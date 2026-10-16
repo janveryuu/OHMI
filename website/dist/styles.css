@@ -51,14 +51,37 @@ p{color:var(--muted);text-wrap:pretty}
 .hero-mascot{position:absolute;z-index:1;width:42%;max-width:580px;right:0;bottom:100px;image-rendering:pixelated;filter:drop-shadow(0 18px 25px #0006);animation:arrive .85s var(--ease) both}
 .hero-mascot>img{display:block;width:100%;height:auto}
 .gaze-eyes{display:none;position:absolute;inset:0;pointer-events:none}
-.gaze-ready .gaze-eyes{display:block}
-.gaze-eyes>span{position:absolute;top:37%;height:3.7%;background:#100f15}
-.gaze-left{left:38.1%;width:2.3%}.gaze-right{left:60%;width:2.5%}
-.gaze-eyes>span::after{content:"";position:absolute;left:15%;top:8%;width:68%;height:65%;background:#fff;clip-path:polygon(20% 0,80% 0,80% 20%,100% 20%,100% 80%,80% 80%,80% 100%,20% 100%,20% 80%,0 80%,0 20%,20% 20%);transform:translate(var(--look-x,0px),var(--look-y,0px))}
+.gaze-ready.gaze-engaged .gaze-eyes{display:block}
+/* Source-pixel bounds and masks come from design/derive-eyes.py. */
+.gaze-eyes>span{position:absolute;top:35.64593301%;height:10.04784689%;background-size:100% 100%;mask-size:100% 100%;mask-repeat:no-repeat;image-rendering:pixelated}
+.gaze-left{left:35.00797448%;width:6.53907496%;background-image:url('assets/eye-left-face.png');mask-image:url('assets/eye-left-mask.png')}
+.gaze-right{left:58.21371611%;width:6.69856459%;background-image:url('assets/eye-right-face.png');mask-image:url('assets/eye-right-mask.png')}
+.gaze-eyes>span::after{content:"";position:absolute;inset:0;background-size:100% 100%;transform:translate(var(--look-x,0%),var(--look-y,0%))}
+.gaze-left::after{background-image:url('assets/eye-left-pupil.png')}
+.gaze-right::after{background-image:url('assets/eye-right-pupil.png')}
 .coming-soon{margin-top:28px;cursor:not-allowed;opacity:.65}
 .horizon{position:absolute;z-index:-1;bottom:15px;left:-2.5%;width:105%;max-width:none;height:270px;object-fit:fill;transform:rotate(-3deg);transform-origin:75% 60%;mask-image:linear-gradient(#000 72%,transparent);pointer-events:none}
 .hero-copy{animation:arrive .7s var(--ease) both}
 @keyframes arrive{from{transform:translateY(14px);opacity:.6}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:no-preference){
+  .hero-copy{animation:none}
+  .hero-copy>*{animation:arrive .7s var(--ease) both}
+  .hero-description{animation-delay:60ms}.hero-actions{animation-delay:120ms}.hero-note{animation-delay:160ms}
+  .hero-mascot{animation:arrive .85s var(--ease) both,idle-breathe 3.6s ease-in-out .85s}
+  .horizon{animation:horizon-breathe 4.8s ease-in-out}
+  .stars i{animation:twinkle 4.8s ease-in-out}
+  .stars i:nth-child(3n){animation-direction:reverse}
+  .hero.motion-paused *{animation-play-state:paused}
+  .motion-hidden *{animation-play-state:paused!important}
+  .scroll-reveal{animation:arrive .55s var(--ease) both}
+  [role="tabpanel"].topic-enter{animation:topic-enter .22s var(--ease)}
+  .button .arrow{transition:translate .22s var(--ease)}
+  .button:not(:disabled):hover .arrow{translate:3px 0}
+}
+@keyframes idle-breathe{0%,100%{translate:0 0}45%{translate:0 -3px}}
+@keyframes horizon-breathe{0%,100%{opacity:1}50%{opacity:.84}}
+@keyframes twinkle{0%,100%{opacity:.55}40%{opacity:.35}70%{opacity:.7}}
+@keyframes topic-enter{from{opacity:.7;transform:translateY(4px)}to{opacity:1;transform:none}}
 .stars{position:absolute;inset:0;z-index:-1;pointer-events:none}
 .stars i{position:absolute;width:3px;height:3px;background:var(--mint);opacity:.55}
 .stars i:nth-child(2),.stars i:nth-child(6),.stars i:nth-child(12){width:19px;height:5px;opacity:.9;filter:drop-shadow(0 0 5px #73f9d8)}

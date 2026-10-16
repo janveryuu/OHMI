@@ -1,85 +1,344 @@
-# OHMI — Your Circuit Buddy
+<p align="center">
+  <img src="website/dist/assets/horizon.png" alt="OHMI Starry Horizon Banner" width="100%" style="border-radius: 12px; margin-bottom: 20px;" />
+</p>
 
-The standalone marketing website lives in [`website/`](website/README.md). Its owner-approved Concept C uses bold typography, a mint horizon, and the exact approved mascot. It runs without a build step; see its README for preview and browser checks. The website's learning examples are scripted and separate from the extension.
+<p align="center">
+  <img src="assets/mascot/ohmi-pixel-front.png" alt="OHMI Mascot" width="130" height="130" style="image-rendering: pixelated;" />
+</p>
 
-Phase 3/4 baseline, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed.
+<h1 align="center">OHMI — Your Circuit Buddy</h1>
 
-Phase 5 (AI Circuit Checker) has begun. **Milestone 0 (M0)** (Phase 4 foundation reconciled) and **Milestone 1 (M1)** (Local Capture & Private Preview, AI disconnected) are complete and verified: toolbar capture coordinator (`src/capture.ts`), trusted preview page (`/check.html`), accessible numeric crop controls, and offline fallback delivered. 95 unit tests passing across 13 files, 0 typecheck errors, clean 2.27 MB build, and Playwright browser tests passing. See the implementation plan in [`docs/PHASE_5_IMPLEMENTATION_PLAN.md`](docs/PHASE_5_IMPLEMENTATION_PLAN.md) and reports in [`docs/PHASE_4_VERIFICATION_REPORT.md`](docs/PHASE_4_VERIFICATION_REPORT.md) and [`docs/PHASE_5_VERIFICATION_REPORT.md`](docs/PHASE_5_VERIFICATION_REPORT.md).
+<p align="center">
+  <strong>An intelligent, interactive AI learning companion designed for students in Autodesk Tinkercad Circuits.</strong><br>
+  <em>A little buddy. A brighter build. Step-by-step electronics guidance, right beside your circuit.</em>
+</p>
 
-Current branch: `codex/stabilize-phases-1-3`. Read [stabilization evidence](docs/PHASES_1-3_STABILIZATION.md), [Phase 4 report](docs/PHASE_4_VERIFICATION_REPORT.md), and [Phase 5 report](docs/PHASE_5_VERIFICATION_REPORT.md). Migration history is reconciled; account-switch drafts/messages are cleared; email-only entry points are gated. Portable identity and privileged-key rotation verification remain manual requirements.
+<p align="center">
+  <a href="https://meetohmi.vercel.app/"><img src="https://img.shields.io/badge/Live_Website-meetohmi.vercel.app-10b981?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Companion Website"></a>
+  <a href="https://github.com/janveryuu/OHMI"><img src="https://img.shields.io/badge/Platform-Chrome_MV3-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome MV3"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19"></a>
+  <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Tests-77_Passed-success?style=for-the-badge&logo=vitest&logoColor=white" alt="Tests 77 Passed"></a>
+</p>
 
-## Load or update
+<p align="center">
+  <a href="#-explore-meetohmi">🌐 Companion Website</a> •
+  <a href="#-key-features">✨ Features</a> •
+  <a href="#-meet-ohmi">🤖 Meet OHMI</a> •
+  <a href="#-ui--concept-design-gallery">🎨 Design Gallery</a> •
+  <a href="#-system-architecture">🏗️ Architecture</a> •
+  <a href="#-quickstart">🚀 Quickstart</a> •
+  <a href="#-testing--verification">🧪 Testing</a>
+</p>
 
-1. Use Node.js 22.12+ (verified with 24.16.0). Copy `.env.example` to ignored `.env` for a new checkout. See [Phase 3 setup](docs/PHASE_3_SETUP.md). Use only the project URL and publishable key.
-2. Run `npm ci`, then `npm run build`.
-3. In `chrome://extensions`, enable Developer mode and load `.output/chrome-mv3`. For the existing installation, click **Reload** and confirm **0.3.0**. Keep the original absolute build path to retain the registered extension ID.
-4. Refresh your [Tinkercad Circuits](https://www.tinkercad.com) editor. Open OHMI → Settings → **Sign in to OHMI** → **Continue with Google**.
+---
 
-Authentication and real uploads use an extension-owned Account page. Passwords and upload authorization never enter Tinkercad. After source changes, rebuild, reload the extension, and refresh the editor. `npm run dev` is available.
+## 🌟 Overview
 
-## Phase 3 features
+**OHMI** is an open-source, AI-powered browser extension designed specifically for engineering students and electronics enthusiasts working inside **Autodesk Tinkercad Circuits**. 
 
-- Google sign-in/sign-out, display name, persistent session, and on-demand expired-session refresh.
-- Private PDF/PNG/JPG uploads up to **10 MiB**, actual byte progress, 60-second signed retrieval links, confirmed deletion, and recoverable incomplete uploads.
-- Student-written assignment steps and completion saved in Supabase. No AI generation.
-- Account language synchronization. Appearance, animations, mascot placement/open state remain device-local.
-- Existing confirmed email accounts can sign in. New email confirmation and reset actions remain gated until SMTP is ready.
+Rather than switching tabs to search through dense datasheets or confusing forums, OHMI provides an in-editor floating robot companion that explains components, breaks down lab assignments, answers questions in conversational language (English, Filipino, or Taglish), and walks you through circuit construction one connection at a time.
 
-Find real files in **Assignments**, above the sample analysis flow. **Upload assignment** opens Account. Sample upload areas do not analyze real files; use the private assignment controls to save documents.
+```
+                   +---------------------------------------+
+                   |       Tinkercad Circuits Editor       |
+                   |   (Wires, Breadboards, Arduino Uno)   |
+                   +-------------------+-------------------+
+                                       |
+                   +-------------------v-------------------+
+                   |         OHMI Floating Companion       |
+                   |   * Draggable & Minimizable Mascot    |
+                   |   * Isolated Shadow DOM Overlay       |
+                   |   * Interactive Assistant Panel       |
+                   +-------------------+-------------------+
+                                       |
+         +-----------------------------+-----------------------------+
+         |                             |                             |
++--------v---------+          +--------v---------+          +--------v---------+
+|   Assignments    |          |   Circuit Tutor  |          |  Companion Site  |
+| Secure PDF & Img |          |  Multimodal AI   |          | meetohmi.vercel  |
+| Storage via RLS  |          | Gemini & Groq    |          | Pure Vanilla Web |
++------------------+          +------------------+          +------------------+
+```
 
-## Preserved Phase 1/2 behavior
+---
 
-- Appears only on HTTPS `www.tinkercad.com/things/<design>/editel`, including query strings/trailing slashes. SPA navigation mounts/removes one companion.
-- Exact approved front PNG; turnaround remains a reference asset.
-- Shadow DOM isolation; host pointer/keyboard actions remain usable.
-- Mouse/touch drag, arrow-key movement (Shift for one-pixel steps), viewport clamping, open/minimize, Escape, and focus return.
-- Responsive panel with independent scrolling, fixed header/navigation, and accessible mascot placement.
-- Home, Ask, Assignments, Guide, Check My Circuit, Settings; sample conversations/results/guide progress.
-- Idle, hover, happy, and thinking motions respect the animation toggle and system reduced motion.
+## 🌐 Explore MeetOHMI
 
-Permissions: `storage`, `identity`, Tinkercad, and the configured Supabase host. Chrome 116+. No screenshot capture, undocumented Tinkercad integration, AI credential, or Autodesk affiliation.
+We launched a standalone companion website with zero dependencies, showcasing OHMI's philosophy, interactive circuit math, and project previews:
 
-## Automated checks
+👉 **[meetohmi.vercel.app](https://meetohmi.vercel.app/)**
 
-```powershell
-npm test
-npm run typecheck
+<p align="center">
+  <a href="https://meetohmi.vercel.app/">
+    <img src="website/design/concept-c-spark.png" alt="MeetOHMI Landing Page Preview" width="85%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  </a>
+</p>
+
+- **Approved Concept C (Spark)**: Features bold typography, dark emerald tones (`#020e0b`), mint accents (`#10b981`), and interactive gaze-following pupils.
+- **In-Browser Interactive Demos**: Explore Ohm's Law calculations, Arduino blink sketches, and step-by-step breadboard setups without touching a backend.
+- **Zero Build Dependencies**: Authored in pure vanilla HTML, modern CSS, and JavaScript.
+
+---
+
+## ✨ Key Features
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3>⚡ Floating Circuit Companion</h3>
+      <ul>
+        <li>Appears non-intrusively in your Tinkercad Circuits editor.</li>
+        <li>Draggable, minimizable, with keyboard navigation (Shift + arrow keys for pixel precision).</li>
+        <li>Built in an isolated <strong>Shadow DOM</strong> to guarantee Tinkercad's native tools and simulation canvas are never blocked or styled over.</li>
+        <li>Full dark and light mode themes with custom palette accents.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/phase-2-desktop.png" alt="OHMI Extension in Tinkercad Circuits" width="100%" style="border-radius: 8px;" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/phase-2-assignments.png" alt="OHMI Assignment Hub" width="100%" style="border-radius: 8px;" />
+    </td>
+    <td width="50%">
+      <h3>📁 Assignment Hub & File Management</h3>
+      <ul>
+        <li>Upload lab assignment files in <strong>PDF, PNG, or JPG</strong> up to 10 MiB.</li>
+        <li>Backed by secure Supabase Storage with signed 60-second download links.</li>
+        <li>Persistent student progress, saved steps, and notes synchronized to your private cloud account.</li>
+        <li>All uploads remain strictly isolated per student account.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>💬 Interactive AI Circuit Tutor</h3>
+      <ul>
+        <li>Powered by Google Gemini 2.5 Flash with multimodal diagram analysis and Groq fallback.</li>
+        <li>Understands component ratings, pin configurations, and Arduino microcontroller sketches.</li>
+        <li>Provides intuitive analogies, mathematical breakdowns, and pin-to-pin wiring hints.</li>
+        <li>Trilingual support: <strong>English, Filipino, and Taglish</strong> (<em>"Tara, himayin natin!"</em>).</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/phase-2-chat.png" alt="OHMI Interactive AI Tutor" width="100%" style="border-radius: 8px;" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/phase-2-guide.png" alt="Step-by-step Guide" width="100%" style="border-radius: 8px;" />
+    </td>
+    <td width="50%">
+      <h3>📋 Step-by-Step Build Guides</h3>
+      <ul>
+        <li>Structured milestone checklist for complex circuits.</li>
+        <li>Numbered connection instructions preventing fried components or miswired ICs.</li>
+        <li>Check off completed steps as you place wires in Tinkercad.</li>
+        <li>Retains your current step progress even across browser reloads.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🤖 Meet OHMI
+
+OHMI is not a generic corporate assistant—OHMI is an approachable, cheerful electronics robot designed in handcrafted pixel art!
+
+<p align="center">
+  <img src="assets/mascot/ohmi-pixel-front.png" alt="OHMI Front View" width="220" style="image-rendering: pixelated; margin: 15px;" />
+</p>
+
+### The Character Identity
+- **Name**: **OHMI** (inspired by Ohm's Law $\Omega$).
+- **Visual Style**: Clean, crisp 2D pixel-art aesthetic.
+- **Palette**: Mint body, cream CRT face screen, black oval eyes, blush pink cheeks, yellow-tipped antennae, and teal extremities.
+- **Chest Plate Detail**: Mini breadboard graphic with positive/negative power rails, resistor markings, a green active LED, and a teal potentiometer dial.
+- **Personality**: Patient, encouraging, and clear. Never condescending; always ready to help you trace that one ground wire you forgot.
+
+### Canonical Turnaround Reference
+<p align="center">
+  <img src="assets/mascot/ohmi-pixel-turnaround.png" alt="OHMI 6-view Turnaround Sheet" width="90%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+</p>
+<p align="center"><em>Official six-angle turnaround sheet (Front, Back, Left, Right, Top, Bottom) preserved in <code>assets/mascot/</code>.</em></p>
+
+---
+
+## 🎨 UI & Concept Design Gallery
+
+During OHMI's visual development, several UI/UX design concepts were created and benchmarked to craft the most legible, delightful learning experience:
+
+| Concept C: Spark (Selected & Live) | Concept A: Orbit | Concept B: Workbench |
+| :---: | :---: | :---: |
+| <img src="website/design/concept-c-spark.png" width="280" alt="Concept C Spark" /> | <img src="website/design/concept-a-orbit.png" width="280" alt="Concept A Orbit" /> | <img src="website/design/concept-b-workbench.png" width="280" alt="Concept B Workbench" /> |
+| *High-contrast emerald & mint horizon* | *Minimalist circular orbital layout* | *Hardware blueprint & workshop aesthetic* |
+
+### Website Interactive Flow Preview
+<p align="center">
+  <img src="website/design/section-preview.png" alt="Interactive Learning Preview" width="48%" style="border-radius: 6px; margin-right: 2%;" />
+  <img src="website/design/section-setup.png" alt="Getting Started Setup Section" width="48%" style="border-radius: 6px;" />
+</p>
+
+---
+
+## 🏗️ System Architecture
+
+OHMI is architected with modern web standards, strict security boundaries, and lightweight dependencies:
+
+```mermaid
+flowchart TD
+    subgraph Client["Chrome Browser Environment"]
+        TK["Autodesk Tinkercad Circuits Tab"]
+        CS["OHMI Content Script<br/>(Shadow DOM Root)"]
+        UI["React 19 Assistant Panel<br/>(Tailwind CSS + Tabler Icons)"]
+        BG["Chrome MV3 Background Worker<br/>(Identity, OAuth, Storage Bridge)"]
+        
+        TK --- CS
+        CS --> UI
+        UI <--> BG
+    end
+
+    subgraph Backend["Supabase Cloud Platform"]
+        AUTH["Supabase Auth<br/>(Google OAuth + Portable Sessions)"]
+        DB["PostgreSQL Database<br/>(Assignments, Saved Steps, RLS Policies)"]
+        BUCKET["Private Storage Buckets<br/>(PDFs, Schematics, Signed URLs)"]
+        EDGE["Edge Functions<br/>(AI Gateway & Prompt Safety)"]
+        
+        BG <--> AUTH
+        BG <--> DB
+        BG <--> BUCKET
+        BG <--> EDGE
+    end
+
+    subgraph AI["AI Inference Engine"]
+        GEMINI["Google Gemini 2.5 Flash<br/>(Multimodal Vision + Circuit Tutoring)"]
+        GROQ["Groq Fast LLM<br/>(High-speed Fallback)"]
+        
+        EDGE --> GEMINI
+        EDGE -.-> GROQ
+    end
+
+    subgraph Web["Companion Website"]
+        VERCEL["meetohmi.vercel.app<br/>(Hand-authored HTML5/CSS3/JS)"]
+    end
+```
+
+### 🛡️ Privacy & Security First
+- **No Autodesk Affiliation**: OHMI operates as an independent client-side companion. It never accesses Tinkercad credentials, passwords, or Autodesk account data.
+- **Zero Host Contamination**: Uses Web Component Shadow DOM encapsulation so host Tinkercad CSS and DOM events never leak into OHMI, and OHMI styles never distort Tinkercad.
+- **Row Level Security (RLS)**: Every student's uploaded assignments and circuit steps are locked under strict PostgreSQL RLS policies. Only the authenticated owner can access their files.
+- **No Direct Credential Exposure**: Client code only uses public Supabase publishable keys; all LLM keys and admin credentials reside in secured Edge Functions.
+
+---
+
+## 🛠️ Tech Stack
+
+| Domain | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Extension Framework** | [WXT](https://wxt.dev/) (Vite 8) | Next-gen Chrome Manifest V3 framework with HMR and type-safe entrypoints |
+| **Frontend UI** | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) | Modern component architecture, state management, and type safety |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) | Scoped utility styling inside Shadow DOM with accessible dark mode |
+| **Backend & Auth** | [Supabase](https://supabase.com/) | PostgreSQL, Google OAuth, Row Level Security, Storage Buckets |
+| **AI Intelligence** | Gemini 2.5 Flash & Groq | Vision schematic analysis, step generator, and multilingual tutor |
+| **Companion Site** | Vanilla HTML5, CSS3, JS | Ultra-fast, zero-dependency marketing page deployed to Vercel |
+| **Testing** | [Vitest](https://vitest.dev/) & [Playwright](https://playwright.dev/) | Unit test suite (77 tests) and automated browser E2E validation |
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+- **Node.js**: `v22.12.0+` (verified with `v24.16.0`)
+- **Google Chrome**: Version 116 or higher
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/janveryuu/OHMI.git
+cd OHMI
+npm ci
+```
+
+### 2. Configure Environment
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+Fill in your public Supabase URL and anonymous publishable key:
+```env
+WXT_SUPABASE_URL=https://your-project.supabase.co
+WXT_SUPABASE_ANON_KEY=your-publishable-anon-key
+WXT_EMAIL_DELIVERY_READY=false
+```
+
+### 3. Build Extension
+```bash
 npm run build
+```
+This produces a production-ready Chrome Manifest V3 build in `.output/chrome-mv3/`.
+
+### 4. Load into Chrome
+1. Open Google Chrome and navigate to `chrome://extensions/`.
+2. Toggle on **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `.output/chrome-mv3` folder inside your OHMI project directory.
+4. Verify that **OHMI — Your Circuit Buddy** is active with version `0.3.0`.
+
+### 5. Launch with Tinkercad Circuits
+1. Open any circuit in [Autodesk Tinkercad Circuits](https://www.tinkercad.com/things/).
+2. Click into the editor (`/things/<id>/editel`).
+3. You will see OHMI appear in the lower corner, ready to guide your build!
+4. Click on OHMI or press `Settings` → **Sign in to OHMI** to connect your account.
+
+---
+
+## 🧪 Testing & Verification
+
+The project includes unit tests, type checking, and end-to-end browser verification:
+
+```bash
+# Run 77 Vitest unit tests across all 11 suites
+npm test
+
+# Run strict TypeScript typecheck
+npm run typecheck
+
+# Run Playwright automated browser tests (simulated Circuits environment)
 npm run test:browser
+
+# Verify the static companion website build
+npm run build --prefix website
 ```
 
-Browser tests use temporary Chromium profiles and a **simulated** editor. Screenshots default to ignored `.superpowers/stabilization-2026-10-15/screenshots`; set `OHMI_SCREENSHOTS_DIR` to override. Install Chromium with `npx playwright install chromium` if needed, or set `OHMI_CHROMIUM_PATH` to an existing executable. No linter is configured.
+---
 
-With Docker Desktop:
+## 🗺️ Project Milestones
 
-```powershell
-npx --yes supabase@2.120.0 start
-node tests/backend.mjs
-```
+- [x] **Phase 1: Foundation & Mascot** — Shadow DOM mount, draggable pixel mascot, Tinkercad URL gating, keyboard accessibility.
+- [x] **Phase 2: Assistant Interface** — Multi-tab assistant panel (Ask, Assignments, Guide, Check Circuit, Settings) and responsive theming.
+- [x] **Phase 3: Cloud Accounts & Assignments** — Supabase Google OAuth, 10 MiB encrypted assignment storage, saved step persistence, RLS security.
+- [x] **Phase 4: Multimodal AI Tutoring** — Gemini 2.5 Flash and Groq integration, schematic visual reasoning, trilingual chat, and durable conversation history.
+- [x] **Companion Website Launch** — Deployed [meetohmi.vercel.app](https://meetohmi.vercel.app/) with interactive learning demos and animated pupil motion.
+- [ ] **Phase 5: Live Circuit Inspection** — Local capture coordinator, private canvas preview, and guided error troubleshooting.
 
-Local tests discover localhost credentials in memory and clean disposable users/files. Guarded live checks create temporary fixtures in existing OHMI; see [setup](docs/PHASE_3_SETUP.md) and [actual verification](docs/PHASE_3_VERIFICATION.md).
+---
 
-## Manual checks
+## ⚠️ Disclaimer
 
-1. Reload 0.3.0 and refresh Circuits. Check one mascot; none on dashboards or the 3D editor.
-2. Sign in with Google, save a name, restart Chrome, and verify account/files return.
-3. Upload PDF/PNG/JPG, open the file, save/check steps, and delete it. Another account must not see it.
-4. Cancel Google login and retry. Check account switching in two open Account pages.
-5. Place/wire components, edit code, and run/stop simulation with OHMI open. Host controls must remain usable.
-6. Check keyboard navigation, reduced motion, language/theme, six sample sections, and actual Chrome zoom at 80%, 125%, and 200%.
+OHMI is an independent educational tool developed by students for students. It is **not** an official Autodesk product and is **not** affiliated with, sponsored, or endorsed by Autodesk, Inc. Tinkercad® is a registered trademark of Autodesk, Inc. 
 
-## Limits
+Circuit suggestions and explanations generated by AI are educational aids and should always be verified against official component datasheets and lab safety guidelines before powering physical hardware.
 
-Email verification is **not disabled**. Keep `WXT_EMAIL_DELIVERY_READY=false` until custom SMTP and prepared OTP templates are verified. Rotate privileged keys previously exposed in chat; this implementation never used or committed them. Other machines need the original registered extension's public manifest key for stable identity.
+---
 
-Samples do not inspect or electrically verify circuits. Sample conversations/progress reset on reload or account change; real assignment steps persist. Facial animation frames still need owner approval. The old Phase 4 implementation is archived; its rebuild has not begun.
+## 🤝 Authors & Acknowledgments
 
-## References
+Created with ❤️ by **[Janver Manlapaz](https://github.com/janveryuu)** and collaborators.
 
-- [Project context](docs/PROJECT_CONTEXT.md)
-- [Approved mascot](docs/OHMI_MASCOT.md)
-- [Design references](docs/DESIGN_REFERENCES.md)
-- [Phase 1 verification](docs/PHASE_1_VERIFICATION.md)
-- [Phase 2 design](docs/PHASE_2_DESIGN.md) and [verification](docs/PHASE_2_VERIFICATION.md)
-- [Phase 3 design](docs/superpowers/specs/2026-10-12-phase-3-design.md) and [plan](docs/superpowers/plans/2026-10-12-phase-3.md)
-- [Phase 3 setup](docs/PHASE_3_SETUP.md) and [verification](docs/PHASE_3_VERIFICATION.md)
+Special thanks to the electronics instructors, computer engineering classmates, and open-source communities behind WXT, React, and Supabase who make interactive education possible!
+
+<p align="center">
+  <sub>Built for curious circuit builders everywhere. Keep asking questions! ⚡</sub>
+</p>

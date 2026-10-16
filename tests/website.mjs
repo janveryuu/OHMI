@@ -99,9 +99,9 @@ try {
   await gazePage.goto(base);
   await gazePage.waitForFunction(()=>document.querySelector('.hero-mascot').classList.contains('gaze-ready'));
   await gazePage.mouse.move(100,300);
-  await gazePage.waitForFunction(()=>parseFloat(document.querySelector('.hero-mascot').style.getPropertyValue('--look-x'))<0);
+  await gazePage.waitForFunction(()=>parseFloat(document.querySelector('.gaze-left').style.getPropertyValue('--look-x'))<0);
   await gazePage.mouse.move(1350,300);
-  await gazePage.waitForFunction(()=>parseFloat(document.querySelector('.hero-mascot').style.getPropertyValue('--look-x'))>0);
+  await gazePage.waitForFunction(()=>parseFloat(document.querySelector('.gaze-left').style.getPropertyValue('--look-x'))>0);
   await gazePage.locator('.hero-mascot').evaluate((el)=>Promise.all(el.getAnimations().map((animation)=>animation.finished)));
   await gazePage.screenshot({path:resolve(shots,'gaze-desktop.png')});
   await gazePage.emulateMedia({reducedMotion:'reduce'});
