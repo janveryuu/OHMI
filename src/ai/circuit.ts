@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { validateCircuitImage } from './image';
 import type {
   CircuitRequestV2,
@@ -10,6 +9,19 @@ import type {
   EvidenceReference,
   CircuitImageItem
 } from '../backend/contracts';
+
+function decodeBase64ToBytes(base64: string): Uint8Array {
+  if (typeof Buffer !== 'undefined') {
+    return new Uint8Array(Buffer.from(base64, 'base64'));
+  }
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BASE64_REGEX = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -141,15 +153,15 @@ export function validateCircuitRequest(value: unknown): CircuitRequestV2 {
     }
 
     // Decode and validate image structures
-    const decodedBuf = Buffer.from(cleanData, 'base64');
-    if (decodedBuf.length === 0) {
+    const decodedBytes = decodeBase64ToBytes(cleanData);
+    if (decodedBytes.length === 0) {
       throw new Error('Empty image payload.');
     }
-    if (decodedBuf.length > 4 * 1024 * 1024) {
+    if (decodedBytes.length > 4 * 1024 * 1024) {
       throw new Error(`Image "${id}" decoded size exceeds 4 MiB limit.`);
     }
 
-    const validation = validateCircuitImage(new Uint8Array(decodedBuf));
+    const validation = validateCircuitImage(decodedBytes);
     if (!validation.valid || !validation.mimeType) {
       throw new Error(`Invalid image "${id}": ${validation.error || 'corrupt image'}`);
     }
@@ -157,7 +169,7 @@ export function validateCircuitRequest(value: unknown): CircuitRequestV2 {
       throw new Error(`Declared mimeType "${mimeType}" does not match detected format "${validation.mimeType}".`);
     }
 
-    totalDecodedBytes += decodedBuf.length;
+    totalDecodedBytes += decodedBytes.length;
     totalPixels += validation.pixels ?? 0;
 
     validatedImages.push({

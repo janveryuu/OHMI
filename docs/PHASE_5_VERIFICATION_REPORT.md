@@ -1,7 +1,7 @@
 # OHMI Phase 5 Verification Report — AI Circuit Checker
 
 **Date:** 16 October 2026 (Asia/Manila)  
-**Status:** Milestone 1 (M1) Verified & Complete  
+**Status:** Milestone 1 & 2 (M1 & M2) Verified & Complete  
 **Base Commit:** `8270725288974b5ca0685d04ca19fa8fd92b5abf` (on `codex/stabilize-phases-1-3`)  
 **Extension ID:** `ikemolangalcofljjajakagdnfdpnakh` (Version 0.3.0 preserved)  
 **Mascot Front PNG SHA-256:** `815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382`  
@@ -43,48 +43,63 @@ Milestone 1 delivers **local screenshot capture, session handoff, and trusted pr
 
 ---
 
-## 2. Test Execution & Verification Evidence
+## 2. Milestone 2 Deliverables Summary
 
-- **Unit Tests:** 95 tests passed across 13 files in 943ms (`npm test`).
-  - All 9 specified capture coordinator tests in `src/capture.test.ts`:
-    * `toolbar_only_can_capture`
-    * `unsupported_or_unfocused_tab_is_denied`
-    * `tab_switch_and_back_invalidates_capture`
-    * `spa_navigation_invalidates_capture`
-    * `hide_timeout_restores_overlay`
-    * `worker_restart_watchdog_restores_overlay`
-    * `claim_requires_intended_check_tab_and_owner`
-    * `expired_capture_is_unavailable`
-    * `raw_pixels_never_reach_content_script`
-- **TypeScript Typecheck:** 0 errors (`npm run typecheck`).
-- **Production Build:** Extension bundle built cleanly with Vite 8.3.4 and WXT 0.21.4 (`npm run build`).
-  - Created `.output/chrome-mv3/check.html` (492 B) and bundle chunks (total extension size: 2.27 MB).
-  - Preserved registered version 0.3.0 and identity warnings.
-- **Playwright Browser Tests:** All test suites passed cleanly (`npm run test:browser`):
-  - Phase 1 & 2: Mascot movement, keyboard controls, Shadow DOM styling isolation, 3 languages, antenna reduced motion.
-  - Phase 3: Trusted account page, credential isolation, Google sign-in UI.
-  - Account Privacy: Sign-out / account switch completely purges messages, drafts, attachments, active conversations, and tutorials.
-  - Phase 5 M1 (`tests/phase5.mjs`):
-    * Open Circuit Review button in Check My Circuit section.
-    * `/check.html` loaded with `?intro=1#capture-intro` displaying dismissible explanation.
-    * Responsive layout at 320px viewport without horizontal overflow.
-    * Local screenshot upload and preview rendering (100x100 px).
-    * Numeric crop controls applied (cropped to 60x60 px).
-    * Code input counter (`73 / 8,000` or `77 / 8,000`) and simulation counter (`21 / 2,000`).
-    * Board selector defaulted to `unknown` and switched to `uno-r3`.
-    * Send button verified disabled.
-    * Clear all evidence cleans preview, code, and diagnostics.
-    * Verified **zero network analysis requests** made throughout the entire flow.
-- **Mascot Asset Invariance:**
-  - Front pixel PNG: `815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382` (100% matched).
-  - Turnaround sheet: `2645d82b363645a23e348a53dd9a03f0723e096aded2dca33e6619a8fa8b07fe` (100% matched).
+Milestone 2 delivers the **bounded AI Circuit Checker handler offline** with strict schemas, validation invariants, version dispatch, and mock provider regression tests:
+
+1. **Contracts & Schemas (`src/backend/contracts.ts`):**
+   - Added `CircuitRequestV2`, `CircuitImageItem`, `CircuitEvidence`, `CircuitCheckResult`, `CircuitFinding`, `CircuitComparison`, `CircuitStep`, `EvidenceReference`, and `CircuitResponseDataV2`.
+   - Enforces `schemaVersion: 2`, status enums (`reviewed`, `needs_clarification`, `unsupported`), and severity/certainty enums.
+
+2. **Validation Engine & Prompt Builder (`src/ai/circuit.ts` & `supabase/functions/ohmi-ai/circuit.ts`):**
+   - `validateCircuitRequest`: Enforces allowlisted keys, mutual exclusivity of assignment artifacts vs `requirementText`, mode constraints (`check` requires images or code; `follow_up` requires `previousCheckId` and no images), aggregate image bounds ($\le$ 4 MiB decoded, $\le$ 4,000,000 pixels, max 4,096 px per side), universal Base64 decode, and strict UUID formatting.
+   - `validateCircuitResult`: Enforces allowlisted keys, sequential 1-based step numbering (1..8), code line references ($1 \le start \le end \le total$, max 20 lines), exact simulation substring citations ($\le 160$ chars), and requirement references matching server evidence.
+   - `buildCircuitPrompt`: Separates trusted system instructions from untrusted inputs with clear rules on physical breadboard uncertainty and unobserved wiring.
+
+3. **Production Edge Function Version Dispatch (`supabase/functions/ohmi-ai/handler.ts`):**
+   - Implemented request body size gating: 6 MiB overall ceiling (`MAX_BODY_BYTES_V2`), dispatching `version: 1` to 32 KiB limit and `version: 2` to `handleCircuitCheckRequest`.
+   - `handleCircuitCheckRequest`:
+     * Validates V2 schema and authenticates account ID.
+     * Compiles server-verified `CircuitEvidence` (server-selected image IDs, line count, unowned/foreign check/assignment rejection with 404).
+     * Computes canonical input SHA-256 hash including individual image hashes and conversation IDs.
+     * Reserves quota atomically via `ohmi_reserve_ai` (`p_kind: 'circuit_check'`).
+     * Handles exact replay on completed requests during cooldown without calling the AI provider (0 provider calls).
+     * Handles in-flight reservation with 429 (`Retry-After: 10`) and parameter conflicts with 409.
+     * Invokes Gemini (`gemini-3.5-flash-lite`, 24s timeout, max 3,072 tokens, temperature 0.1, responseMimeType `application/json`).
+     * Validates response size ($\le$ 64 KiB), candidate finish reason (`STOP`), non-empty answer, and result schema.
+     * Rejects non-STOP (`SAFETY`, `MAX_TOKENS`, incomplete) and malformed results via `ohmi_fail_ai` and returns controlled error categories.
+     * Persists exact structured response atomically via `ohmi_complete_ai`.
+
+4. **Service Worker `ai.circuit` Action (`src/backend/validation.ts` & `src/backend/service.ts`):**
+   - Restricted `ai.circuit` exclusively to trusted `/check.html` sender (`frameId === 0`).
+   - Added authenticated owner verification and stale-account guard before dispatching request.
+   - Client abort controller with 28-second deadline.
 
 ---
 
-## 3. Invariants & Constraints Maintained
+## 3. Test Execution & Verification Evidence
 
-1. **No External Network Calls:** Local capture, cropping, and preview operate 100% offline; AI is disconnected.
-2. **Zero Auto-Uploads:** Screenshots and pasted code stay in transient memory until user explicit action.
-3. **Mascot & Design Preservation:** Exact pixel-art PNGs and teal design system maintained.
-4. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault was never accessed.
-5. **No Hosted Database Changes:** No database migrations or function deployments made to remote instances.
+- **Unit Tests:** 137 tests passed across 14 test files in 1.38s (`npm test`):
+  * `supabase/functions/ohmi-ai/circuit.test.ts`: 24 tests covering all request and result schema validation rules.
+  * `supabase/functions/ohmi-ai/handler.test.ts`: 21 tests covering V1/V2 body size limits (32 KiB vs 6 MiB), version dispatch, 404 on unowned assignments, 400 on visual follow-up misuse, successful atomic completion, cooldown replay without provider call, 409 conflict, 429 in-progress, non-STOP failure ledger recording, and malformed schema rejection.
+  * `src/backend/validation.test.ts`: 16 tests including `ai.circuit` sender gating, account UUID validation, and payload validation.
+  * `src/backend/service.test.ts`: 12 tests including `ai.circuit` bearer token forwarding and stale-account rejection.
+  * `src/capture.test.ts`: 9 tests covering toolbar coordinator, focus/tab invalidation, and claim handoff.
+  * All previous mathematical, Arduino, PDF, image, and Gemini tests passing.
+- **TypeScript Typecheck:** 0 errors (`npm run typecheck`).
+- **Production Build:** Extension bundle built cleanly with Vite 8.3.4 and WXT 0.21.4 (`npm run build`):
+  * Total size: 2.28 MB with zero warnings and no externalized node modules.
+- **Playwright Browser Tests:** All test suites passed cleanly (`npm run test:browser`):
+  * Phase 1 & 2 mascot movement, Shadow DOM isolation, antenna animation.
+  * Phase 3 trusted account UI, Google sign-in.
+  * Account privacy resets across synthetic accounts with zero hosted writes.
+
+---
+
+## 4. Invariants & Constraints Maintained
+
+1. **Strictly Offline:** Zero live AI provider calls and zero remote Supabase changes were executed during M2 development and verification.
+2. **Second Brain Boundary:** Strictly obeyed `.agents/rules/ohmi-local-second-brain.md`; external vault was never accessed.
+3. **Mascot Invariance:** Approved pixel-art mascot PNGs (`ohmi-pixel-front.png` and turnaround sheet) remain bit-for-bit identical to source hashes.
+4. **Non-Disruptive:** Existing V1 chat, tutorial, and multimodal analysis flows remain untouched and 100% covered by regression tests.
+5. **Phase Gate:** Milestone 2 is complete; stopped and awaiting user approval before Milestone 3.
