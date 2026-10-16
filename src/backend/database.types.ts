@@ -246,6 +246,7 @@ export type Database = {
           id: string
           user_id: string | null
           kind: string
+          operation: string | null
           input_hash: string
           conversation_id: string | null
           assignment_id: string | null
@@ -266,6 +267,7 @@ export type Database = {
           id: string
           user_id?: string | null
           kind: string
+          operation?: string | null
           input_hash: string
           conversation_id?: string | null
           assignment_id?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           id?: string
           user_id?: string | null
           kind?: string
+          operation?: string | null
           input_hash?: string
           conversation_id?: string | null
           assignment_id?: string | null
