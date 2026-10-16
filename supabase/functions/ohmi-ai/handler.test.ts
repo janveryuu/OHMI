@@ -545,7 +545,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe('invalid_request');
-      expect(data.error).toContain('requires at least one visual screenshot or code');
+      expect(data.error).toContain('requires visual evidence');
     });
 
     it('rejects follow_up mode with images or missing previousCheckId with 400', async () => {
@@ -585,7 +585,8 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
       const req = createRequest({
         ...validV2Body,
-        assignmentId: '99999999-9999-9999-9999-999999999999'
+        assignmentId: '99999999-9999-9999-9999-999999999999',
+        assignmentAnalysisId: '88888888-8888-8888-8888-888888888888'
       });
 
       const res = await handleAiRequest(req, {
@@ -785,7 +786,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
       expect(res.status).toBe(502);
       const data = await res.json();
-      expect(data.error).toContain('Sequential step numbering violation');
+      expect(data.error).toContain('Step index must be sequential 1-based');
 
       expect(mockRpc).toHaveBeenCalledWith('ohmi_fail_ai', expect.objectContaining({
         p_request_id: validV2Body.requestId,

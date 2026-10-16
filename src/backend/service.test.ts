@@ -15,7 +15,7 @@ vi.mock('./client', () => ({ AUTH_STORAGE_KEY: 'ohmi-auth', authStorage: { remov
 
 describe('worker failure handling', () => {
   beforeEach(() => {
-    vi.resetModules(); vi.clearAllMocks();
+    vi.resetModules(); vi.clearAllMocks(); vi.unstubAllGlobals();
     vi.stubEnv('WXT_EMAIL_DELIVERY_READY', 'false');
     vi.stubEnv('WXT_EXTENSION_ID', 'ikemolangalcofljjajakagdnfdpnakh');
     vi.stubEnv('WXT_EXTENSION_CALLBACK', 'https://ikemolangalcofljjajakagdnfdpnakh.chromiumapp.org/');
@@ -152,7 +152,7 @@ describe('worker failure handling', () => {
 
   it('forwards ai.circuit with bearer token and active account verification', async () => {
     const { handleRequest } = await service();
-    const fakeFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    const fakeFetch = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
       ok: true,
       requestId: 'req-circuit-1',
       result: {
@@ -166,7 +166,7 @@ describe('worker failure handling', () => {
         steps: [],
         limitations: []
       }
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
     vi.stubGlobal('fetch', fakeFetch);
 
     const res = await handleRequest({
@@ -202,14 +202,9 @@ describe('worker failure handling', () => {
 
   it('rejects stale account before ai.circuit request', async () => {
     const { handleRequest } = await service();
-    mock.auth.getSession.mockResolvedValueOnce({
-      data: { session: { user: { id: 'other-user' } } },
-      error: null
-    });
-
     await expect(handleRequest({
       action: 'ai.circuit',
-      payload: { accountId: 'owner', requestId: 'req-1' }
+      payload: { accountId: 'previous-owner', requestId: 'req-1' }
     })).rejects.toThrow('Account changed');
   });
 });
