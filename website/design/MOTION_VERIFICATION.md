@@ -32,10 +32,21 @@ headed Google Chrome profile for both versions. It captures only the page,
 not the owner's desktop/profile. The small cursor marker exists only in the
 recording harness. The previous static website snapshot stays ignored locally;
 recording script requires it under `.output/motion-v2/before-site/dist`.
-The 12-second side-by-side MP4 and filmstrip were visually inspected. The two
+The short side-by-side MP4 and filmstrip were visually inspected. The two
 independent captures have different startup timing, not frame-perfect sync.
 Videos/screenshots are ignored local proof, never Vercel uploads or Git assets.
 The owner's personal Chrome session after deployment remains unverified.
+
+Production commit `e54ab7d0ac484095ef3f9c11a15464b356fc9583` reached Vercel READY.
+Both website suites passed against https://meetohmi.vercel.app/. Deployed JS,
+CSS (after line-ending normalization) and all six eye-layer byte hashes match
+the checked source. Production initial CLS: 0; longest measured application
+animation-frame callback: 15ms; no pending gaze frames after settling. The
+head/body measurement now awaits animation pause readiness and allows 0.1px
+of compositor rounding; the first exact-equality assertion differed by 0.003px.
+This is a test-measurement correction, not a product change. The final ~13-second
+comparison records the actual deployed after-version in an isolated headed
+Google Chrome profile; no personal browser session or desktop was accessed.
 
 The sections below document the earlier implementation, not current timing.
 

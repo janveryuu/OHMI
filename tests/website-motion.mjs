@@ -49,7 +49,7 @@ try {
     assert.equal(await page.locator(selector).first().evaluate(el=>el.getAnimations().some(animation=>animation.effect.getTiming().iterations===Infinity)),true,`${selector} repeats`);
   }
   // Freeze independent ambient drift for the assertion that pointer input never moves the body.
-  await page.locator('.hero-mascot').evaluate(el=>el.getAnimations().forEach(animation=>animation.pause()));
+  await page.locator('.hero-mascot').evaluate(el=>Promise.all(el.getAnimations().map(animation=>{animation.pause();return animation.ready;})));
   const before = await page.locator('.hero-mascot').boundingBox();
   for (const [name,x,y,sx,sy] of [
     ['up-left',15,15,-1,-1], ['up-right',1350,15,1,-1],
@@ -64,7 +64,9 @@ try {
       assert.match(eye.mask,/eye-(left|right)-mask.png/);
       assert.match(eye.pupil,/eye-(left|right)-pupil.png/);
     }
-    assert.deepEqual(await page.locator('.hero-mascot').boundingBox(),before,'Pointer never moves head/body');
+    const after=await page.locator('.hero-mascot').boundingBox();
+    // Chrome's paused compositor can round fractional coordinates differently by <0.01px.
+    for(const key of ['x','y','width','height']) assert.ok(Math.abs(after[key]-before[key])<.1,'Pointer never moves head/body');
     await page.screenshot({path:resolve(shots,`${name}.png`)});
     if(name==='down-right') await page.locator('.hero-mascot').screenshot({path:resolve(shots,'eyes-active.png')});
   }
