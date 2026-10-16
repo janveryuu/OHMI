@@ -49,6 +49,13 @@ p{color:var(--muted);text-wrap:pretty}
 .hero-actions .button-outline{min-width:259px}
 .hero-note{font-size:17px;margin-top:18px}
 .hero-mascot{position:absolute;z-index:1;width:42%;max-width:580px;right:0;bottom:100px;image-rendering:pixelated;filter:drop-shadow(0 18px 25px #0006);animation:arrive .85s var(--ease) both}
+.hero-mascot>img{display:block;width:100%;height:auto}
+.gaze-eyes{display:none;position:absolute;inset:0;pointer-events:none}
+.gaze-ready .gaze-eyes{display:block}
+.gaze-eyes>span{position:absolute;top:37%;height:3.7%;background:#100f15}
+.gaze-left{left:38.1%;width:2.3%}.gaze-right{left:60%;width:2.5%}
+.gaze-eyes>span::after{content:"";position:absolute;left:15%;top:8%;width:68%;height:65%;background:#fff;clip-path:polygon(20% 0,80% 0,80% 20%,100% 20%,100% 80%,80% 80%,80% 100%,20% 100%,20% 80%,0 80%,0 20%,20% 20%);transform:translate(var(--look-x,0px),var(--look-y,0px))}
+.coming-soon{margin-top:28px;cursor:not-allowed;opacity:.65}
 .horizon{position:absolute;z-index:-1;bottom:15px;left:-2.5%;width:105%;max-width:none;height:270px;object-fit:fill;transform:rotate(-3deg);transform-origin:75% 60%;mask-image:linear-gradient(#000 72%,transparent);pointer-events:none}
 .hero-copy{animation:arrive .7s var(--ease) both}
 @keyframes arrive{from{transform:translateY(14px);opacity:.6}to{transform:translateY(0);opacity:1}}

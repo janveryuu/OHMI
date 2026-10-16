@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://meetohmi.vercel.app/sitemap.xml

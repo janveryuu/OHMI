@@ -36,3 +36,32 @@ function restoreTopic() {
 }
 restoreTopic();
 window.addEventListener('popstate', restoreTopic);
+
+const mascot = document.querySelector('.hero-mascot');
+const gaze = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+let gazeFrame = 0;
+let pointer;
+function resetGaze() {
+  cancelAnimationFrame(gazeFrame);
+  gazeFrame = 0;
+  mascot.style.removeProperty('--look-x');
+  mascot.style.removeProperty('--look-y');
+  mascot.classList.toggle('gaze-ready', gaze.matches);
+}
+resetGaze();
+gaze.addEventListener('change', resetGaze);
+document.addEventListener('pointermove', (event) => {
+  if (!gaze.matches || event.pointerType !== 'mouse') return;
+  pointer = { x:event.clientX, y:event.clientY };
+  if (gazeFrame) return;
+  gazeFrame = requestAnimationFrame(() => {
+    gazeFrame = 0;
+    const rect = mascot.getBoundingClientRect();
+    const x = Math.max(-1, Math.min(1, (pointer.x - rect.x - rect.width / 2) / (innerWidth / 2)));
+    const y = Math.max(-1, Math.min(1, (pointer.y - rect.y - rect.height * .38) / (innerHeight / 2)));
+    mascot.style.setProperty('--look-x', `${x * rect.width * .004}px`);
+    mascot.style.setProperty('--look-y', `${y * rect.width * .003}px`);
+  });
+}, { passive:true });
+document.addEventListener('pointerout', (event) => { if (!event.relatedTarget) resetGaze(); });
+window.addEventListener('blur', resetGaze);

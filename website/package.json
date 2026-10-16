@@ -1,0 +1,6 @@
+{
+  "name": "meetohmi-landing-page",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" }
+}

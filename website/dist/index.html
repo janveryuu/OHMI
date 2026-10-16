@@ -8,6 +8,11 @@
   <meta property="og:title" content="OHMI — A little buddy. A brighter build.">
   <meta property="og:description" content="A friendly companion for your electronics, Arduino, and circuit-building questions.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://meetohmi.vercel.app/">
+  <meta property="og:image" content="https://meetohmi.vercel.app/assets/ohmi.png">
+  <meta property="og:image:alt" content="OHMI, your friendly mint pixel-art circuit buddy.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://meetohmi.vercel.app/">
   <title>OHMI — Your Circuit Buddy</title>
   <link rel="icon" href="assets/ohmi.png" type="image/png">
   <link rel="preload" href="assets/manrope-variable.ttf" as="font" type="font/ttf" crossorigin>
@@ -41,7 +46,10 @@
           </div>
           <p class="hero-note">Built for curious circuit builders.</p>
         </div>
-        <img class="hero-mascot" src="assets/ohmi.png" alt="OHMI, a smiling mint pixel-art robot with yellow antennae and a little breadboard." width="1254" height="1254" fetchpriority="high">
+        <div class="hero-mascot">
+          <img src="assets/ohmi.png" alt="OHMI, a smiling mint pixel-art robot with yellow antennae and a little breadboard." width="1254" height="1254" fetchpriority="high">
+          <span class="gaze-eyes" aria-hidden="true"><span class="gaze-left"></span><span class="gaze-right"></span></span>
+        </div>
       </div>
     </section>
 
@@ -121,6 +129,8 @@
 
     <section id="get-started" class="setup-section wrap section-space" aria-labelledby="setup-title">
       <div class="setup-heading"><h2 id="setup-title">Your next lightbulb<br>moment starts here.</h2><div><p>OHMI is a Chrome extension. Try the source build alongside your Tinkercad Circuits workspace.</p><a class="button" href="https://github.com/janveryuu/OHMI#load-or-update">View setup on GitHub <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a><p class="fine-print">Source build · Desktop Chrome</p></div></div>
+      <button class="button button-outline coming-soon" type="button" aria-label="Download extension — Coming Soon" disabled>Coming Soon</button>
+      <p class="fine-print">Extension download. Not available yet.</p>
       <ol class="setup-steps">
         <li><span class="step-number" aria-hidden="true">1</span><div><h3>Build OHMI</h3><p>Follow the repository setup instructions and build the extension.</p></div></li>
         <li><span class="step-number" aria-hidden="true">2</span><div><h3>Add it to Chrome</h3><p>Load the extension in Chrome’s Developer mode.</p></div></li>

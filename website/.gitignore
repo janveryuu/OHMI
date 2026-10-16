@@ -4,3 +4,6 @@
 .sites-checkout/
 .sites-checkout-*/
 node_modules/
+
+.vercel
+.env*
