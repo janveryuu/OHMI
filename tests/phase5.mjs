@@ -309,3 +309,39 @@ export async function testPhase5(context, page, screenshots) {
   await checkPage.close();
   console.log('PASS Phase 5 M4: Interactive Circuit Review UI, crop controls, Arduino review, findings, comparisons, step guidance, copy code, history restoration, deletion, and zero unauthorized AI calls.');
 }
+
+if (process.argv[1] && (process.argv[1].endsWith('phase5.mjs') || process.argv[1].endsWith('phase5.js'))) {
+  const { mkdtemp, mkdir } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { resolve } = await import('node:path');
+  const { chromium } = await import('playwright');
+  const extension = resolve('.output/chrome-mv3');
+  const screenshots = resolve(process.env.OHMI_SCREENSHOTS_DIR || '.superpowers/stabilization-2026-10-15/screenshots');
+  const profile = await mkdtemp(join(tmpdir(), 'ohmi-phase5-'));
+  const context = await chromium.launchPersistentContext(profile, {
+    headless: true,
+    channel: process.env.OHMI_CHROMIUM_PATH ? undefined : 'chromium',
+    executablePath: process.env.OHMI_CHROMIUM_PATH,
+    args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
+    viewport: { width: 1280, height: 800 },
+  });
+  try {
+    await mkdir(screenshots, { recursive: true });
+    await context.route('https://www.tinkercad.com/**', (route) => route.fulfill({
+      contentType: 'text/html; charset=utf-8',
+      body: `<!doctype html><html><head><meta charset="utf-8"><title>OHMI isolated browser test</title></head><body><header>LOCAL TEST FIXTURE</header><main><h1>OHMI test</h1></main></body></html>`,
+    }));
+    const page = context.pages()[0] ?? await context.newPage();
+    await page.goto('https://www.tinkercad.com/things/ohmi-test/editel');
+    await page.waitForLoadState('networkidle');
+    const mascot = page.locator('.ohmi-mascot');
+    await mascot.waitFor();
+    await mascot.click();
+    await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
+    await testPhase5(context, page, screenshots);
+  } finally {
+    await context.close();
+  }
+}
+
+
