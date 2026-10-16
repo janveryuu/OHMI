@@ -1,4 +1,5 @@
 import { isCircuitEditorUrl } from '../editor-url';
+import { validateCircuitRequest } from '../ai/circuit';
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const actions = [
@@ -7,10 +8,11 @@ const actions = [
   'profile.language', 'profile.name',
   'files.prepare', 'files.finish', 'files.open', 'files.delete',
   'steps.list', 'steps.add', 'steps.update', 'steps.delete',
-  'conversations.list', 'conversations.open', 'conversations.delete',
+  'conversations.list', 'conversations.open', 'conversations.create', 'conversations.delete',
   'analyses.get', 'analyses.list',
   'progress.get', 'progress.save',
-  'ai.chat'
+  'ai.chat', 'ai.circuit',
+  'circuit.open', 'capture.claim'
 ] as const;
 export type Action = typeof actions[number];
 export type Request = { action: Action; payload: Record<string, unknown> };
@@ -32,14 +34,24 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   const request = object(message);
   if (request.channel !== 'ohmi' || sender.id !== extensionId || !sender.url) throw new Error('Request not allowed.');
   const url = new URL(sender.url);
-  const trusted = url.protocol === 'chrome-extension:' && url.hostname === extensionId && url.pathname === '/account.html';
+  const trustedAccount = url.protocol === 'chrome-extension:' && url.hostname === extensionId && url.pathname === '/account.html';
+  const trustedCheck = url.protocol === 'chrome-extension:' && url.hostname === extensionId && url.pathname === '/check.html' && sender.frameId === 0;
   const editor = typeof sender.tab?.id === 'number' && sender.frameId === 0 && isCircuitEditorUrl(url);
-  if (!trusted && !editor) throw new Error('Request not allowed.');
+  if (!trustedAccount && !trustedCheck && !editor) throw new Error('Request not allowed.');
   if (typeof request.action !== 'string' || !actions.includes(request.action as Action)) throw new Error('Unknown request.');
   const action = request.action as Action;
-  if (trustedOnly.has(action) && !trusted) throw new Error('Open OHMI Account to use this action.');
+  if (trustedOnly.has(action) && !trustedAccount) throw new Error('Open OHMI Account to use this action.');
+  if (action === 'capture.claim' && (!trustedCheck || typeof sender.tab?.id !== 'number')) {
+    throw new Error('Action only allowed from circuit check review.');
+  }
+  if (action === 'ai.circuit' && !trustedCheck) {
+    throw new Error('Action only allowed from circuit check review.');
+  }
   const payload = object(request.payload ?? {});
-  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('conversations.') || action.startsWith('analyses.') || action.startsWith('progress.') || action === 'ai.chat') uuid(payload.accountId);
+  if (action === 'capture.claim' && sender.tab?.id) {
+    payload.callerTabId = sender.tab.id;
+  }
+  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('conversations.') || action.startsWith('analyses.') || action.startsWith('progress.') || action === 'ai.chat' || action === 'ai.circuit') uuid(payload.accountId);
   if (action === 'local.position') {
     const position = object(payload.position);
     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || typeof payload.open !== 'boolean') throw new Error('Invalid mascot position.');
@@ -64,6 +76,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
     if (!Array.isArray(payload.completed) || payload.completed.length > 24 || payload.completed.some(s => typeof s !== 'number' || s < 0 || s > 23 || !Number.isInteger(s))) throw new Error('Invalid completed steps.');
   }
   if (action === 'steps.add') payload.title = text(payload.title, 500);
+  if (action === 'conversations.create' && payload.title !== undefined) payload.title = text(payload.title, 160);
   if (action === 'steps.update' && typeof payload.completed !== 'boolean') throw new Error('Invalid step state.');
   if (action === 'files.prepare') validateFile(payload);
   if (action === 'ai.chat') {
@@ -82,6 +95,9 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
       }
       if (typeof calc.operands !== 'object' || calc.operands === null) throw new Error('Invalid calculation operands.');
     }
+  }
+  if (action === 'ai.circuit') {
+    validateCircuitRequest(payload);
   }
   return { action, payload };
 }

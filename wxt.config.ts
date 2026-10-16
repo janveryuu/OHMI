@@ -13,7 +13,10 @@ export default defineConfig({
     description: 'A friendly learning companion for Tinkercad Circuits.',
     version: '0.3.0',
     minimum_chrome_version: '116',
-    permissions: ['storage', 'identity'],
+    permissions: ['storage', 'identity', 'activeTab'],
+    action: {
+      default_title: 'Capture visible Tinkercad circuit for review',
+    },
     host_permissions: ['https://www.tinkercad.com/*', ...(backendOrigin ? [`${backendOrigin}/*`] : [])],
     ...(env.WXT_EXTENSION_PUBLIC_KEY ? { key: env.WXT_EXTENSION_PUBLIC_KEY } : {}),
     web_accessible_resources: [{

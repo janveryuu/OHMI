@@ -46,8 +46,52 @@ export default defineContentScript({
       ui = next;
     };
 
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const onMessageListener = (message: any, sender: any, sendResponse: (res: any) => void) => {
+      if (sender.id !== browser.runtime.id || message?.channel !== 'ohmi-internal') return;
+      const host = document.querySelector('ohmi-companion') as HTMLElement | null;
+
+      if (message.action === 'capture:hide') {
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        if (host) {
+          host.style.setProperty('display', 'none', 'important');
+        }
+        watchdogTimer = setTimeout(() => {
+          if (host) host.style.removeProperty('display');
+        }, 3000);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            sendResponse({ ok: true, nonce: message.nonce, documentGeneration: String(change) });
+          });
+        });
+        return true;
+      }
+
+      if (message.action === 'capture:restore') {
+        if (watchdogTimer) {
+          clearTimeout(watchdogTimer);
+          watchdogTimer = undefined;
+        }
+        if (host) {
+          host.style.removeProperty('display');
+        }
+        sendResponse({ ok: true, nonce: message.nonce });
+        return;
+      }
+    };
+
+    browser.runtime.onMessage.addListener(onMessageListener);
+
     ctx.addEventListener(window, 'wxt:locationchange', (event) => { void update(event.newUrl); });
-    ctx.onInvalidated(() => { change++; ui?.remove(); ui = undefined; });
+    ctx.onInvalidated(() => {
+      browser.runtime.onMessage.removeListener(onMessageListener);
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+      change++;
+      ui?.remove();
+      ui = undefined;
+    });
     await update(new URL(window.location.href));
   },
 });

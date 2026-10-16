@@ -101,3 +101,43 @@ Four forward migrations were reviewed, dry-run tested, and applied to hosted pro
 3. **Local Second Brain Boundary:** Memory access restricted exclusively to read-only `docs/antigravity-memory/`; `C:\Users\LEGION\Documents\CodexSecondBrain` was never accessed.
 4. **Independent Companion:** No Autodesk Tinkercad branding infringement; no assumption of Tinkercad affiliation.
 5. **No Electrical Hallucination:** Clear educational disclaimer that image analysis does not constitute electrical verification.
+
+---
+
+## 6. Milestone 0 Reconciliation and Source Audit (16 October 2026)
+
+In preparation for Phase 5 (AI Circuit Checker), Codex and Antigravity audited the current checkout and resolved all identified Phase 4 implementation gaps (P4-1 through P4-10).
+
+### 6.1 Findings and Source Repairs
+
+| Finding ID | Scope | Resolution & Verified Evidence |
+| :--- | :--- | :--- |
+| **P4-1** | UI Chat/History/Tutorial Controls | Updated `src/AssistantPanel.tsx` with durable conversation creation and loader (`conversations.list`/`open`), interactive step-by-step tutorial viewer in Guide with `progress.save`, and dedicated tutorial launcher in `src/PrivateAssignments.tsx`. Preserved explicit sample labels for unauthenticated/demo mode. |
+| **P4-2** | Owned Conversation Lifecycle | Added `conversations.create` action in `src/backend/validation.ts` (title capped at 160 characters) and implemented in `src/backend/service.ts`. Verified account-switch isolation in both unit and Playwright tests. |
+| **P4-3** | Replay & Cooldown Evaluation Order | Created forward migration `supabase/migrations/20261016140000_ohmi_phase4_reconcile_replay_and_artifacts.sql`. Re-ordered `ohmi_reserve_ai` so idempotent replays are checked *before* provider cooldown. Preserved full structured output in `ohmi_analyses` and `ohmi_messages`. Checked `ohmi_complete_ai` result for errors in the Edge handler. |
+| **P4-4** | Finish Reason & Tutorial Validation | Edge handler strictly validates candidate `finishReason === 'STOP'`. Rejects `SAFETY`, `BLOCKLIST`, `RECITATION`, `MAX_TOKENS`, and unparseable JSON without fabricating generic tutorials. Removed generic default step generators from `supabase/functions/ohmi-ai/tutorial.ts` and `src/ai/tutorial.ts`. |
+| **P4-5** | Assignment Requirements & Citations | Defined and exported `AssignmentRequirementSet` in `src/backend/contracts.ts`. Reconciled `verifyPageCitation` and PDF requirement validation in `supabase/functions/ohmi-ai/handler.ts`. |
+| **P4-6** | Bounded Input & Security Gates | Implemented bounded body reads (<= 32 KiB) and Content-Length enforcement in `supabase/functions/ohmi-ai/handler.ts`. Operation-to-source MIME matching (`image` requires image MIME, `pdf` requires `application/pdf`). Added `OHMI_AI_ENABLED` server kill switch. |
+| **P4-7** | Direct Binary Hashing & Nonces | Raw media is hashed directly via `sha256BytesHex`. Canonical input hash incorporates `conversationId`. |
+| **P4-8** | Token Accounting & Deadlines | Unknown usage is assigned a conservative non-zero estimate (`PROMPT_RESERVATION_TOKENS = 800`, `ESTIMATED_COMPLETION_TOKENS = 1200`) instead of 0. Enforced a 24-second overall operation deadline covering request dispatch and body consumption. |
+| **P4-9** | Production Test Seam | Created `supabase/functions/ohmi-ai/handler.ts` and `supabase/functions/ohmi-ai/handler.test.ts`. Configured Vitest resolve aliases to test production Deno Edge handlers directly in Vitest. All 6 specified regression cases pass. |
+| **P4-10** | Specification Alignment | Reconciled documented PDF limits to actual source limits: 2 MiB, 6 pages, 24,000 characters. Image limits: 4 MiB, 4 MP, 4,096 px per side. Private storage bucket: 10 MiB limit. Extension version remains 0.3.0. |
+
+### 6.2 Test and Verification Summary
+
+- **Vitest Unit & Regression Tests:** 86 tests passed across 12 files (`npm test`).
+- **TypeScript Typecheck:** 0 errors (`npm run typecheck`).
+- **Production Build:** Extension bundle built cleanly (2.24 MB, `.output/chrome-mv3`).
+- **Playwright Browser Tests:** All tests passed (`npm run test:browser`), verifying Shadow DOM isolation, host keyboard/pointer events, account privacy isolation, and multi-language support.
+- **Mascot Hash Invariance:**
+  - Front: `815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382` (Verified).
+  - Turnaround: `2645d82b363645a23e348a53dd9a03f0723e096aded2dca33e6619a8fa8b07fe` (Verified).
+- **Extension ID:** `ikemolangalcofljjajakagdnfdpnakh` (Verified).
+
+### 6.3 Open External & Release Gates
+
+Before live deployment and Phase 5 external evaluations, the following external gates must be acknowledged and authorized by the owner:
+1. **Audience Gate & Terms:** Gemini Developer API requires adult users (18+). For student pilot testing, course material should be synthetic or de-identified, and adult college student pilot conditions must be explicitly verified before live queries.
+2. **Hosted Deployments:** Forward migration `20261016140000` and updated `ohmi-ai` Edge function are ready locally. Deployment to hosted Supabase instance `vhmdgfydvoljzqztuxmu` requires explicit owner authorization.
+3. **Privileged Keys:** Rotation of legacy service role credentials on the Supabase dashboard remains scheduled for manual execution by owner.
+4. **Custom SMTP:** Gated until custom SMTP server and templates are configured. Existing Google OAuth and synthetic/confirmed sessions remain active.

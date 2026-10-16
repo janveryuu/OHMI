@@ -101,17 +101,23 @@ export function validateTutorialResult(data: unknown): { valid: boolean; result?
         ? s.reason.trim()
         : (typeof s.explanation === 'string' && s.explanation.trim()
           ? s.explanation.trim()
-          : 'Ensures proper circuit operation and component protection.'));
+          : ''));
     const check = typeof s.check === 'string' && s.check.trim()
       ? s.check.trim()
       : (typeof s.verification === 'string' && s.verification.trim()
         ? s.verification.trim()
         : (typeof s.verify === 'string' && s.verify.trim()
           ? s.verify.trim()
-          : 'Verify connection against the circuit diagram before powering on.'));
+          : ''));
 
     if (!instruction) {
       return { valid: false, error: `Step ${expectedStepNum} is missing an instruction` };
+    }
+    if (!why) {
+      return { valid: false, error: `Step ${expectedStepNum} is missing a why explanation` };
+    }
+    if (!check) {
+      return { valid: false, error: `Step ${expectedStepNum} is missing a verification check` };
     }
 
     validatedSteps.push({

@@ -3,7 +3,7 @@ import { request } from './bridge';
 import { Icon } from './Icon';
 import type { AccountState, Assignment } from './backend/contracts';
 
-export function PrivateAssignments({ state, loading, error, refresh, onGuide, onUpload, onAnalyze }: { state: AccountState; loading: boolean; error: string; refresh: () => Promise<void>; onGuide?: (assignment: Assignment) => void; onUpload?: () => void; onAnalyze?: (assignment: Assignment) => void }) {
+export function PrivateAssignments({ state, loading, error, refresh, onGuide, onUpload, onAnalyze, onTutorial }: { state: AccountState; loading: boolean; error: string; refresh: () => Promise<void>; onGuide?: (assignment: Assignment) => void; onUpload?: () => void; onAnalyze?: (assignment: Assignment) => void; onTutorial?: (assignment: Assignment) => void }) {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const act = async (action: 'files.open' | 'files.delete', id: string) => {
@@ -25,7 +25,7 @@ export function PrivateAssignments({ state, loading, error, refresh, onGuide, on
       {!loading && state.assignments.length === 0 && !error && <p className="ohmi-empty-copy">No saved assignments yet. Upload your first project brief.</p>}
       <ul className="ohmi-file-list">{state.assignments.map((assignment) => <li key={assignment.id}>
         <strong>{assignment.original_name}</strong><p className="ohmi-muted">{(assignment.size_bytes / 1024).toFixed(1)} KiB · {assignment.status === 'ready' ? 'Saved privately' : 'Incomplete upload — delete and retry'}</p>
-        <div className="ohmi-file-actions"><button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => { void act('files.open', assignment.id); }}>Open file</button>{onAnalyze && <button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => onAnalyze(assignment)}>Analyze</button>}{onGuide && <button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => onGuide(assignment)}>Saved steps</button>}<button type="button" className="ohmi-text-button" disabled={loading || !!busy} onClick={() => { void act('files.delete', assignment.id); }}>Delete</button></div>
+        <div className="ohmi-file-actions"><button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => { void act('files.open', assignment.id); }}>Open file</button>{onAnalyze && <button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => onAnalyze(assignment)}>Analyze</button>}{onTutorial && <button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => onTutorial(assignment)}>Tutorial guide</button>}{onGuide && <button type="button" className="ohmi-button ohmi-secondary" disabled={loading || !!busy || assignment.status !== 'ready'} onClick={() => onGuide(assignment)}>Saved steps</button>}<button type="button" className="ohmi-text-button" disabled={loading || !!busy} onClick={() => { void act('files.delete', assignment.id); }}>Delete</button></div>
         {busy === assignment.id && <p role="status" className="ohmi-loading">Working…</p>}
       </li>)}</ul>
     </>}

@@ -100,6 +100,44 @@ describe('ai.chat request validation', () => {
   });
 });
 
+describe('ai.circuit request validation', () => {
+  const dummyAcc = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const dummyReq = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  const checkSender = { id, url: `chrome-extension://${id}/check.html`, tab: { id: 2 }, frameId: 0 };
+  const validCircuitPayload = {
+    version: 2,
+    operation: 'circuit_check',
+    requestId: dummyReq,
+    accountId: dummyAcc,
+    language: 'english',
+    mode: 'check',
+    board: 'uno-r3',
+    message: 'Check this LED circuit',
+    images: [],
+    code: 'void setup() { pinMode(13, OUTPUT); }\nvoid loop() { digitalWrite(13, HIGH); }'
+  };
+
+  it('rejects ai.circuit from content script or account page', () => {
+    expect(() => validateRequest(message('ai.circuit', validCircuitPayload), content, id))
+      .toThrow('Action only allowed from circuit check review.');
+    expect(() => validateRequest(message('ai.circuit', validCircuitPayload), account, id))
+      .toThrow('Action only allowed from circuit check review.');
+  });
+
+  it('accepts valid ai.circuit from trusted /check.html sender', () => {
+    const validated = validateRequest(message('ai.circuit', validCircuitPayload), checkSender, id);
+    expect(validated.action).toBe('ai.circuit');
+    expect(validated.payload.requestId).toBe(dummyReq);
+  });
+
+  it('rejects ai.circuit with missing accountId or invalid schema', () => {
+    expect(() => validateRequest(message('ai.circuit', { ...validCircuitPayload, accountId: undefined }), checkSender, id))
+      .toThrow();
+    expect(() => validateRequest(message('ai.circuit', { ...validCircuitPayload, mode: 'invalid' }), checkSender, id))
+      .toThrow();
+  });
+});
+
 describe('durable history actions validation', () => {
   const dummyAcc = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const dummyId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -107,11 +145,14 @@ describe('durable history actions validation', () => {
   it('validates conversations actions', () => {
     expect(validateRequest(message('conversations.list', { accountId: dummyAcc }), content, id).action).toBe('conversations.list');
     expect(validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.open');
+    expect(validateRequest(message('conversations.create', { accountId: dummyAcc, title: 'Test Title' }), content, id).action).toBe('conversations.create');
+    expect(validateRequest(message('conversations.create', { accountId: dummyAcc }), content, id).action).toBe('conversations.create');
     expect(validateRequest(message('conversations.delete', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.delete');
 
     // Missing id for open/delete
     expect(() => validateRequest(message('conversations.open', { accountId: dummyAcc }), content, id)).toThrow();
     expect(() => validateRequest(message('conversations.delete', { accountId: dummyAcc, id: 'invalid-uuid' }), content, id)).toThrow();
+    expect(() => validateRequest(message('conversations.create', { accountId: dummyAcc, title: 'a'.repeat(200) }), content, id)).toThrow();
   });
 
   it('validates analyses actions', () => {

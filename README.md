@@ -2,11 +2,11 @@
 
 The standalone marketing website lives in [`website/`](website/README.md). Its owner-approved Concept C uses bold typography, a mint horizon, and the exact approved mascot. It runs without a build step; see its README for preview and browser checks. The website's learning examples are scripted and separate from the extension.
 
-Phase 3, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed. AI and circuit checking still use samples.
+Phase 3/4 baseline, version **0.3.0**: Supabase accounts, private assignments, saved steps, and the approved pixel-art companion. Google sign-in is available. Email confirmation/password reset remain **pending custom SMTP**, as agreed.
 
-Phase 4 has been rolled back and will be redesigned from scratch with Antigravity. No live AI integration is included in this foundation. See the [rollback record](docs/PHASE_4_ROLLBACK.md) for backups, verification and retained live database resources. Phase 5 has not begun.
+Phase 5 (AI Circuit Checker) has begun. **Milestone 0 (M0)** (Phase 4 foundation reconciled) and **Milestone 1 (M1)** (Local Capture & Private Preview, AI disconnected) are complete and verified: toolbar capture coordinator (`src/capture.ts`), trusted preview page (`/check.html`), accessible numeric crop controls, and offline fallback delivered. 95 unit tests passing across 13 files, 0 typecheck errors, clean 2.27 MB build, and Playwright browser tests passing. See the implementation plan in [`docs/PHASE_5_IMPLEMENTATION_PLAN.md`](docs/PHASE_5_IMPLEMENTATION_PLAN.md) and reports in [`docs/PHASE_4_VERIFICATION_REPORT.md`](docs/PHASE_4_VERIFICATION_REPORT.md) and [`docs/PHASE_5_VERIFICATION_REPORT.md`](docs/PHASE_5_VERIFICATION_REPORT.md).
 
-Current branch: `codex/stabilize-phases-1-3`. Read [stabilization evidence and six finding statuses](docs/PHASES_1-3_STABILIZATION.md) and [Antigravity handoff](docs/ANTIGRAVITY_HANDOFF.md). Migration history is reconciled; account-switch drafts/messages are cleared; email-only entry points are gated. Portable identity and privileged-key rotation verification remain manual requirements.
+Current branch: `codex/stabilize-phases-1-3`. Read [stabilization evidence](docs/PHASES_1-3_STABILIZATION.md), [Phase 4 report](docs/PHASE_4_VERIFICATION_REPORT.md), and [Phase 5 report](docs/PHASE_5_VERIFICATION_REPORT.md). Migration history is reconciled; account-switch drafts/messages are cleared; email-only entry points are gated. Portable identity and privileged-key rotation verification remain manual requirements.
 
 ## Load or update
 

@@ -3,6 +3,7 @@ import { createBackendClient, authStorage, AUTH_STORAGE_KEY } from './client';
 import { readPreferences } from '../preview';
 import { validateCallback, validateFile, type Request } from './validation';
 import type { AccountState, Assignment, AssignmentStep, Profile } from './contracts';
+import { claimPendingCapture } from '../capture';
 
 const bucket = 'ohmi-assignments';
 const assignmentColumns = 'id,original_name,mime_type,size_bytes,status,created_at';
@@ -134,6 +135,12 @@ export async function handleRequest(request: Request): Promise<unknown> {
   }
   if (action === 'local.preferences') { await browser.storage.local.set({ ohmiPreferences: readPreferences(payload) }); return null; }
   if (action === 'account.open') { await browser.tabs.create({ url: browser.runtime.getURL('/account.html') + (payload.view === 'upload' ? '#upload' : '') }); return null; }
+  if (action === 'circuit.open') { await browser.tabs.create({ url: browser.runtime.getURL('/check.html') }); return null; }
+  if (action === 'capture.claim') {
+    const callerTabId = typeof payload.callerTabId === 'number' ? payload.callerTabId : -1;
+    const session = (await backend?.client?.auth?.getSession())?.data?.session;
+    return await claimPendingCapture(callerTabId, session?.user?.id ?? null);
+  }
   if (action === 'account.state') return state();
   if (action.startsWith('auth.')) return authenticate(request);
   const user = await requireUser();
@@ -204,6 +211,21 @@ export async function handleRequest(request: Request): Promise<unknown> {
       fail(convRes.error);
       fail(msgRes.error);
       return { conversation: convRes.data, messages: msgRes.data };
+    }
+    if (action === 'conversations.create') {
+      const title = typeof payload.title === 'string' && payload.title.trim()
+        ? payload.title.trim().slice(0, 160)
+        : 'New conversation';
+      const result = await client
+        .from('ohmi_conversations')
+        .insert({
+          user_id: user.id,
+          title
+        })
+        .select('id,title,analysis_id,created_at,updated_at')
+        .single();
+      fail(result.error);
+      return result.data;
     }
     if (action === 'conversations.delete') {
       const result = await client.from('ohmi_conversations').delete().eq('id', String(payload.id)).eq('user_id', user.id);
@@ -303,6 +325,43 @@ export async function handleRequest(request: Request): Promise<unknown> {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         throw new Error('AI response timed out after 28 seconds. Try again.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (action === 'ai.circuit') {
+    const session = await client.auth.getSession();
+    fail(session.error);
+    if (!session.data.session || session.data.session.user.id !== user.id) {
+      throw new Error('Account changed. Sign in again before requesting circuit check.');
+    }
+    const token = session.data.session.access_token;
+    const edgeUrl = `${backend!.config.url}/functions/v1/ohmi-ai`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 28000);
+
+    try {
+      const res = await fetch(edgeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Circuit check failed.');
+      }
+      return data;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Circuit check timed out after 28 seconds. Try again.');
       }
       throw err;
     } finally {

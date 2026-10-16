@@ -5,10 +5,24 @@ import { PrivateAssignments } from './PrivateAssignments';
 import { AssignmentSteps } from './AssignmentSteps';
 import { request } from './bridge';
 import type { useAccount } from './useAccount';
-import type { Assignment } from './backend/contracts';
+import type { Assignment, ConversationHeader } from './backend/contracts';
 
 type SampleState = 'empty' | 'loading' | 'ready';
 type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; isAi?: boolean };
+
+interface TutorialStepData {
+  step: number;
+  instruction: string;
+  why: string;
+  check: string;
+  code?: string;
+}
+
+interface ActiveTutorial {
+  id: string;
+  title: string;
+  steps: TutorialStepData[];
+}
 
 function renderMessageText(text: string) {
   const parts = text.split(/(```[\s\S]*?```)/g);
@@ -79,6 +93,13 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [step, setStep] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
   const [savedAssignment, setSavedAssignment] = useState<Assignment | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [activeTutorial, setActiveTutorial] = useState<ActiveTutorial | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [tutorialCompleted, setTutorialCompleted] = useState<number[]>([]);
+  const [conversations, setConversations] = useState<ConversationHeader[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const lastUserId = useRef(account.state.user?.id);
   const messageId = useRef(0);
   const contentRef = useRef<HTMLElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
@@ -120,6 +141,56 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     if (section === 'chat' && chatLogRef.current) chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
   }, [messages, pendingReply, section]);
 
+  useEffect(() => {
+    if (lastUserId.current !== account.state.user?.id) {
+      lastUserId.current = account.state.user?.id;
+      setMessages([]);
+      setDraft('');
+      setAttached(false);
+      setNotice('');
+      setCurrentConversationId(null);
+      setSavedAssignment(null);
+      setActiveTutorial(null);
+      setConversations([]);
+      setShowHistory(false);
+    }
+  }, [account.state.user?.id]);
+
+  const loadConversations = async () => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    try {
+      const list = await request<ConversationHeader[]>('conversations.list', { accountId: currentUserId });
+      setConversations(list || []);
+      setShowHistory(true);
+    } catch {
+      setNotice('Could not load conversation history.');
+    }
+  };
+
+  const openConversation = async (conv: ConversationHeader) => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    try {
+      const res = await request<{ conversation: ConversationHeader; messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; structured_result?: any }> }>('conversations.open', {
+        id: conv.id,
+        accountId: currentUserId
+      });
+      if (res?.messages) {
+        setMessages(res.messages.map((m) => ({
+          id: ++messageId.current,
+          role: m.role === 'user' ? 'user' : 'ohmi',
+          text: m.content,
+          isAi: true
+        })));
+        setCurrentConversationId(conv.id);
+        setShowHistory(false);
+      }
+    } catch {
+      setNotice('Could not open conversation.');
+    }
+  };
+
   const send = async () => {
     const text = draft.trim();
     if (!text || pendingReply !== null) return;
@@ -141,6 +212,20 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     }
 
     try {
+      let convId = currentConversationId;
+      if (!convId) {
+        try {
+          const newConv = await request<ConversationHeader>('conversations.create', {
+            accountId: currentUserId,
+            title: text.slice(0, 100)
+          });
+          if (newConv?.id) {
+            convId = newConv.id;
+            setCurrentConversationId(convId);
+          }
+        } catch { /* proceed unlinked if create fails */ }
+      }
+
       const chatContext = messages.slice(-4).map((m) => ({
         role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
         text: m.text
@@ -151,7 +236,8 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         requestId: crypto.randomUUID(),
         message: text,
         language: preferences.language,
-        context: chatContext
+        context: chatContext,
+        ...(convId ? { conversationId: convId } : {})
       }) as { ok?: boolean; result?: { answer?: string } } | null;
 
       if (account.state.user?.id !== currentUserId) return;
@@ -224,6 +310,67 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     }
   };
 
+  const openTutorialGuide = async (item: Assignment) => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    setNotice('');
+    try {
+      const analyses = await request<any[]>('analyses.list', {
+        accountId: currentUserId,
+        assignmentId: item.id
+      });
+      const tutorialAnalysis = analyses?.find((a) => a.artifact_kind === 'tutorial' || (a.payload?.steps && a.payload.steps.length > 0));
+
+      if (tutorialAnalysis) {
+        const full = await request<any>('analyses.get', {
+          accountId: currentUserId,
+          id: tutorialAnalysis.id
+        });
+        const progress = await request<any>('progress.get', {
+          accountId: currentUserId,
+          analysisId: tutorialAnalysis.id
+        });
+        setActiveTutorial({
+          id: tutorialAnalysis.id,
+          title: full?.title || full?.payload?.title || item.original_name,
+          steps: full?.payload?.steps || []
+        });
+        setTutorialStep(progress?.current_step || 0);
+        setTutorialCompleted(progress?.completed || []);
+        setSavedAssignment(null);
+        navigate('guide');
+      } else {
+        setPendingReply(preferences.language);
+        onMotion('thinking');
+        const res = await request<any>('ai.chat', {
+          accountId: currentUserId,
+          requestId: crypto.randomUUID(),
+          operation: 'tutorial',
+          assignmentId: item.id,
+          language: preferences.language,
+          message: `Generate a step-by-step circuit assembly guide for ${item.original_name}.`
+        });
+        if (res?.result?.steps && res.result.steps.length > 0) {
+          setActiveTutorial({
+            id: res.resultId || res.requestId,
+            title: res.result.title || item.original_name,
+            steps: res.result.steps
+          });
+          setTutorialStep(0);
+          setTutorialCompleted([]);
+          setSavedAssignment(null);
+          navigate('guide');
+        } else {
+          setNotice(res?.result?.notes || 'Could not generate tutorial for this assignment.');
+        }
+      }
+    } catch (err: unknown) {
+      setNotice(err instanceof Error ? err.message : 'Failed to load tutorial guide.');
+    } finally {
+      setPendingReply(null);
+    }
+  };
+
   const unavailable = () => setNotice('AI analysis is not connected. Use a built-in sample here, or save real files privately in Assignments.');
   const currentStep = GUIDE_STEPS[step]!;
   const motionAvailable = preferences.animations && !systemReducedMotion;
@@ -262,6 +409,54 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </div>}
 
       {section === 'chat' && <div className="ohmi-chat-layout">
+        {account.state.user && (
+          <div className="ohmi-chat-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--ohmi-muted)' }}>
+              {currentConversationId ? 'Active chat' : 'New chat'}
+            </span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="ohmi-text-button"
+                style={{ fontSize: '11px' }}
+                onClick={() => { setMessages([]); setCurrentConversationId(null); setShowHistory(false); }}
+              >
+                New conversation
+              </button>
+              <button
+                type="button"
+                className="ohmi-text-button"
+                style={{ fontSize: '11px' }}
+                onClick={() => { if (showHistory) setShowHistory(false); else void loadConversations(); }}
+              >
+                {showHistory ? 'Close history' : 'History'}
+              </button>
+            </div>
+          </div>
+        )}
+        {showHistory && (
+          <div className="ohmi-conversation-history" style={{ padding: '8px', background: 'var(--ohmi-tint)', borderRadius: '10px', marginBottom: '8px', maxHeight: '140px', overflowY: 'auto' }}>
+            <strong style={{ fontSize: '12px' }}>Past conversations</strong>
+            {conversations.length === 0 ? (
+              <p className="ohmi-muted" style={{ fontSize: '11px', margin: '4px 0 0' }}>No saved conversations yet.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0' }}>
+                {conversations.map((c) => (
+                  <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--ohmi-border)' }}>
+                    <button
+                      type="button"
+                      className="ohmi-text-button"
+                      style={{ fontSize: '11px', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}
+                      onClick={() => void openConversation(c)}
+                    >
+                      {c.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label="Local demo conversation" aria-live="polite" tabIndex={0}>
           {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>What’s puzzling you? Try a question about the sample LED circuit.</p></div>}
           {messages.map((message) => <div key={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
@@ -284,18 +479,101 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </div>}
 
       {section === 'assignments' && <>
-        <PrivateAssignments {...account} refresh={account.refresh} onAnalyze={analyzeAssignment} onGuide={(item) => { setSavedAssignment(item); navigate('guide'); }} />
+        <PrivateAssignments {...account} refresh={account.refresh} onAnalyze={analyzeAssignment} onGuide={(item) => { setSavedAssignment(item); setActiveTutorial(null); navigate('guide'); }} onTutorial={openTutorialGuide} />
         <p className="ohmi-sample-divider">Local demonstration — separate from your saved files</p>
         {assignment !== 'ready' ? <UploadPreview kind="assignment" state={assignment} onUnavailable={unavailable} onSample={() => { setAssignment('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
           <div className="ohmi-sample-file"><span className="ohmi-feature-icon"><Icon name="assignments" /></span><div><strong>led-lab.pdf</strong><p>Built-in sample assignment</p></div><button type="button" className="ohmi-icon-button" aria-label="Remove sample assignment" onClick={() => setAssignment('empty')}><Icon name="close" size={16} /></button></div>
           <div className="ohmi-result"><span className="ohmi-badge">Sample analysis</span><h4>Light your first LED</h4><p>Build a simple series circuit and explain how the resistor controls current.</p><h5>What you’ll need</h5><div className="ohmi-parts"><span>LED</span><span>220 Ω resistor</span><span>Breadboard</span><span>5 V source</span></div><h5>Your learning goals</h5><ul><li>Trace a complete current path.</li><li>Identify LED polarity.</li><li>Explain why the resistor matters.</li></ul><p className="ohmi-muted">This example is predefined. No PDF was read.</p></div>
-          <button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => { setSavedAssignment(null); navigate('guide'); }}><Icon name="guide" size={18} />Open sample guide</button>
+          <button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => { setSavedAssignment(null); setActiveTutorial(null); navigate('guide'); }}><Icon name="guide" size={18} />Open sample guide</button>
         </>}
         {assignment === 'loading' && <p className="ohmi-loading" role="status">Loading the built-in assignment preview…</p>}
       </>}
 
       {section === 'guide' && savedAssignment && account.state.user && <AssignmentSteps key={account.state.user.id + savedAssignment.id} accountId={account.state.user.id} assignment={savedAssignment} onBack={() => navigate('assignments')} />}
-      {section === 'guide' && !savedAssignment && <>
+      {section === 'guide' && !savedAssignment && activeTutorial && account.state.user && (
+        <section className="ohmi-saved-steps" aria-label="Tutorial guide">
+          <button type="button" className="ohmi-text-button" onClick={() => { setActiveTutorial(null); navigate('assignments'); }}>Back to assignments</button>
+          <h4>{activeTutorial.title}</h4>
+          <p className="ohmi-muted">AI-guided step-by-step assembly.</p>
+          <div className="ohmi-guide-progress">
+            <div>
+              <span>{tutorialCompleted.length} of {activeTutorial.steps.length} steps done</span>
+              <span>Step {tutorialStep + 1} of {activeTutorial.steps.length}</span>
+            </div>
+            <progress aria-label="Tutorial guide progress" value={tutorialCompleted.length} max={activeTutorial.steps.length} />
+          </div>
+          {activeTutorial.steps[tutorialStep] && (
+            <div className="ohmi-guide-step">
+              <span className="ohmi-step-number" aria-hidden="true">{tutorialStep + 1}</span>
+              <h4>Step {tutorialStep + 1}</h4>
+              <p>{activeTutorial.steps[tutorialStep].instruction}</p>
+              <div style={{ marginTop: '8px' }}>
+                <strong style={{ fontSize: '12px' }}>Why: </strong>
+                <span style={{ fontSize: '13px' }}>{activeTutorial.steps[tutorialStep].why}</span>
+              </div>
+              <div className="ohmi-tip">
+                <Icon name="spark" size={18} />
+                <p><strong>Check: </strong>{activeTutorial.steps[tutorialStep].check}</p>
+              </div>
+              {activeTutorial.steps[tutorialStep].code && (
+                <pre className="ohmi-code-block" style={{ background: 'rgba(0,0,0,0.06)', padding: '6px 8px', borderRadius: '4px', overflowX: 'auto', fontSize: '0.85em', marginTop: '8px' }}>
+                  <code>{activeTutorial.steps[tutorialStep].code}</code>
+                </pre>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            className={`ohmi-button ohmi-full-width ${tutorialCompleted.includes(tutorialStep) ? 'ohmi-secondary' : 'ohmi-primary'}`}
+            onClick={async () => {
+              const nextCompleted = tutorialCompleted.includes(tutorialStep)
+                ? tutorialCompleted.filter((i) => i !== tutorialStep)
+                : [...tutorialCompleted, tutorialStep];
+              setTutorialCompleted(nextCompleted);
+              if (!tutorialCompleted.includes(tutorialStep)) onMotion('happy');
+              if (account.state.user) {
+                try {
+                  await request('progress.save', {
+                    accountId: account.state.user.id,
+                    analysisId: activeTutorial.id,
+                    currentStep: tutorialStep,
+                    completed: nextCompleted
+                  });
+                } catch { /* non-blocking */ }
+              }
+            }}
+          >
+            <Icon name="done" size={18} />
+            {tutorialCompleted.includes(tutorialStep) ? 'Undo completion' : 'Mark step done'}
+          </button>
+          <div className="ohmi-guide-nav">
+            <button
+              type="button"
+              className="ohmi-button ohmi-secondary"
+              disabled={tutorialStep === 0}
+              onClick={() => setTutorialStep((current) => Math.max(0, current - 1))}
+            >
+              <Icon name="back" size={16} />Previous
+            </button>
+            <button
+              type="button"
+              className="ohmi-button ohmi-secondary"
+              disabled={tutorialStep >= activeTutorial.steps.length - 1}
+              onClick={() => setTutorialStep((current) => Math.min(activeTutorial.steps.length - 1, current + 1))}
+            >
+              Next step<Icon name="next" size={16} />
+            </button>
+          </div>
+          {tutorialCompleted.length === activeTutorial.steps.length && (
+            <div className="ohmi-success" role="status">
+              <Icon name="done" />
+              <p>Tutorial guide complete! You practiced each connection and verification step.</p>
+            </div>
+          )}
+          <button type="button" className="ohmi-text-button" onClick={() => { setTutorialCompleted([]); setTutorialStep(0); }}>Restart tutorial guide</button>
+        </section>
+      )}
+      {section === 'guide' && !savedAssignment && !activeTutorial && <>
         <div className="ohmi-guide-progress"><div><span>{completed.length} of 5 done</span><span>Step {step + 1} of 5</span></div><progress aria-label="Sample guide progress" value={completed.length} max={5} /></div>
         <div className="ohmi-guide-step"><span className="ohmi-step-number" aria-hidden="true">{step + 1}</span><h4>{currentStep.title}</h4><p>{currentStep.text}</p><div className="ohmi-tip"><Icon name="spark" size={18} /><p>{currentStep.tip}</p></div></div>
         <button type="button" className={`ohmi-button ohmi-full-width ${completed.includes(step) ? 'ohmi-secondary' : 'ohmi-primary'}`} onClick={() => {
@@ -308,6 +586,19 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       </>}
 
       {section === 'check' && <>
+        <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', borderRadius: '8px', marginBottom: '12px', fontSize: '13px' }}>
+          <p style={{ margin: '0 0 6px', fontWeight: 600 }}>Tinkercad Screenshot Review</p>
+          <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--ohmi-muted)', lineHeight: 1.4 }}>
+            Click the <strong>OHMI icon</strong> in your browser toolbar to capture your visible circuit, or open the review page to upload a screenshot.
+          </p>
+          <button
+            type="button"
+            className="ohmi-button ohmi-primary ohmi-full-width"
+            onClick={() => { void request('circuit.open').catch((err: Error) => setNotice(err.message)); }}
+          >
+            Open Circuit Review
+          </button>
+        </div>
         {circuit !== 'ready' ? <UploadPreview kind="circuit" state={circuit} onUnavailable={unavailable} onSample={() => { setCircuit('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
           <div className="ohmi-circuit-example" aria-label="Illustrative sample circuit"><div><span>5 V</span><span className="ohmi-example-wire" /><span>LED</span><span className="ohmi-example-wire" /><span>GND</span></div><p>Illustration only. No screenshot taken.</p></div>
           <div className="ohmi-result"><span className="ohmi-badge ohmi-warning-badge">Sample diagnostic notes</span><h4>Add a current-limiting resistor</h4><p>This illustrative circuit omits a series resistor. Choose one using the LED’s ratings and supply voltage.</p><h5>Also review</h5><ul><li>LED anode and cathode orientation.</li><li>Breadboard row connections.</li><li>Tinkercad simulation warnings.</li></ul><p className="ohmi-muted">No circuit was analyzed or electrically verified. These are predefined example notes.</p></div>

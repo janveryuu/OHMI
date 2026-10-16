@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { testPhase2 } from './phase2.mjs';
 import { testPhase3 } from './phase3.mjs';
 import { testAccountPrivacy } from './account-privacy.mjs';
+import { testPhase5 } from './phase5.mjs';
 
 const extension = resolve('.output/chrome-mv3');
 const screenshots = resolve(process.env.OHMI_SCREENSHOTS_DIR || '.superpowers/stabilization-2026-10-15/screenshots');
@@ -139,6 +140,7 @@ try {
   await testPhase2(page, screenshots);
   await testPhase3(context, page, screenshots);
   await testAccountPrivacy(context);
+  await testPhase5(context, page, screenshots);
   assert.deepEqual(errors, [], 'No browser page errors');
   console.log('PASS: image, host pointer/keyboard and style isolation, open/close/focus/Escape, keyboard movement, mouse/touch drag and cancellation, reload persistence, responsive bounds and no overlap, reduced motion, SPA leave/return, browser errors.');
   console.log('Screenshots are from a simulated editor URL, not a logged-in Tinkercad session.');

@@ -103,3 +103,124 @@ export interface TutorialProgress {
   completed: number[];
   updated_at: string;
 }
+
+export type RequirementKind = 'component' | 'connection' | 'code' | 'behavior' | 'deliverable';
+
+export type RequirementSourceReference =
+  | { kind: 'pdf'; page: number; excerpt: string; verified?: boolean }
+  | { kind: 'image'; location: string; verified?: boolean }
+  | { kind: 'manual' };
+
+export interface AssignmentRequirement {
+  id: string;
+  kind: RequirementKind;
+  text: string;
+  sourceReference: RequirementSourceReference;
+}
+
+export interface AssignmentRequirementSet {
+  schemaVersion: 2;
+  requirements: AssignmentRequirement[];
+  sourceMetadata: {
+    assignmentId?: string;
+    sourceHash?: string;
+    sourceType?: 'pdf' | 'image' | 'manual';
+    extractedAt?: string;
+  };
+}
+
+export interface CircuitImageItem {
+  id: 'overview' | 'detail';
+  mimeType: 'image/png' | 'image/jpeg';
+  data: string; // strict base64, not URL or data URI
+}
+
+export interface CircuitRequestV2 {
+  version: 2;
+  operation: 'circuit_check';
+  requestId: string;
+  language: 'english' | 'filipino' | 'taglish';
+  mode: 'check' | 'follow_up';
+  message: string;
+  images: CircuitImageItem[];
+  code?: string;
+  board: 'uno-r3' | 'unknown';
+  calculation?: AiCalculationPayload;
+  simulation?: string;
+  assignmentId?: string;
+  assignmentAnalysisId?: string;
+  requirementText?: string;
+  previousCheckId?: string;
+  conversationId?: string;
+  accountId?: string;
+}
+
+export type EvidenceReference =
+  | { kind: 'image'; imageId: 'overview' | 'detail'; location: string }
+  | { kind: 'code'; startLine: number; endLine: number }
+  | { kind: 'requirement'; requirementId: string }
+  | { kind: 'simulation'; excerpt: string }
+  | { kind: 'prior_check'; findingId: string };
+
+export interface CircuitFinding {
+  id: string;
+  severity: 'info' | 'warning' | 'stop';
+  certainty: 'observed' | 'possible';
+  observation: string;
+  why: string;
+  action: string;
+  evidence: EvidenceReference[];
+}
+
+export interface CircuitComparison {
+  requirementId: string;
+  status: 'supported' | 'possible_mismatch' | 'not_observable';
+  explanation: string;
+  evidence: EvidenceReference[];
+}
+
+export interface CircuitStep {
+  step: number;
+  instruction: string;
+  why: string;
+  check: string;
+  findingId?: string;
+}
+
+export interface CircuitCheckResult {
+  schemaVersion: 2;
+  status: 'reviewed' | 'needs_clarification' | 'unsupported';
+  summary: string;
+  findings: CircuitFinding[];
+  unknowns: string[];
+  questions: string[];
+  comparisons: CircuitComparison[];
+  steps: CircuitStep[];
+  codeSuggestion?: {
+    code: string;
+    explanation: string;
+  };
+  limitations: string[];
+}
+
+export interface CircuitEvidence {
+  imageIds: Array<'overview' | 'detail'>;
+  codeLineCount?: number;
+  requirementIds?: string[];
+  simulationText?: string;
+  priorFindingIds?: string[];
+}
+
+export interface CircuitResponseDataV2 {
+  ok: true;
+  requestId: string;
+  accountId: string;
+  operation: 'circuit_check';
+  language: 'english' | 'filipino' | 'taglish';
+  model: string;
+  resultId: string;
+  conversationId?: string;
+  result: CircuitCheckResult;
+  calculation?: AiCalculationResult;
+}
+

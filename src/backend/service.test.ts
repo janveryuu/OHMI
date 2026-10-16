@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mock = vi.hoisted(() => {
   const session = { user: { id: 'owner', email: 'owner@example.test' }, access_token: 'test-session' };
-  const query = { eq: vi.fn(), select: vi.fn(), single: vi.fn(), delete: vi.fn(), update: vi.fn(), upsert: vi.fn(), order: vi.fn() };
+  const query = { eq: vi.fn(), select: vi.fn(), single: vi.fn(), delete: vi.fn(), update: vi.fn(), upsert: vi.fn(), order: vi.fn(), insert: vi.fn() };
   const auth = { onAuthStateChange: vi.fn(), getSession: vi.fn(), getUser: vi.fn(), signInWithOAuth: vi.fn(), exchangeCodeForSession: vi.fn(), signOut: vi.fn(), signUp: vi.fn() };
   return { session, query, auth, remove: vi.fn(), list: vi.fn(), launch: vi.fn(), removeItem: vi.fn(), get: vi.fn(), setAccessLevel: vi.fn() };
 });
@@ -26,7 +26,7 @@ describe('worker failure handling', () => {
     mock.removeItem.mockResolvedValue(undefined); mock.get.mockResolvedValue({});
     mock.query.eq.mockReturnValue(mock.query); mock.query.select.mockReturnValue(mock.query);
     mock.query.single.mockResolvedValue({ data: { id: 'file', object_path: 'owner/file/assignment.pdf', size_bytes: 12, mime_type: 'application/pdf', status: 'pending' }, error: null });
-    mock.query.delete.mockReturnValue(mock.query); mock.query.update.mockReturnValue(mock.query);
+    mock.query.delete.mockReturnValue(mock.query); mock.query.update.mockReturnValue(mock.query); mock.query.insert.mockReturnValue(mock.query);
     mock.remove.mockResolvedValue({ error: null });
   });
   const service = async () => { const module = await import('./service'); await module.initializeBackend(); return module; };
@@ -127,6 +127,90 @@ describe('worker failure handling', () => {
         })
       })
     );
+  });
+
+  it('creates owned conversations with bounded title', async () => {
+    const { handleRequest } = await service();
+    mock.query.single.mockResolvedValueOnce({
+      data: { id: 'conv-123', title: 'Circuit Analysis Discussion', analysis_id: null, created_at: '2026-10-16T00:00:00Z', updated_at: '2026-10-16T00:00:00Z' },
+      error: null
+    });
+
+    const res = await handleRequest({
+      action: 'conversations.create',
+      payload: { accountId: 'owner', title: 'Circuit Analysis Discussion' }
+    });
+
+    expect(res).toEqual({
+      id: 'conv-123',
+      title: 'Circuit Analysis Discussion',
+      analysis_id: null,
+      created_at: '2026-10-16T00:00:00Z',
+      updated_at: '2026-10-16T00:00:00Z'
+    });
+  });
+
+  it('forwards ai.circuit with bearer token and active account verification', async () => {
+    const { handleRequest } = await service();
+    const fakeFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      requestId: 'req-circuit-1',
+      result: {
+        schemaVersion: 2,
+        status: 'reviewed',
+        summary: 'Circuit looks good.',
+        findings: [],
+        unknowns: [],
+        questions: [],
+        comparisons: [],
+        steps: [],
+        limitations: []
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fakeFetch);
+
+    const res = await handleRequest({
+      action: 'ai.circuit',
+      payload: {
+        accountId: 'owner',
+        version: 2,
+        operation: 'circuit_check',
+        requestId: 'req-circuit-1',
+        mode: 'check',
+        board: 'uno-r3',
+        language: 'english',
+        message: 'Check this circuit',
+        images: []
+      }
+    });
+
+    expect(res).toEqual({
+      ok: true,
+      requestId: 'req-circuit-1',
+      result: expect.objectContaining({ status: 'reviewed' })
+    });
+    expect(fakeFetch).toHaveBeenCalledWith(
+      'https://test.supabase.co/functions/v1/ohmi-ai',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-session'
+        })
+      })
+    );
+  });
+
+  it('rejects stale account before ai.circuit request', async () => {
+    const { handleRequest } = await service();
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: { user: { id: 'other-user' } } },
+      error: null
+    });
+
+    await expect(handleRequest({
+      action: 'ai.circuit',
+      payload: { accountId: 'owner', requestId: 'req-1' }
+    })).rejects.toThrow('Account changed');
   });
 });
 
