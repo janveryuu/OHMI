@@ -9,9 +9,9 @@ const actions = [
   'files.prepare', 'files.finish', 'files.open', 'files.delete',
   'steps.list', 'steps.add', 'steps.update', 'steps.delete',
   'conversations.list', 'conversations.open', 'conversations.create', 'conversations.delete',
-  'analyses.get', 'analyses.list',
+  'analyses.get', 'analyses.list', 'analyses.delete',
   'progress.get', 'progress.save',
-  'ai.chat', 'ai.circuit',
+  'ai.chat', 'ai.circuit', 'ai.request.get',
   'circuit.open', 'capture.claim'
 ] as const;
 export type Action = typeof actions[number];
@@ -51,7 +51,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (action === 'capture.claim' && sender.tab?.id) {
     payload.callerTabId = sender.tab.id;
   }
-  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('conversations.') || action.startsWith('analyses.') || action.startsWith('progress.') || action === 'ai.chat' || action === 'ai.circuit') uuid(payload.accountId);
+  if (action.startsWith('profile.') || action.startsWith('files.') || action.startsWith('steps.') || action.startsWith('conversations.') || action.startsWith('analyses.') || action.startsWith('progress.') || action === 'ai.chat' || action === 'ai.circuit' || action === 'ai.request.get') uuid(payload.accountId);
   if (action === 'local.position') {
     const position = object(payload.position);
     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || typeof payload.open !== 'boolean') throw new Error('Invalid mascot position.');
@@ -67,7 +67,8 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (['auth.confirm', 'auth.recover'].includes(action) && (typeof payload.token !== 'string' || !/^\d{6,10}$/.test(payload.token))) throw new Error('Enter the verification code from your email.');
   if (action === 'profile.language' && !['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
   if (action === 'profile.name' && (typeof payload.name !== 'string' || payload.name.length > 80 || /[\x00-\x1f]/.test(payload.name))) throw new Error('Use a name of at most 80 characters.');
-  if (['files.finish', 'files.open', 'files.delete', 'steps.update', 'steps.delete', 'conversations.open', 'conversations.delete', 'analyses.get'].includes(action)) uuid(payload.id);
+  if (['files.finish', 'files.open', 'files.delete', 'steps.update', 'steps.delete', 'conversations.open', 'conversations.delete', 'analyses.get', 'analyses.delete'].includes(action)) uuid(payload.id);
+  if (action === 'ai.request.get') uuid(payload.requestId);
   if (['steps.list', 'steps.add'].includes(action)) uuid(payload.assignmentId);
   if (action === 'analyses.list' && payload.assignmentId !== undefined) uuid(payload.assignmentId);
   if (['progress.get', 'progress.save'].includes(action)) uuid(payload.analysisId);

@@ -258,6 +258,15 @@ export async function handleRequest(request: Request): Promise<unknown> {
       fail(result.error);
       return result.data;
     }
+    if (action === 'analyses.delete') {
+      const result = await client
+        .from('ohmi_analyses')
+        .delete()
+        .eq('id', String(payload.id))
+        .eq('user_id', user.id);
+      fail(result.error);
+      return null;
+    }
   }
   if (action.startsWith('progress.')) {
     if (action === 'progress.get') {
@@ -367,6 +376,49 @@ export async function handleRequest(request: Request): Promise<unknown> {
     } finally {
       clearTimeout(timer);
     }
+  }
+  if (action === 'ai.request.get') {
+    const requestId = String(payload.requestId);
+    const reqRes = await client
+      .from('ohmi_ai_requests')
+      .select('id, user_id, status, operation, model, language, result_id, created_at, finished_at, error_code')
+      .eq('id', requestId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    fail(reqRes.error);
+    if (!reqRes.data) {
+      return null;
+    }
+    const reqData = reqRes.data;
+    let result: unknown = null;
+    let isUnavailable = false;
+    if (reqData.status === 'completed' && reqData.result_id) {
+      const analysisRes = await client
+        .from('ohmi_analyses')
+        .select('id, payload, schema_version, artifact_kind, title, created_at')
+        .eq('id', reqData.result_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      fail(analysisRes.error);
+      if (analysisRes.data) {
+        result = analysisRes.data.payload;
+      } else {
+        isUnavailable = true;
+      }
+    }
+    return {
+      requestId: reqData.id,
+      accountId: user.id,
+      status: isUnavailable ? 'unavailable' : reqData.status,
+      operation: reqData.operation,
+      model: reqData.model,
+      language: reqData.language,
+      resultId: reqData.result_id,
+      result,
+      errorCode: reqData.error_code,
+      createdAt: reqData.created_at,
+      finishedAt: reqData.finished_at
+    };
   }
   throw new Error('Unknown request.');
 }
