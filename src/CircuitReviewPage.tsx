@@ -60,6 +60,8 @@ export function CircuitReviewPage() {
   // Assignments selection
   const [assignments, setAssignments] = useState<Array<{ id: string; original_name: string }>>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('none');
+  const [requirementAnalyses, setRequirementAnalyses] = useState<Array<{ id: string; assignment_id: string; title: string; created_at: string }>>([]);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>('none');
 
   // AI Submission & Active Result state
   const [submitting, setSubmitting] = useState(false);
@@ -165,6 +167,16 @@ export function CircuitReviewPage() {
             artifact_kind: a.artifact_kind
           }));
         setPastChecks(checks);
+
+        const reqs = list
+          .filter((a) => a.artifact_kind === 'analysis')
+          .map((a) => ({
+            id: a.id,
+            assignment_id: a.assignment_id,
+            title: a.title || 'Requirement Analysis',
+            created_at: a.created_at
+          }));
+        setRequirementAnalyses(reqs);
       }
     } catch {
       // non-blocking for page load
@@ -172,6 +184,19 @@ export function CircuitReviewPage() {
       setLoadingHistory(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedAssignmentId === 'none') {
+      setSelectedAnalysisId('none');
+    } else {
+      const matching = requirementAnalyses.filter((a) => a.assignment_id === selectedAssignmentId);
+      if (matching.length > 0 && matching[0]) {
+        setSelectedAnalysisId(matching[0].id);
+      } else {
+        setSelectedAnalysisId('none');
+      }
+    }
+  }, [selectedAssignmentId, requirementAnalyses]);
 
   const fetchAssignments = async (userId: string) => {
     try {
@@ -442,8 +467,9 @@ export function CircuitReviewPage() {
       if (code.trim()) payload.code = code.trim();
       if (simulation.trim()) payload.simulation = simulation.trim();
 
-      if (selectedAssignmentId !== 'none') {
+      if (selectedAssignmentId !== 'none' && selectedAnalysisId !== 'none') {
         payload.assignmentId = selectedAssignmentId;
+        payload.assignmentAnalysisId = selectedAnalysisId;
       } else if (requirementText.trim()) {
         payload.requirementText = requirementText.trim();
       }
@@ -1161,10 +1187,46 @@ export function CircuitReviewPage() {
             </div>
           )}
 
-          {selectedAssignmentId === 'none' && (
+          {selectedAssignmentId !== 'none' && (
+            <div style={{ marginBottom: '14px' }}>
+              {requirementAnalyses.filter((a) => a.assignment_id === selectedAssignmentId).length > 0 ? (
+                <div>
+                  <label htmlFor="analysis-select" style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
+                    Select Requirement Analysis
+                  </label>
+                  <select
+                    id="analysis-select"
+                    value={selectedAnalysisId}
+                    onChange={(e) => setSelectedAnalysisId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--ohmi-border)',
+                      background: 'var(--ohmi-card)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {requirementAnalyses.filter((a) => a.assignment_id === selectedAssignmentId).map((m) => (
+                      <option key={m.id} value={m.id}>{m.title} ({new Date(m.created_at).toLocaleDateString()})</option>
+                    ))}
+                    <option value="none">Proceed without analysis (requirements not supplied)</option>
+                  </select>
+                </div>
+              ) : (
+                <div style={{ padding: '8px 12px', background: 'var(--ohmi-tint)', borderRadius: '8px', fontSize: '13px', color: 'var(--ohmi-muted)' }}>
+                  <p style={{ margin: 0 }}>
+                    No requirement analysis found for this assignment. Proceeding with visual review only (requirements not supplied), or enter requirements manually below.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(selectedAssignmentId === 'none' || (selectedAssignmentId !== 'none' && selectedAnalysisId === 'none')) && (
             <div>
               <label htmlFor="requirements-input" style={{ display: 'block', fontWeight: 600, fontSize: '14px', marginBottom: '6px' }}>
-                Assignment Requirements or Goal
+                Assignment Requirements or Goal {selectedAssignmentId !== 'none' ? '(Manual Override)' : '(Optional)'}
               </label>
               <textarea
                 id="requirements-input"
