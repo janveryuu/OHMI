@@ -764,7 +764,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', borderRadius: '8px', marginBottom: '12px', fontSize: '13px' }}>
           <p style={{ margin: '0 0 6px', fontWeight: 600 }}>Tinkercad Screenshot Review</p>
           <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--ohmi-muted)', lineHeight: 1.4 }}>
-            Click the <strong>OHMI icon</strong> in your browser toolbar to capture your visible circuit, or open the review page to upload a screenshot.
+            Click the <strong>OHMI icon</strong> in your browser toolbar to capture your visible circuit, or open the review page to upload a screenshot. Opens your private review in an OHMI tab.
           </p>
           <button
             type="button"
@@ -806,7 +806,23 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
             </ul>
           </div>
         )}
-        {circuit !== 'ready' ? <UploadPreview kind="circuit" state={circuit} onUnavailable={unavailable} onSample={() => { setCircuit('loading'); setNotice(''); onMotion('thinking'); }} /> : <>
+        <p className="ohmi-sample-divider">Illustrative Example</p>
+        {circuit !== 'ready' ? (
+          <div style={{ padding: '12px', background: 'var(--ohmi-tint)', borderRadius: '8px', fontSize: '13px' }}>
+            <strong style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}>Sample Diagnostic Notes</strong>
+            <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--ohmi-muted)', lineHeight: 1.4 }}>
+              Explore an example of how OHMI highlights missing components and checks wiring connections.
+            </p>
+            <button
+              type="button"
+              className="ohmi-button ohmi-secondary ohmi-full-width"
+              onClick={() => { setCircuit('loading'); setNotice(''); onMotion('thinking'); }}
+              disabled={circuit === 'loading'}
+            >
+              {circuit === 'loading' ? 'Loading sample…' : 'Use sample circuit'}
+            </button>
+          </div>
+        ) : <>
           <div className="ohmi-circuit-example" aria-label="Illustrative sample circuit"><div><span>5 V</span><span className="ohmi-example-wire" /><span>LED</span><span className="ohmi-example-wire" /><span>GND</span></div><p>Illustration only. No screenshot taken.</p></div>
           <div className="ohmi-result"><span className="ohmi-badge ohmi-warning-badge">Sample diagnostic notes</span><h4>Add a current-limiting resistor</h4><p>This illustrative circuit omits a series resistor. Choose one using the LED’s ratings and supply voltage.</p><h5>Also review</h5><ul><li>LED anode and cathode orientation.</li><li>Breadboard row connections.</li><li>Tinkercad simulation warnings.</li></ul><p className="ohmi-muted">No circuit was analyzed or electrically verified. These are predefined example notes.</p></div>
           <button type="button" className="ohmi-button ohmi-secondary ohmi-full-width" onClick={() => setCircuit('empty')}>Clear sample notes</button>
