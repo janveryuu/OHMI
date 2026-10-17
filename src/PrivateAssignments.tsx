@@ -20,7 +20,7 @@ export function PrivateAssignments({ state, loading, error, refresh, onGuide, on
     {(error || notice) && <p className="ohmi-notice" role="alert">{notice || error}</p>}
     {!state.configured && <p className="ohmi-muted">Account setup is not connected yet. Local samples remain available.</p>}
     {!state.user ? <><p className="ohmi-muted">Sign in to save private PDF, PNG, and JPG assignments.</p><button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => { void request('account.open').catch((failure: Error) => setNotice(failure.message)); }} disabled={!state.configured}>Sign in to OHMI</button></> : <>
-      <p className="ohmi-muted">Private to your account. Up to 10 MiB per file.</p>
+      <p className="ohmi-muted">Private to your account. Up to 10 MiB per file.{!onUpload ? ' Upload opens your private OHMI workspace.' : ''}</p>
       <button type="button" className="ohmi-button ohmi-primary ohmi-full-width" onClick={() => { if (onUpload) onUpload(); else void request('account.open', { view: 'upload' }).catch((failure: Error) => setNotice(failure.message)); }} disabled={loading || !!busy}><Icon name="upload" size={18} />Upload assignment</button>
       {!loading && state.assignments.length === 0 && !error && <p className="ohmi-empty-copy">No saved assignments yet. Upload your first project brief.</p>}
       <ul className="ohmi-file-list">{state.assignments.map((assignment) => <li key={assignment.id}>

@@ -15,7 +15,7 @@ html, body, #root { margin: 0; min-height: 100%; }
 .ohmi-account-form .ohmi-button { margin-top: 8px; }
 .ohmi-account-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; }
 .ohmi-account-email { margin-top: 12px !important; overflow-wrap: anywhere; }
-.ohmi-account-upload { display: grid; gap: 10px; padding-block: 22px; margin-top: 14px; border-top: 1px solid var(--ohmi-border); }
+.ohmi-account-upload { display: grid; gap: 10px; padding-block: 22px; margin-top: 14px; border-top: 1px solid var(--ohmi-border); scroll-margin-top: 16px; }
 .ohmi-account-upload input[type="file"] { min-width: 0; width: 100%; padding: 8px; border: 1px solid var(--ohmi-muted); border-radius: 9px; }
 .ohmi-account-upload input::file-selector-button { min-height: 40px; margin-right: 8px; border: 0; border-radius: 7px; background: var(--ohmi-mint); color: var(--ohmi-teal); padding: 7px 10px; font: inherit; }
 .ohmi-upload-progress progress { width: 100%; accent-color: var(--ohmi-teal); }

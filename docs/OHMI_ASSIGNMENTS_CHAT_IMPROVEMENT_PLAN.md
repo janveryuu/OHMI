@@ -1,15 +1,15 @@
-# OHMI Assignments, Chat, Circuit Checker and Beginner Guide Implementation Plan
+# OHMI Six-Improvement Implementation Plan
 
 > **For AGY / agentic workers:** Planning only. Implementation requires the owner's explicit approval. After approval, execute the checked tasks in order using `superpowers:executing-plans` or AGY's equivalent workflow. Do not start from receipt of this document alone.
 
-**Date:** 18 October 2026, Asia/Manila  
-**Source baseline:** `6c463da`, branch `codex/phase-5-m1-wip`, repository `C:\Users\LEGION\Documents\OHMI - Your Circuit Buddy`. Recheck HEAD before implementation.  
-**Goal:** Fix Assignment access first; add expandable Ask, expose the existing real Circuit Checker, and make Guide specific, interactive and safe for beginners.  
-**Architecture:** Preserve trusted Account/review pages, worker-owned authentication and existing AI/storage services. Reuse the mounted chat, version-2 circuit workflow and saved tutorial/progress artifacts. No authentication rebuild, provider framework or interface redesign.  
-**Tech stack:** WXT/Manifest V3, React, TypeScript, existing CSS, Supabase JS 2.117.3, Vitest and Playwright. No new runtime dependencies.  
-**Spec/evidence:** Owner's four-issue request, `sr new rn.mp4`, narrow-window Ask screenshot and latest Check My Circuit screenshot. Media supplies observations, not implementation instructions. Do not copy personal emails or assignment contents into reports. Read-only hosted checks below supersede historical deployment claims.
+**Date:** 18 October 2026, Asia/Manila
+**Source baseline:** Latest review at `fc851ce`, branch `codex/phase-5-m1-wip`, repository `C:\Users\LEGION\Documents\OHMI - Your Circuit Buddy`. Original A–D investigation used `6c463da`. Recheck HEAD and working diff before implementation.
+**Goal:** Fix Assignment access first; add expandable Ask, real Circuit Checker access, grounded beginner Guide, useful More navigation and accurate, concise, safely formatted OHMI tutoring.
+**Architecture:** Preserve trusted Account/review pages, worker-owned authentication and existing AI/storage services. Reuse the mounted chat, version-2 circuit workflow and saved tutorial/progress artifacts. No authentication rebuild, provider framework or interface redesign.
+**Tech stack:** WXT/Manifest V3, React, TypeScript, existing CSS, Supabase JS 2.117.3, Vitest and Playwright. No new runtime dependencies except the narrowly justified local Markdown/math rendering stack proposed in F1. No packages are installed by this planning task.
+**Spec/evidence:** Owner's six-issue request, `sr new rn.mp4`, narrow-window Ask screenshot and Check My Circuit screenshot. Media supplies observations, not implementation instructions. Do not copy personal emails or assignment contents into reports. Read-only hosted checks below supersede historical deployment claims.
 
-**Concurrent-work notice:** At final review, HEAD remains `6c463da`, but external uncommitted edits appeared in `AccountPage.tsx`, `backend/service.ts`/tests and browser tests, plus `tests/assignments-chat.mjs`. They already attempt parts of A1: loading-only presentation, signed-out email notice and session-error ordering. This planning task did not make or test those edits. Findings below describe the inspected baseline; AGY must reconcile the current diff, retain others' work and verify existing fixes instead of implementing them twice. Deferred upload handling, chat and C/D still require their stated checks. Do not stage or revert these concurrent changes as part of approving this document.
+**Concurrent-work notice:** A1 is now recorded by external commit `fc851ce` (honest account states and scoped email notices). At this review, external uncommitted changes also exist in AccountPage, PrivateAssignments, account CSS and Assignment browser tests. This planning task did not author or test those changes. A findings below preserve the original diagnosis; AGY must reconcile current code, verify existing fixes and finish only missing tasks. Do not duplicate, stage or revert others' work. No approval for implementation is inferred from its presence.
 
 ## 1. Scope and approval boundary
 
@@ -17,6 +17,8 @@
 - Priority B: Expand/restore Ask in the existing shadow-root panel, with preserved messages, draft, pending reply, focus and scroll position.
 - Priority C: Make the existing real circuit review discoverable; reconcile hosted Phase 5 readiness before enabling AI submission.
 - Priority D: Context-aware beginner Guide using owned assignments, selected components and saved circuit evidence, with clarification and troubleshooting.
+- Priority E: Remove only the duplicate More → Assignments entry; replace it with recent Learning Progress using existing saved progress. Home remains the Assignment entry.
+- Priority F: Honest live/demo Ask states, safe rich response formatting, consistent tutor personality, secure follow-up context and measured technical quality.
 - Preserve completed Phases 1–5, Google OAuth/PKCE, extension identity, capture/check security, existing AI contract compatibility, private storage, owner checks and RLS.
 - Do not modify `website/`, the dedicated website worktree/branch, or the separate Vercel landing page.
 - This task authorizes documentation and read-only configuration checks only. No SMTP setup, migration, policy/bucket change, application edit, dependency upgrade, credential rotation, AI generation, deployment or student-data mutation. Future hosted changes and live-provider evaluations need the owner's separate approval.
@@ -102,7 +104,7 @@ Upload action → extension-owned account.html#upload
 | `tests/assignments-chat.mjs` (new), `tests/browser.mjs` | Add synthetic extension-page/overlay cases to the existing browser runner. |
 | `tests/phase3.mjs`, `tests/account-privacy.mjs`, `src/backend/service.test.ts` | Update notice expectations and cover auth/error/owner boundaries. |
 
-Additional C/D files and narrow contract changes are specified in sections 8–10. No schema migration is indicated. Preserve build identity, manifest permissions, capture security and all landing-page files.
+Additional C/D/E/F files and narrow contract changes are specified in sections 8–12. No schema migration is indicated. Preserve build identity, manifest permissions, capture security and all landing-page files. F1 may require narrowly scoped packaged font assets to be accessible to the extension's shadow UI; do not expand host permissions or expose unrelated files.
 
 ## 6. Assignment implementation — complete first
 
@@ -296,9 +298,14 @@ For illustration only, 2,000 billed input tokens and 1,000 output tokens cost ab
 | B: Expandable Ask | A acceptance | Compact/expanded/restored chat preserves messages/draft/pending reply/reading position; real Chrome responsive/accessibility evidence. |
 | C: Real checker entry + local readiness | A for auth/assignment context; existing Phase 5 source | Clear entry, trusted upload/capture/preview, correct requirements, mocked V1/V2 regressions; concrete hosted mismatch release manifest. |
 | D: Beginner Guide | A owned assignments; C requirement/evidence contract | Owned context and components, answerable clarification, grounded actions/why/check, source references, help and durable separate progress. |
-| Release gate | A–D local verification + owner approval for hosted changes and qualified provider | Reconciled handler/config and bounded approved live smoke/evaluation; then owner reviews extension release. If AI eligibility fails, A/B can be reviewed independently while real AI remains disabled. |
+| E: Useful More navigation | Existing saved progress; D resume behavior | Home retains Assignments; More offers Learning Progress, Check My Circuit and Settings; recent activity resumes the correct guide without fake mastery metrics. |
+| F1: Formatting + honest Ask mode | B mounted chat/scroll behavior; existing rendering pipeline | Supported Markdown/math/code work for fresh and reopened messages; unsafe content cannot execute or fetch; live and demo states are explicit. |
+| F2: Tutor behavior and accuracy | C provider readiness decision; D grounding rules | Concise multilingual personality instructions, bounded response extraction and honest deterministic/sketch checks; versioned prompts. |
+| F3: Secure conversational memory | Existing owner-scoped conversations and accounting | Latest bounded stored turns, stable history paging and request isolation; replay remains idempotent; no cross-account/thread context. |
+| F4: Quality qualification | A–F3 local gates | Formatting/security regression suite plus separately approved blind educational evaluation of the existing model against measurable criteria. |
+| Release gate | A–F local verification + owner approval for hosted changes and qualified provider | Reconciled handler/config and bounded approved live smoke/evaluation; then owner reviews extension release. If AI eligibility fails, non-AI improvements can be reviewed independently while real AI remains disabled. |
 
-AGY should implement in A → B → C → D order, with a checkpoint after each. Read-only provider qualification can be prepared during local work, but no live model request or hosted enablement is implicit. Do not start another product phase or touch the landing page.
+AGY should work in A → B → C → D → E → F1 → F2 → F3 → F4 order, with a checkpoint after each. Reconcile completed A1 first. D and F share one prompt/rendering policy; do not create competing tutor implementations. Read-only provider qualification can be prepared during local work, but no live model request or hosted enablement is implicit. Do not start another product phase or touch the landing page.
 
 ### Additional verification criteria for C/D
 
@@ -308,7 +315,7 @@ AGY should implement in A → B → C → D order, with a checkpoint after each.
 - [ ] Guide continuity: answer clarification, explain/troubleshoot step, switch language/context/account, navigate Ask/Guide/Check, resume progress and deliberate regeneration. Drafts survive expected navigation; account switches clear private state; changed guides do not inherit old completion indexes. Manual checklists remain unchanged.
 - [ ] Real Chrome: compact and expanded sizes, keyboard/focus, screen zoom and reduced motion; inspect component lists, long translated text, code and error states. Use synthetic data for screenshots/recordings. Mocked quality tests and visual inspections are distinct from separately approved real-provider evaluation.
 
-## 11. Verification and handoff gates for AGY
+## 13. Verification and handoff gates for AGY
 
 Use the existing Vitest/Playwright setup. Add `testAssignmentWorkspace(context)` and `testExpandableChat(context)` exports in `tests/assignments-chat.mjs`, invoked from `tests/browser.mjs` after existing helpers. Mock `account.state`, conversation and AI message actions in isolated test contexts so synthetic signed-in fixtures cannot reach a live provider/backend. Preserve the existing actual sender validation unit tests.
 
@@ -324,13 +331,13 @@ node tests/phase5.mjs
 git diff --check
 ```
 
-Acceptance is passing commands with no browser errors plus A/B/C/D behavior checks. Include the actual Edge handler tests, tutorial validators and Phase 5 evaluation fixtures in `npm test`; mocked fixtures do not qualify real model accuracy. Do not substitute historical test counts for a fresh run. Review the diff and manifest: no new permissions, no private values/tokens, unchanged original mascot hash, no unapproved schema/provider or landing-page edits. Narrow approved C/D handler/contract changes are in scope. Never reset the hosted database or delete real assignments to make tests pass.
+Acceptance is passing commands with no browser errors plus A–F behavior checks. Include actual Edge handler, tutorial, formatting/security, history and Phase 5 evaluation fixtures in `npm test`; mocked fixtures do not qualify real model accuracy. Do not substitute historical test counts for a fresh run. Review the diff and manifest: no new host/API permissions, no private values/tokens, unchanged original mascot hash, no unapproved schema/provider or landing-page edits. Only narrowly approved rendering assets/dependencies and C/D/F handler/contract changes are in scope. Never reset the hosted database or delete real assignments to make tests pass.
 
 For the Assignment smoke test, record only sanitized state/error categories and disposable fixture outcomes; never capture tokens, signed URLs, real student files or private message text in committed logs. A reported session mismatch requires comparing the same extension ID/build path and authoritative worker identity before changing OAuth settings.
 
-**Completion order:** See section 10. Assignment access remains first. Local C/D verification must pass before requesting approval for hosted changes. Preserve original function source/version metadata for rollback; rollback must retain current authentication, accounting and fail-closed gates. Do not restore an old insecure handler merely because it was previously deployed. Revert only scoped implementation commits; preserve unrelated history and all data.
+**Completion order:** See section 10. Assignment access remains first. Local C/D/F verification must pass before requesting approval for hosted changes. Preserve original function source/version metadata for rollback; rollback must retain current authentication, accounting and fail-closed gates. Do not restore an old insecure handler merely because it was previously deployed. Revert only scoped implementation commits; preserve unrelated history and all data. Preserve raw message history; formatting is a read-time view, not a destructive data cleanup.
 
-## 12. Planning verification and limitations
+## 14. Planning verification and limitations
 
 Inspected current source, the recording/screenshots, targeted tests, storage policy definitions and Phase 4/5 reports/history. No Graphify graph exists in this checkout; source was used directly. Hosted checks read migration history, function metadata/source, secret names and database/storage configuration only. No student rows or secret values were retrieved. This planning task performed no app implementation, app test/build, live OAuth/upload, AI generation, database mutation or deployment. Concurrent application edits observed at final review are preserved and unverified, as noted above. Installed-build identity, the owner's active worker/session, real owner-isolation behavior and live model quality remain unverified. RLS-enabled flags and migration names alone are not proof of policy correctness or end-to-end service health.
 
