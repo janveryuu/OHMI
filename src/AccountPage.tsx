@@ -25,8 +25,14 @@ export function AccountPage() {
   const [selected, setSelected] = useState<Assignment | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const cancelledRef = useRef(false);
   const uploadSequence = useRef(0);
   const showAccount = !!account.state.user && !['forgot', 'recover', 'reset'].includes(mode);
+
+  const cancelUpload = () => {
+    cancelledRef.current = true;
+    xhrRef.current?.abort();
+  };
   const emailReady = import.meta.env.WXT_EMAIL_DELIVERY_READY === 'true';
   const [pendingUpload, setPendingUpload] = useState(() => window.location.hash === '#upload');
 
@@ -80,16 +86,20 @@ export function AccountPage() {
     const accountId = account.state.user.id;
     const sequence = ++uploadSequence.current;
     const checkAccount = () => { if (sequence !== uploadSequence.current) throw new Error('Account changed. Choose the file again after signing in.'); };
+    cancelledRef.current = false;
     setUploading(true); setPercent(0); setError(''); setNotice('');
     let id: string | undefined;
     try {
       const payload = { accountId, name: file.name, mime: file.type, size: file.size, signature: [...new Uint8Array(await file.slice(0, 16).arrayBuffer())] };
       checkAccount();
+      if (cancelledRef.current) throw new Error('Upload cancelled.');
       validateFile(payload);
       const authorization = await request<UploadAuthorization>('files.prepare', payload);
       id = authorization.id;
       checkAccount();
+      if (cancelledRef.current) throw new Error('Upload cancelled.');
       await new Promise<void>((resolve, reject) => {
+        if (cancelledRef.current) return reject(new Error('Upload cancelled.'));
         const xhr = new XMLHttpRequest(); xhrRef.current = xhr;
         xhr.open('POST', authorization.url);
         xhr.setRequestHeader('apikey', authorization.key);
@@ -132,7 +142,7 @@ export function AccountPage() {
       <p className="ohmi-account-email">{account.state.user?.email}</p>
       <form className="ohmi-account-form" onSubmit={(event) => { event.preventDefault(); void run('profile.name', { name }, () => setNotice('Account name saved.')); }}><label htmlFor="ohmi-display-name">Display name</label><input id="ohmi-display-name" name="name" autoComplete="name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /><button type="submit" className="ohmi-button ohmi-secondary" disabled={busy || uploading || account.loading}>Save account name</button></form>
       <div className="ohmi-account-actions">{emailReady && <button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => changeMode('forgot')}>Reset password</button>}<button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => { void run('auth.signOut', {}, () => { changeMode('login'); setFile(null); setSelected(null); }); }}>Sign out</button></div>
-      <section id="upload" className="ohmi-account-upload" aria-busy={account.loading}><h2>Upload an assignment</h2><p className="ohmi-muted">PDF, PNG, or JPG. Maximum 10 MiB. Private to your account.</p><label htmlFor="ohmi-assignment-file">Assignment file</label><input ref={fileRef} id="ohmi-assignment-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" disabled={uploading || busy || account.loading} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPercent(null); setError(''); }} />{file && <p className="ohmi-muted">{file.name}</p>}<button type="button" className="ohmi-button ohmi-primary ohmi-full-width" disabled={!file || uploading || busy || account.loading} onClick={() => { void upload(); }}>{uploading ? 'Uploading assignment…' : 'Save private assignment'}</button>{percent !== null && <div className="ohmi-upload-progress"><progress aria-label="Assignment upload progress" value={percent} max={100} /><p role="status" className="ohmi-muted">{uploading ? percent >= 99 ? 'Verifying upload…' : `Uploading ${percent}%` : percent === 100 ? 'Upload complete' : 'Upload stopped'}</p></div>}{uploading && <button type="button" className="ohmi-text-button" onClick={() => xhrRef.current?.abort()} disabled={!xhrRef.current}>Cancel upload</button>}</section>
+      <section id="upload" className="ohmi-account-upload" aria-busy={account.loading}><h2>Upload an assignment</h2><p className="ohmi-muted">PDF, PNG, or JPG. Maximum 10 MiB. Private to your account.</p><label htmlFor="ohmi-assignment-file">Assignment file</label><input ref={fileRef} id="ohmi-assignment-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" disabled={uploading || busy || account.loading} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPercent(null); setError(''); }} />{file && <p className="ohmi-muted">{file.name}</p>}<button type="button" className="ohmi-button ohmi-primary ohmi-full-width" disabled={!file || uploading || busy || account.loading} onClick={() => { void upload(); }}>{uploading ? 'Uploading assignment…' : 'Save private assignment'}</button>{percent !== null && <div className="ohmi-upload-progress"><progress aria-label="Assignment upload progress" value={percent} max={100} /><p role="status" className="ohmi-muted">{uploading ? percent >= 99 ? 'Verifying upload…' : `Uploading ${percent}%` : percent === 100 ? 'Upload complete' : 'Upload stopped'}</p></div>}{uploading && <button type="button" className="ohmi-text-button" onClick={cancelUpload}>Cancel upload</button>}</section>
       {selected && account.state.user ? <AssignmentSteps key={account.state.user.id + selected.id} accountId={account.state.user.id} assignment={selected} onBack={() => setSelected(null)} /> : <PrivateAssignments {...account} refresh={account.refresh} onGuide={setSelected} onUpload={handleScrollToUpload} />}
     </> : <>
       <h1>{headings[mode]}</h1>

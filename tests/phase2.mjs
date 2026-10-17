@@ -113,8 +113,9 @@ export async function testPhase2(page, screenshots) {
   await page.getByLabel('Animate OHMI', { exact: true }).uncheck();
   assert.equal(await mascot.locator('img').evaluate((image) => getComputedStyle(image).animationName), 'none', 'Animation preference stops motion');
   await page.reload();
-  await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
-  await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+  const settingsBtn = page.getByRole('button', { name: 'Open Settings', exact: true });
+  await settingsBtn.waitFor();
+  await settingsBtn.click();
   assert.equal(await page.getByLabel('Explanation language', { exact: true }).inputValue(), 'taglish');
   assert.equal(await page.getByLabel('Appearance', { exact: true }).inputValue(), 'dark');
   assert.equal(await page.getByLabel('Animate OHMI', { exact: true }).isChecked(), false, 'Preferences survive reload');

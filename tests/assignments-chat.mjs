@@ -155,7 +155,7 @@ export async function testAssignmentWorkspace(context) {
         send(body) {
           if (this._url?.includes('upload.supabase.co')) {
             const isCancel = body?.name?.includes('cancel');
-            const delay = isCancel ? 800 : 40;
+            const delay = isCancel ? 3000 : 40;
             this._timer1 = setTimeout(() => {
               if (this.upload.onprogress) {
                 this.upload.onprogress({ lengthComputable: true, loaded: 512, total: 1024 });

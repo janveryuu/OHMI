@@ -217,6 +217,8 @@ Additional C/D/E/F files and narrow contract changes are specified in sections 8
 
 ## 9. Single-provider qualification and decision gate
 
+**Latest candidate scope:** The owner selected `qwen3.8-flash` and `qwen3.8-max` for Singapore evaluation. Follow the separate [Qwen evaluation plan](OHMI_QWEN_EVALUATION_PLAN.md), including exposed-credential replacement, student/privacy eligibility and free-only billing gates. Its controlled comparison replaces the generic alternative-provider evaluation for this decision; do not run duplicate benchmarks. The older provider table below remains dated background, not authorization to switch models. Gemini and production behavior remain unchanged pending owner approval.
+
 ### Verified public options, not account-level qualification
 
 Checked official documentation on **18 October 2026**. Prices are USD per one million tokens, standard inference, without caching or batch discounts. Image tokenization, thinking, region and output length affect actual cost. Public model documentation does not prove access in this account or accuracy on OHMI circuits.

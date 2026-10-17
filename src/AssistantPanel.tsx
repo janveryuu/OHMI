@@ -95,7 +95,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [draft, setDraft] = useState('');
   const [attached, setAttached] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [pendingReply, setPendingReply] = useState<Preferences['language'] | null>(null);
+  const [pendingReply, setPendingReply] = useState<'sample' | 'live' | null>(null);
   const [assignment, setAssignment] = useState<SampleState>('empty');
   const [circuit, setCircuit] = useState<SampleState>('empty');
   const [step, setStep] = useState(0);
@@ -107,6 +107,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [clarificationDraft, setClarificationDraft] = useState('');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialCompleted, setTutorialCompleted] = useState<number[]>([]);
+  const [confirmedComponents, setConfirmedComponents] = useState<Record<string, boolean>>({});
   const [conversations, setConversations] = useState<ConversationHeader[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [recentChecks, setRecentChecks] = useState<Array<{ id: string; title: string | null; created_at: string }>>([]);
@@ -272,6 +273,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       setShowHistory(false);
       setRecentChecks([]);
       setRecentActivities([]);
+      setConfirmedComponents({});
     }
   }, [account.state.user?.id]);
 
@@ -451,7 +453,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     setDraft('');
     setAttached(false);
     setNotice('');
-    setPendingReply(preferences.language);
+    setPendingReply(isDemo ? 'sample' : 'live');
     onMotion('thinking');
 
     if (isDemo) {
@@ -527,14 +529,15 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     if (!currentUserId || pendingReply !== null) return;
     navigate('chat');
     setNotice('');
-    setPendingReply(preferences.language);
+    setPendingReply('live');
     onMotion('thinking');
     const isImg = item.mime_type.startsWith('image/');
     const op = isImg ? 'image' : 'pdf';
     setMessages((curr) => [...curr, {
       id: ++messageId.current,
       role: 'user',
-      text: `Analyze my saved ${isImg ? 'circuit screenshot' : 'assignment'}: ${item.original_name}`
+      text: `Analyze my saved ${isImg ? 'circuit screenshot' : 'assignment'}: ${item.original_name}`,
+      mode: 'live'
     }]);
 
     try {
@@ -555,6 +558,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           role: 'ohmi',
           text: answer,
           language: preferences.language,
+          mode: 'live',
           isAi: true
         }]);
         onMotion('happy');
@@ -608,7 +612,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         setSavedAssignment(null);
         navigate('guide');
       } else {
-        setPendingReply(preferences.language);
+        setPendingReply('live');
         onMotion('thinking');
         const userMsg = clarificationAnswer
           ? `Clarification answer: ${clarificationAnswer.slice(0, 1000)}`
@@ -764,14 +768,14 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
             )}
           </div>
         )}
-        <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label="Local demo conversation" aria-live="polite" tabIndex={0}>
-          {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>What’s puzzling you? Try a question about the sample LED circuit.</p></div>}
+        <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label={account.state.user && !attached ? "OHMI conversation" : "Local demo conversation"} aria-live="polite" tabIndex={0}>
+          {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>{account.state.user ? 'Ask OHMI anything about components, circuits, or Arduino code.' : 'What’s puzzling you? Try a question about the sample LED circuit.'}</p></div>}
           {messages.map((message) => <div key={message.id} data-message-id={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
-            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
-            <div lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}>{renderMessageText(message.text)}</div>
+            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.mode === 'live' || message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
+            <div lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}><MessageContent content={message.text} /></div>
             {message.attachment && <span className="ohmi-file-chip"><Icon name="assignments" size={14} />led-lab.pdf (sample)</span>}
           </div>)}
-          {pendingReply !== null && <p className="ohmi-loading" role="status"><span className="ohmi-loading-dot" />Loading a sample reply…</p>}
+          {pendingReply !== null && <p className="ohmi-loading" role="status"><span className="ohmi-loading-dot" />{pendingReply === 'live' ? 'OHMI is thinking…' : 'Loading a sample reply…'}</p>}
         </div>
         {messages.length === 0 && <button type="button" className="ohmi-suggestion" onClick={() => { setDraft('What does a resistor do?'); inputRef.current?.focus(); }}>What does a resistor do?</button>}
         <form className="ohmi-compose" onSubmit={(event) => { event.preventDefault(); void send(); }}>
@@ -780,8 +784,14 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           <textarea ref={inputRef} id="ohmi-question" name="question" autoComplete="off" rows={2} maxLength={2000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask about a component or concept…" aria-describedby="ohmi-chat-help" onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); }
           }} />
-          <div className="ohmi-compose-actions"><button type="button" className="ohmi-icon-button" aria-label="Use sample attachment" title="Attach the built-in sample; real files unavailable" onClick={() => setAttached(true)} disabled={attached}><Icon name="attachment" /></button><span>Local demo</span><button type="submit" className="ohmi-button ohmi-primary" disabled={!draft.trim() || pendingReply !== null}><Icon name="send" size={16} />Send demo</button></div>
-          <p id="ohmi-chat-help">Fixed sample replies. Real file attachments are unavailable.</p>
+          <div className="ohmi-compose-actions">
+            <button type="button" className="ohmi-icon-button" aria-label="Use sample attachment" title="Attach the built-in sample; real files unavailable" onClick={() => setAttached(true)} disabled={attached}><Icon name="attachment" /></button>
+            <span>{account.state.user && !attached ? 'Ask OHMI' : 'Local demo'}</span>
+            <button type="submit" className="ohmi-button ohmi-primary" disabled={!draft.trim() || pendingReply !== null}>
+              <Icon name="send" size={16} />{account.state.user && !attached ? 'Send' : 'Send demo'}
+            </button>
+          </div>
+          <p id="ohmi-chat-help">{attached ? 'Using sample attachment — local demo reply.' : account.state.user ? 'Ask OHMI about components, wiring, code, or concepts.' : 'Fixed sample replies. Sign in for private AI tutoring.'}</p>
         </form>
       </div>}
 
@@ -799,7 +809,20 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       {section === 'guide' && savedAssignment && account.state.user && <AssignmentSteps key={account.state.user.id + savedAssignment.id} accountId={account.state.user.id} assignment={savedAssignment} onBack={() => navigate('assignments')} />}
       {section === 'guide' && !savedAssignment && activeTutorial && account.state.user && (
         <section className="ohmi-saved-steps" aria-label="Tutorial guide">
-          <button type="button" className="ohmi-text-button" onClick={() => { setActiveTutorial(null); navigate('assignments'); }}>Back to assignments</button>
+          <button
+            type="button"
+            className="ohmi-text-button"
+            onClick={() => {
+              setActiveTutorial(null);
+              if (activeTutorial.kind === 'circuit_check') {
+                navigate('check');
+              } else {
+                navigate('assignments');
+              }
+            }}
+          >
+            {activeTutorial.kind === 'circuit_check' ? 'Back to circuit reviews' : 'Back to assignments'}
+          </button>
           <h4>{activeTutorial.title}</h4>
           <p className="ohmi-muted">{activeTutorial.kind === 'circuit_check' ? 'Circuit corrective steps.' : 'AI-guided step-by-step assembly.'}</p>
           {activeTutorial.objective && (
@@ -810,14 +833,34 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
 
           {activeTutorial.components && activeTutorial.components.length > 0 && (
             <div className="ohmi-parts-list" style={{ margin: '8px 0 12px', padding: '8px 12px', background: 'var(--ohmi-tint)', borderRadius: '8px' }}>
-              <strong style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Required Components</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <strong style={{ fontSize: '12px' }}>Required Components</strong>
+                <span style={{ fontSize: '11px', color: 'var(--ohmi-muted)' }}>
+                  {Object.values(confirmedComponents).filter(Boolean).length}/{activeTutorial.components.length} confirmed
+                </span>
+              </div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {activeTutorial.components.map((comp, idx) => (
-                  <li key={idx} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                    <span>{comp.name} {comp.notes ? <span style={{ color: 'var(--ohmi-muted)' }}>({comp.notes})</span> : null}</span>
-                    <span style={{ color: 'var(--ohmi-muted)' }}>Qty: {comp.quantity}</span>
-                  </li>
-                ))}
+                {activeTutorial.components.map((comp, idx) => {
+                  const key = `${comp.name}-${idx}`;
+                  const isChecked = !!confirmedComponents[key];
+                  return (
+                    <li key={idx} style={{ fontSize: '12px', padding: '3px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '8px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => setConfirmedComponents((prev) => ({ ...prev, [key]: e.target.checked }))}
+                          />
+                          <span style={{ textDecoration: isChecked ? 'line-through' : 'none', color: isChecked ? 'var(--ohmi-muted)' : 'inherit' }}>
+                            {comp.name} {comp.notes ? <span style={{ color: 'var(--ohmi-muted)', fontStyle: 'italic' }}>({comp.notes})</span> : null}
+                          </span>
+                        </span>
+                        <span style={{ color: 'var(--ohmi-muted)', fontSize: '11px' }}>Qty: {comp.quantity}</span>
+                      </label>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -876,10 +919,10 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
                 <div className="ohmi-guide-step">
                   <span className="ohmi-step-number" aria-hidden="true">{tutorialStep + 1}</span>
                   <h4>Step {tutorialStep + 1}</h4>
-                  <p>{activeTutorial.steps[tutorialStep].instruction}</p>
+                  <div className="ohmi-step-instruction"><MessageContent content={activeTutorial.steps[tutorialStep].instruction} /></div>
                   <div style={{ marginTop: '8px' }}>
                     <strong style={{ fontSize: '12px' }}>Why: </strong>
-                    <span style={{ fontSize: '13px' }}>{activeTutorial.steps[tutorialStep].why}</span>
+                    <div style={{ fontSize: '13px', display: 'inline' }}><MessageContent content={activeTutorial.steps[tutorialStep].why} /></div>
                   </div>
                   <div className="ohmi-tip">
                     <Icon name="spark" size={18} />
@@ -996,6 +1039,14 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
                   Saved circuit checks ({recentChecks.length})
                 </button>
               )}
+              <button
+                type="button"
+                className="ohmi-button ohmi-secondary"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => navigate('progress')}
+              >
+                Learning progress
+              </button>
             </div>
           </div>
         )}
@@ -1080,6 +1131,120 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         {circuit === 'loading' && <p className="ohmi-loading" role="status">Loading illustrative circuit notes…</p>}
       </>}
 
+      {section === 'progress' && !account.state.user && (
+        <div style={{ padding: '16px', textAlign: 'center' }}>
+          <h4>Track your builds</h4>
+          <p style={{ fontSize: '13px', color: 'var(--ohmi-muted)', margin: '8px 0 16px' }}>
+            Sign in to your OHMI account to save your progress, revisit completed steps, and track your builds.
+          </p>
+          <button
+            type="button"
+            className="ohmi-button ohmi-primary ohmi-full-width"
+            onClick={() => { void request('account.open').catch((err: Error) => setNotice(err.message)); }}
+          >
+            Sign in to OHMI
+          </button>
+          <div style={{ marginTop: '16px' }}>
+            <button
+              type="button"
+              className="ohmi-button ohmi-secondary ohmi-full-width"
+              onClick={() => navigate('guide')}
+            >
+              Explore sample guide
+            </button>
+          </div>
+        </div>
+      )}
+
+      {section === 'progress' && account.state.user && (
+        <section className="ohmi-progress-section" aria-label="Learning progress">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h4 style={{ margin: 0 }}>Recent Activity</h4>
+            <button
+              type="button"
+              className="ohmi-text-button"
+              disabled={loadingActivities}
+              onClick={() => void loadRecentActivities()}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {loadingActivities && <p className="ohmi-loading" role="status">Loading your saved progress…</p>}
+
+          {!loadingActivities && recentActivities.length === 0 && (
+            <div style={{ padding: '16px', textAlign: 'center', background: 'rgba(0,0,0,0.03)', borderRadius: '8px' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '13px', color: 'var(--ohmi-muted)' }}>
+                No saved activity yet. Practice a guide or run a circuit review to track your progress.
+              </p>
+              <button
+                type="button"
+                className="ohmi-button ohmi-primary"
+                onClick={() => navigate('guide')}
+              >
+                Go to Guide Me
+              </button>
+            </div>
+          )}
+
+          {!loadingActivities && recentActivities.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {recentActivities.map((item) => (
+                <li
+                  key={item.id}
+                  style={{
+                    padding: '10px 12px',
+                    background: 'var(--ohmi-card)',
+                    border: '1px solid var(--ohmi-border)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <strong style={{ fontSize: '13px' }}>{item.title}</strong>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: item.artifact_kind === 'circuit_check' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        color: item.artifact_kind === 'circuit_check' ? '#2563eb' : '#059669',
+                        fontWeight: 600
+                      }}
+                    >
+                      {item.artifact_kind === 'circuit_check' ? 'Circuit Review' : 'Tutorial'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--ohmi-muted)' }}>
+                      {item.stepCount !== undefined && item.stepCount > 0
+                        ? `${item.completedCount ?? 0} of ${item.stepCount} steps completed`
+                        : 'Not started'}
+                    </span>
+                    <button
+                      type="button"
+                      className="ohmi-button ohmi-secondary"
+                      style={{ fontSize: '11px', padding: '2px 10px' }}
+                      onClick={() => {
+                        if (item.artifact_kind === 'circuit_check') {
+                          void followCheckSteps(item.id);
+                        } else {
+                          void loadSavedTutorial(item.id);
+                        }
+                      }}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {section === 'settings' && <div className="ohmi-settings">
         <div className="ohmi-setting"><h4>Account</h4><p>{account.loading ? 'Loading account…' : account.state.user ? account.state.user.email : 'Sign in for private assignments and saved progress.'}</p>{account.error && <p className="ohmi-notice" role="alert">{account.error}</p>}<button type="button" className="ohmi-button ohmi-secondary ohmi-full-width" onClick={() => { void request('account.open').catch((failure: Error) => setNotice(failure.message)); }}>{account.state.user ? 'Manage OHMI account' : 'Sign in to OHMI'}</button></div>
         <div className="ohmi-setting"><label htmlFor="ohmi-language">Explanation language</label><select id="ohmi-language" disabled={account.loading} value={preferences.language} onChange={(event) => onPreferencesChange(readPreferences({ ...preferences, language: event.target.value }))}><option value="english">English</option><option value="filipino">Filipino</option><option value="taglish">Taglish</option></select><p>Used by local sample replies. Interface labels stay in English.</p></div>
@@ -1092,16 +1257,16 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     </main>
 
     {more && <div id="ohmi-more" className="ohmi-more" role="region" aria-label="More OHMI sections">
-      <button ref={firstMoreRef} type="button" onClick={() => navigate('assignments')}><Icon name="assignments" />Assignments</button>
+      <button ref={firstMoreRef} type="button" onClick={() => navigate('progress')}><Icon name="progress" />Learning Progress</button>
       <button type="button" onClick={() => navigate('check')}><Icon name="check" />Check My Circuit</button>
       <button type="button" onClick={() => navigate('settings')}><Icon name="settings" />Settings</button>
     </div>}
     <nav className="ohmi-nav" aria-label="OHMI navigation">
-      <button type="button" aria-current={section === 'home' ? 'page' : undefined} aria-label="Home" onClick={() => navigate('home')}><Icon name="home" /><span>Home</span></button>
+      <button type="button" aria-current={['home', 'assignments'].includes(section) ? 'page' : undefined} aria-label="Home" onClick={() => navigate('home')}><Icon name="home" /><span>Home</span></button>
       <button type="button" aria-current={section === 'chat' ? 'page' : undefined} aria-label="Ask section" onClick={() => navigate('chat')}><Icon name="chat" /><span>Ask</span></button>
       <button type="button" aria-current={section === 'guide' ? 'page' : undefined} aria-label="Guide section" onClick={() => navigate('guide')}><Icon name="guide" /><span>Guide</span></button>
-      <button ref={moreRef} type="button" aria-current={['assignments', 'check', 'settings'].includes(section) ? 'page' : undefined} aria-label="More sections" aria-expanded={more} aria-controls="ohmi-more" onClick={() => setMore((current) => !current)}><Icon name="more" /><span>More</span></button>
+      <button ref={moreRef} type="button" aria-current={['progress', 'check', 'settings'].includes(section) ? 'page' : undefined} aria-label="More sections" aria-expanded={more} aria-controls="ohmi-more" onClick={() => setMore((current) => !current)}><Icon name="more" /><span>More</span></button>
     </nav>
-    <footer className="ohmi-preview-note"><span className={`ohmi-status-dot${pendingReply !== null || assignment === 'loading' || circuit === 'loading' ? ' ohmi-status-busy' : ''}`} /><span>{account.state.user ? 'Private account. AI features remain samples.' : 'Sign in for storage. AI features remain samples.'}</span></footer>
+    <footer className="ohmi-preview-note"><span className={`ohmi-status-dot${pendingReply !== null || assignment === 'loading' || circuit === 'loading' ? ' ohmi-status-busy' : ''}`} /><span>{account.state.user ? 'Private workspace. Ask questions, build circuits, and check reviews.' : 'Sign in for storage and saved progress. Sample mode active.'}</span></footer>
   </div>;
 }

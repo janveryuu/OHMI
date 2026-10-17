@@ -319,10 +319,11 @@ if (process.argv[1] && (process.argv[1].endsWith('phase5.mjs') || process.argv[1
   const screenshots = resolve(process.env.OHMI_SCREENSHOTS_DIR || '.superpowers/stabilization-2026-10-15/screenshots');
   const profile = await mkdtemp(join(tmpdir(), 'ohmi-phase5-'));
   const context = await chromium.launchPersistentContext(profile, {
-    headless: true,
-    channel: process.env.OHMI_CHROMIUM_PATH ? undefined : 'chromium',
+    headless: false,
+    ignoreDefaultArgs: ['--disable-extensions'],
+    channel: undefined,
     executablePath: process.env.OHMI_CHROMIUM_PATH,
-    args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
+    args: ['--headless=new', `--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     viewport: { width: 1280, height: 800 },
   });
   try {
