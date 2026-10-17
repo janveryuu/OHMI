@@ -5,7 +5,7 @@ export type Preferences = {
 };
 
 export type Motion = 'idle' | 'happy' | 'thinking';
-export type Section = 'home' | 'chat' | 'assignments' | 'guide' | 'check' | 'settings';
+export type Section = 'home' | 'chat' | 'assignments' | 'guide' | 'check' | 'settings' | 'progress';
 
 export function readPreferences(value: unknown): Preferences {
   const saved = value && typeof value === 'object' ? value as Record<string, unknown> : {};

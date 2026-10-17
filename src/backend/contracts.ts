@@ -44,6 +44,7 @@ export interface AiRequestPayload {
   context?: Array<{ role: 'user' | 'assistant'; text: string }>;
   calculation?: AiCalculationPayload;
   assignmentId?: string;
+  circuitAnalysisId?: string;
   conversationId?: string;
   accountId: string;
 }

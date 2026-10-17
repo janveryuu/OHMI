@@ -3,12 +3,13 @@ import { Icon } from './Icon';
 import { demoReply, GUIDE_STEPS, readPreferences, type Motion, type Preferences, type Section } from './preview';
 import { PrivateAssignments } from './PrivateAssignments';
 import { AssignmentSteps } from './AssignmentSteps';
+import { MessageContent } from './MessageContent';
 import { request } from './bridge';
 import type { useAccount } from './useAccount';
 import type { Assignment, ConversationHeader } from './backend/contracts';
 
 type SampleState = 'empty' | 'loading' | 'ready';
-type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; isAi?: boolean };
+type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; mode?: 'live' | 'sample'; isAi?: boolean };
 
 interface TutorialStepData {
   step: number;
@@ -21,7 +22,12 @@ interface TutorialStepData {
 interface ActiveTutorial {
   id: string;
   title: string;
+  kind?: 'tutorial' | 'circuit_check';
+  objective?: string;
+  components?: Array<{ name: string; quantity: number | string; notes?: string }>;
   steps: TutorialStepData[];
+  clarificationQuestions?: string[];
+  notes?: string;
 }
 
 function renderMessageText(text: string) {
@@ -55,11 +61,11 @@ type Props = {
 
 const titles: Record<Section, string> = {
   home: 'Hey, circuit builder.', chat: 'Ask OHMI', assignments: 'Assignments',
-  guide: 'Guide Me', check: 'Check My Circuit', settings: 'Settings',
+  guide: 'Guide Me', check: 'Check My Circuit', settings: 'Settings', progress: 'Learning Progress',
 };
 const subtitles: Record<Section, string> = {
   home: 'Pick a place to start.', chat: 'Try a question in a local demo.', assignments: 'Turn a brief into a build plan.',
-  guide: 'Sample guide: light your first LED.', check: 'Explore an illustrative circuit review.', settings: 'Make your little buddy feel at home.',
+  guide: 'Sample guide: light your first LED.', check: 'Explore an illustrative circuit review.', settings: 'Make your little buddy feel at home.', progress: 'Review your completed steps and saved guides.',
 };
 const shortcuts = [
   { section: 'chat', icon: 'chat', title: 'Ask OHMI', detail: 'Components, code, and little questions' },
@@ -97,11 +103,15 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [savedAssignment, setSavedAssignment] = useState<Assignment | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [activeTutorial, setActiveTutorial] = useState<ActiveTutorial | null>(null);
+  const [activeAssignmentForTutorial, setActiveAssignmentForTutorial] = useState<Assignment | null>(null);
+  const [clarificationDraft, setClarificationDraft] = useState('');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialCompleted, setTutorialCompleted] = useState<number[]>([]);
   const [conversations, setConversations] = useState<ConversationHeader[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [recentChecks, setRecentChecks] = useState<Array<{ id: string; title: string | null; created_at: string }>>([]);
+  const [recentActivities, setRecentActivities] = useState<Array<{ id: string; title: string | null; artifact_kind: string; created_at: string; stepCount?: number; completedCount?: number }>>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
   const lastUserId = useRef(account.state.user?.id);
   const messageId = useRef(0);
   const contentRef = useRef<HTMLElement>(null);
@@ -256,9 +266,12 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       setCurrentConversationId(null);
       setSavedAssignment(null);
       setActiveTutorial(null);
+      setActiveAssignmentForTutorial(null);
+      setClarificationDraft('');
       setConversations([]);
       setShowHistory(false);
       setRecentChecks([]);
+      setRecentActivities([]);
     }
   }, [account.state.user?.id]);
 
@@ -286,6 +299,85 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     }
   }, [section, account.state.user?.id]);
 
+  const loadRecentActivities = async () => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    setLoadingActivities(true);
+    try {
+      const list = await request<any[]>('analyses.list', { accountId: currentUserId });
+      if (Array.isArray(list)) {
+        const filtered = list.filter((a) => a.artifact_kind === 'tutorial' || a.artifact_kind === 'circuit_check').slice(0, 8);
+        const mapped = await Promise.all(
+          filtered.map(async (item) => {
+            try {
+              const [prog, full] = await Promise.all([
+                request<any>('progress.get', { accountId: currentUserId, analysisId: item.id }).catch(() => null),
+                request<any>('analyses.get', { accountId: currentUserId, id: item.id }).catch(() => null)
+              ]);
+              const stepCount = full?.payload?.steps?.length || 0;
+              const completedCount = Array.isArray(prog?.completed) ? prog.completed.length : 0;
+              return {
+                id: item.id,
+                title: item.title || full?.title || (item.artifact_kind === 'tutorial' ? 'Assignment Tutorial' : 'Circuit Check'),
+                artifact_kind: item.artifact_kind,
+                created_at: item.created_at,
+                stepCount,
+                completedCount
+              };
+            } catch {
+              return {
+                id: item.id,
+                title: item.title,
+                artifact_kind: item.artifact_kind,
+                created_at: item.created_at
+              };
+            }
+          })
+        );
+        setRecentActivities(mapped);
+      }
+    } catch {
+      // non-blocking
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  useEffect(() => {
+    if (section === 'progress' && account.state.user?.id) {
+      void loadRecentActivities();
+    }
+  }, [section, account.state.user?.id]);
+
+  const loadSavedTutorial = async (analysisId: string) => {
+    const currentUserId = account.state.user?.id;
+    if (!currentUserId) return;
+    try {
+      const full = await request<any>('analyses.get', { accountId: currentUserId, id: analysisId });
+      const prog = await request<any>('progress.get', { accountId: currentUserId, analysisId });
+      if (full?.payload?.steps && Array.isArray(full.payload.steps) && full.payload.steps.length > 0) {
+        setActiveTutorial({
+          id: full.id,
+          title: full.title || full.payload.title || 'Tutorial Guide',
+          kind: full.artifact_kind === 'circuit_check' ? 'circuit_check' : 'tutorial',
+          objective: full.payload.objective,
+          components: full.payload.components,
+          steps: full.payload.steps,
+          clarificationQuestions: full.payload.clarificationQuestions,
+          notes: full.payload.notes
+        });
+        setTutorialStep(prog?.current_step || 0);
+        setTutorialCompleted(Array.isArray(prog?.completed) ? prog.completed : []);
+        setSavedAssignment(null);
+        navigate('guide');
+      } else {
+        setNotice('No steps found for this activity.');
+      }
+    } catch (err: any) {
+      setNotice(err.message || 'Could not load tutorial.');
+    }
+  };
+
   const followCheckSteps = async (checkId: string) => {
     const currentUserId = account.state.user?.id;
     if (!currentUserId) return;
@@ -295,8 +387,10 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
       if (full?.payload?.steps && Array.isArray(full.payload.steps) && full.payload.steps.length > 0) {
         setActiveTutorial({
           id: full.id,
-          title: full.title || 'Circuit Guidance',
-          steps: full.payload.steps
+          title: full.title || 'Circuit Check Guidance',
+          kind: 'circuit_check',
+          steps: full.payload.steps,
+          notes: full.payload.summary || 'Corrective steps from circuit review'
         });
         setTutorialStep(prog?.current_step || 0);
         setTutorialCompleted(Array.isArray(prog?.completed) ? prog.completed : []);
@@ -336,6 +430,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           id: ++messageId.current,
           role: m.role === 'user' ? 'user' : 'ohmi',
           text: m.content,
+          mode: 'live',
           isAi: true
         })));
         setCurrentConversationId(conv.id);
@@ -350,17 +445,18 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     const text = draft.trim();
     if (!text || pendingReply !== null) return;
     const currentUserId = account.state.user?.id;
+    const isDemo = !currentUserId || attached;
     justSent.current = true;
-    setMessages((current) => [...current, { id: ++messageId.current, role: 'user', text, attachment: attached }]);
+    setMessages((current) => [...current, { id: ++messageId.current, role: 'user', text, attachment: attached, mode: isDemo ? 'sample' : 'live' }]);
     setDraft('');
     setAttached(false);
     setNotice('');
     setPendingReply(preferences.language);
     onMotion('thinking');
 
-    if (!currentUserId || attached) {
+    if (isDemo) {
       window.setTimeout(() => {
-        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: demoReply(preferences.language), language: preferences.language, isAi: false }]);
+        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: demoReply(preferences.language), language: preferences.language, mode: 'sample', isAi: false }]);
         setPendingReply(null);
         onMotion('happy');
       }, 650);
@@ -379,13 +475,22 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
             convId = newConv.id;
             setCurrentConversationId(convId);
           }
-        } catch { /* proceed unlinked if create fails */ }
+        } catch {
+          setDraft(text);
+          setNotice('Could not start conversation session. Please retry.');
+          setPendingReply(null);
+          onMotion('idle');
+          return;
+        }
       }
 
-      const chatContext = messages.slice(-4).map((m) => ({
-        role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-        text: m.text
-      }));
+      const chatContext = messages
+        .filter((m) => m.mode !== 'sample')
+        .slice(-8)
+        .map((m) => ({
+          role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          text: m.text
+        }));
 
       const res = await request('ai.chat', {
         accountId: currentUserId,
@@ -400,7 +505,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
 
       const answer = res?.result?.answer;
       if (answer) {
-        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: answer, language: preferences.language, isAi: true }]);
+        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: answer, language: preferences.language, mode: 'live', isAi: true }]);
         onMotion('happy');
       } else {
         setNotice('No answer received from AI tutor.');
@@ -466,18 +571,19 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     }
   };
 
-  const openTutorialGuide = async (item: Assignment) => {
+  const openTutorialGuide = async (item: Assignment, clarificationAnswer?: string) => {
     const currentUserId = account.state.user?.id;
     if (!currentUserId) return;
     setNotice('');
+    setActiveAssignmentForTutorial(item);
     try {
       const analyses = await request<any[]>('analyses.list', {
         accountId: currentUserId,
         assignmentId: item.id
       });
-      const tutorialAnalysis = analyses?.find((a) => a.artifact_kind === 'tutorial' || (a.payload?.steps && a.payload.steps.length > 0));
+      const tutorialAnalysis = analyses?.find((a) => a.artifact_kind === 'tutorial');
 
-      if (tutorialAnalysis) {
+      if (tutorialAnalysis && !clarificationAnswer) {
         const full = await request<any>('analyses.get', {
           accountId: currentUserId,
           id: tutorialAnalysis.id
@@ -486,34 +592,60 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           accountId: currentUserId,
           analysisId: tutorialAnalysis.id
         });
+        const payload = full?.payload || {};
         setActiveTutorial({
           id: tutorialAnalysis.id,
-          title: full?.title || full?.payload?.title || item.original_name,
-          steps: full?.payload?.steps || []
+          title: full?.title || payload.title || item.original_name,
+          kind: 'tutorial',
+          objective: payload.objective,
+          components: Array.isArray(payload.components) ? payload.components : [],
+          steps: Array.isArray(payload.steps) ? payload.steps : [],
+          clarificationQuestions: Array.isArray(payload.clarificationQuestions) ? payload.clarificationQuestions : undefined,
+          notes: payload.notes
         });
         setTutorialStep(progress?.current_step || 0);
-        setTutorialCompleted(progress?.completed || []);
+        setTutorialCompleted(Array.isArray(progress?.completed) ? progress.completed : []);
         setSavedAssignment(null);
         navigate('guide');
       } else {
         setPendingReply(preferences.language);
         onMotion('thinking');
+        const userMsg = clarificationAnswer
+          ? `Clarification answer: ${clarificationAnswer.slice(0, 1000)}`
+          : `Generate a step-by-step circuit assembly guide for ${item.original_name}.`;
         const res = await request<any>('ai.chat', {
           accountId: currentUserId,
           requestId: crypto.randomUUID(),
           operation: 'tutorial',
           assignmentId: item.id,
           language: preferences.language,
-          message: `Generate a step-by-step circuit assembly guide for ${item.original_name}.`
+          message: userMsg
         });
         if (res?.result?.steps && res.result.steps.length > 0) {
           setActiveTutorial({
             id: res.resultId || res.requestId,
             title: res.result.title || item.original_name,
-            steps: res.result.steps
+            kind: 'tutorial',
+            objective: res.result.objective,
+            components: Array.isArray(res.result.components) ? res.result.components : [],
+            steps: res.result.steps,
+            notes: res.result.notes
           });
           setTutorialStep(0);
           setTutorialCompleted([]);
+          setSavedAssignment(null);
+          navigate('guide');
+        } else if (res?.result?.status === 'needs_clarification' || (Array.isArray(res?.result?.clarificationQuestions) && res.result.clarificationQuestions.length > 0)) {
+          setActiveTutorial({
+            id: res.resultId || res.requestId,
+            title: res.result.title || item.original_name,
+            kind: 'tutorial',
+            objective: res.result.objective,
+            components: Array.isArray(res.result.components) ? res.result.components : [],
+            steps: [],
+            clarificationQuestions: res.result.clarificationQuestions || [],
+            notes: res.result.notes || res.result.answer
+          });
           setSavedAssignment(null);
           navigate('guide');
         } else {
@@ -669,86 +801,204 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         <section className="ohmi-saved-steps" aria-label="Tutorial guide">
           <button type="button" className="ohmi-text-button" onClick={() => { setActiveTutorial(null); navigate('assignments'); }}>Back to assignments</button>
           <h4>{activeTutorial.title}</h4>
-          <p className="ohmi-muted">AI-guided step-by-step assembly.</p>
-          <div className="ohmi-guide-progress">
-            <div>
-              <span>{tutorialCompleted.length} of {activeTutorial.steps.length} steps done</span>
-              <span>Step {tutorialStep + 1} of {activeTutorial.steps.length}</span>
+          <p className="ohmi-muted">{activeTutorial.kind === 'circuit_check' ? 'Circuit corrective steps.' : 'AI-guided step-by-step assembly.'}</p>
+          {activeTutorial.objective && (
+            <p style={{ fontSize: '13px', margin: '4px 0 8px', fontStyle: 'italic', color: 'var(--ohmi-muted)' }}>
+              {activeTutorial.objective}
+            </p>
+          )}
+
+          {activeTutorial.components && activeTutorial.components.length > 0 && (
+            <div className="ohmi-parts-list" style={{ margin: '8px 0 12px', padding: '8px 12px', background: 'var(--ohmi-tint)', borderRadius: '8px' }}>
+              <strong style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Required Components</strong>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {activeTutorial.components.map((comp, idx) => (
+                  <li key={idx} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span>{comp.name} {comp.notes ? <span style={{ color: 'var(--ohmi-muted)' }}>({comp.notes})</span> : null}</span>
+                    <span style={{ color: 'var(--ohmi-muted)' }}>Qty: {comp.quantity}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <progress aria-label="Tutorial guide progress" value={tutorialCompleted.length} max={activeTutorial.steps.length} />
-          </div>
-          {activeTutorial.steps[tutorialStep] && (
-            <div className="ohmi-guide-step">
-              <span className="ohmi-step-number" aria-hidden="true">{tutorialStep + 1}</span>
-              <h4>Step {tutorialStep + 1}</h4>
-              <p>{activeTutorial.steps[tutorialStep].instruction}</p>
-              <div style={{ marginTop: '8px' }}>
-                <strong style={{ fontSize: '12px' }}>Why: </strong>
-                <span style={{ fontSize: '13px' }}>{activeTutorial.steps[tutorialStep].why}</span>
+          )}
+
+          {activeTutorial.clarificationQuestions && activeTutorial.clarificationQuestions.length > 0 && (
+            <div className="ohmi-clarification-box" style={{ padding: '10px 12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', margin: '8px 0 12px' }}>
+              <strong style={{ fontSize: '13px', color: '#b45309', display: 'block', marginBottom: '4px' }}>Clarification Needed</strong>
+              <p style={{ fontSize: '12px', margin: '0 0 6px' }}>{activeTutorial.notes || 'Please provide additional details before assembling:'}</p>
+              <ul style={{ paddingLeft: '18px', margin: '0 0 8px', fontSize: '12px' }}>
+                {activeTutorial.clarificationQuestions.map((q, idx) => (
+                  <li key={idx}>{q}</li>
+                ))}
+              </ul>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  type="text"
+                  placeholder="Type your clarification (e.g. 5V supply, 20mA LED)..."
+                  value={clarificationDraft}
+                  onChange={(e) => setClarificationDraft(e.target.value)}
+                  style={{ flex: 1, padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid var(--ohmi-border)', background: 'var(--ohmi-card)' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && clarificationDraft.trim() && activeAssignmentForTutorial) {
+                      e.preventDefault();
+                      void openTutorialGuide(activeAssignmentForTutorial, clarificationDraft);
+                      setClarificationDraft('');
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-primary"
+                  disabled={!clarificationDraft.trim() || pendingReply !== null}
+                  onClick={() => {
+                    if (activeAssignmentForTutorial) {
+                      void openTutorialGuide(activeAssignmentForTutorial, clarificationDraft);
+                      setClarificationDraft('');
+                    }
+                  }}
+                >
+                  Continue
+                </button>
               </div>
-              <div className="ohmi-tip">
-                <Icon name="spark" size={18} />
-                <p><strong>Check: </strong>{activeTutorial.steps[tutorialStep].check}</p>
+            </div>
+          )}
+
+          {activeTutorial.steps.length > 0 && (
+            <>
+              <div className="ohmi-guide-progress">
+                <div>
+                  <span>{tutorialCompleted.length} of {activeTutorial.steps.length} steps done</span>
+                  <span>Step {tutorialStep + 1} of {activeTutorial.steps.length}</span>
+                </div>
+                <progress aria-label="Tutorial guide progress" value={tutorialCompleted.length} max={activeTutorial.steps.length} />
               </div>
-              {activeTutorial.steps[tutorialStep].code && (
-                <pre className="ohmi-code-block" style={{ background: 'rgba(0,0,0,0.06)', padding: '6px 8px', borderRadius: '4px', overflowX: 'auto', fontSize: '0.85em', marginTop: '8px' }}>
-                  <code>{activeTutorial.steps[tutorialStep].code}</code>
-                </pre>
+              {activeTutorial.steps[tutorialStep] && (
+                <div className="ohmi-guide-step">
+                  <span className="ohmi-step-number" aria-hidden="true">{tutorialStep + 1}</span>
+                  <h4>Step {tutorialStep + 1}</h4>
+                  <p>{activeTutorial.steps[tutorialStep].instruction}</p>
+                  <div style={{ marginTop: '8px' }}>
+                    <strong style={{ fontSize: '12px' }}>Why: </strong>
+                    <span style={{ fontSize: '13px' }}>{activeTutorial.steps[tutorialStep].why}</span>
+                  </div>
+                  <div className="ohmi-tip">
+                    <Icon name="spark" size={18} />
+                    <p><strong>Check: </strong>{activeTutorial.steps[tutorialStep].check}</p>
+                  </div>
+                  {activeTutorial.steps[tutorialStep].code && (
+                    <pre className="ohmi-code-block" style={{ background: 'rgba(0,0,0,0.06)', padding: '6px 8px', borderRadius: '4px', overflowX: 'auto', fontSize: '0.85em', marginTop: '8px' }}>
+                      <code>{activeTutorial.steps[tutorialStep].code}</code>
+                    </pre>
+                  )}
+                </div>
               )}
-            </div>
+              <div style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-secondary"
+                  style={{ flex: 1, fontSize: '12px' }}
+                  onClick={() => {
+                    const curr = activeTutorial.steps[tutorialStep];
+                    if (!curr) return;
+                    setDraft(`Can you explain Step ${tutorialStep + 1} of "${activeTutorial.title}": "${curr.instruction}"? Why is this done?`);
+                    navigate('chat');
+                  }}
+                >
+                  Explain this step
+                </button>
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-secondary"
+                  style={{ flex: 1, fontSize: '12px' }}
+                  onClick={() => {
+                    const curr = activeTutorial.steps[tutorialStep];
+                    if (!curr) return;
+                    setDraft(`I tried Step ${tutorialStep + 1} of "${activeTutorial.title}": "${curr.instruction}", but it didn't work. The check was "${curr.check}". What should I check?`);
+                    navigate('chat');
+                  }}
+                >
+                  It didn't work
+                </button>
+              </div>
+              <button
+                type="button"
+                className={`ohmi-button ohmi-full-width ${tutorialCompleted.includes(tutorialStep) ? 'ohmi-secondary' : 'ohmi-primary'}`}
+                onClick={async () => {
+                  const nextCompleted = tutorialCompleted.includes(tutorialStep)
+                    ? tutorialCompleted.filter((i) => i !== tutorialStep)
+                    : [...tutorialCompleted, tutorialStep];
+                  setTutorialCompleted(nextCompleted);
+                  if (!tutorialCompleted.includes(tutorialStep)) onMotion('happy');
+                  if (account.state.user) {
+                    try {
+                      await request('progress.save', {
+                        accountId: account.state.user.id,
+                        analysisId: activeTutorial.id,
+                        currentStep: tutorialStep,
+                        completed: nextCompleted
+                      });
+                    } catch { /* non-blocking */ }
+                  }
+                }}
+              >
+                <Icon name="done" size={18} />
+                {tutorialCompleted.includes(tutorialStep) ? 'Undo completion' : 'Mark step done'}
+              </button>
+              <div className="ohmi-guide-nav">
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-secondary"
+                  disabled={tutorialStep === 0}
+                  onClick={() => setTutorialStep((current) => Math.max(0, current - 1))}
+                >
+                  <Icon name="back" size={16} />Previous
+                </button>
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-secondary"
+                  disabled={tutorialStep >= activeTutorial.steps.length - 1}
+                  onClick={() => setTutorialStep((current) => Math.min(activeTutorial.steps.length - 1, current + 1))}
+                >
+                  Next step<Icon name="next" size={16} />
+                </button>
+              </div>
+              {tutorialCompleted.length === activeTutorial.steps.length && (
+                <div className="ohmi-success" role="status">
+                  <Icon name="done" />
+                  <p>Tutorial guide complete! You practiced each connection and verification step.</p>
+                </div>
+              )}
+              <button type="button" className="ohmi-text-button" onClick={() => { setTutorialCompleted([]); setTutorialStep(0); }}>Restart tutorial guide</button>
+            </>
           )}
-          <button
-            type="button"
-            className={`ohmi-button ohmi-full-width ${tutorialCompleted.includes(tutorialStep) ? 'ohmi-secondary' : 'ohmi-primary'}`}
-            onClick={async () => {
-              const nextCompleted = tutorialCompleted.includes(tutorialStep)
-                ? tutorialCompleted.filter((i) => i !== tutorialStep)
-                : [...tutorialCompleted, tutorialStep];
-              setTutorialCompleted(nextCompleted);
-              if (!tutorialCompleted.includes(tutorialStep)) onMotion('happy');
-              if (account.state.user) {
-                try {
-                  await request('progress.save', {
-                    accountId: account.state.user.id,
-                    analysisId: activeTutorial.id,
-                    currentStep: tutorialStep,
-                    completed: nextCompleted
-                  });
-                } catch { /* non-blocking */ }
-              }
-            }}
-          >
-            <Icon name="done" size={18} />
-            {tutorialCompleted.includes(tutorialStep) ? 'Undo completion' : 'Mark step done'}
-          </button>
-          <div className="ohmi-guide-nav">
-            <button
-              type="button"
-              className="ohmi-button ohmi-secondary"
-              disabled={tutorialStep === 0}
-              onClick={() => setTutorialStep((current) => Math.max(0, current - 1))}
-            >
-              <Icon name="back" size={16} />Previous
-            </button>
-            <button
-              type="button"
-              className="ohmi-button ohmi-secondary"
-              disabled={tutorialStep >= activeTutorial.steps.length - 1}
-              onClick={() => setTutorialStep((current) => Math.min(activeTutorial.steps.length - 1, current + 1))}
-            >
-              Next step<Icon name="next" size={16} />
-            </button>
-          </div>
-          {tutorialCompleted.length === activeTutorial.steps.length && (
-            <div className="ohmi-success" role="status">
-              <Icon name="done" />
-              <p>Tutorial guide complete! You practiced each connection and verification step.</p>
-            </div>
-          )}
-          <button type="button" className="ohmi-text-button" onClick={() => { setTutorialCompleted([]); setTutorialStep(0); }}>Restart tutorial guide</button>
         </section>
       )}
       {section === 'guide' && !savedAssignment && !activeTutorial && <>
+        {account.state.user && (account.state.assignments.length > 0 || recentChecks.length > 0) && (
+          <div style={{ padding: '8px 12px', background: 'var(--ohmi-tint)', borderRadius: '8px', marginBottom: '12px', fontSize: '12px' }}>
+            <span style={{ fontWeight: 600, display: 'block', marginBottom: '4px' }}>Choose Guide Work:</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <button
+                type="button"
+                className="ohmi-button ohmi-secondary"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => navigate('assignments')}
+              >
+                From assignments ({account.state.assignments.length})
+              </button>
+              {recentChecks.length > 0 && (
+                <button
+                  type="button"
+                  className="ohmi-button ohmi-secondary"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                  onClick={() => navigate('check')}
+                >
+                  Saved circuit checks ({recentChecks.length})
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <div className="ohmi-guide-progress"><div><span>{completed.length} of 5 done</span><span>Step {step + 1} of 5</span></div><progress aria-label="Sample guide progress" value={completed.length} max={5} /></div>
         <div className="ohmi-guide-step"><span className="ohmi-step-number" aria-hidden="true">{step + 1}</span><h4>{currentStep.title}</h4><p>{currentStep.text}</p><div className="ohmi-tip"><Icon name="spark" size={18} /><p>{currentStep.tip}</p></div></div>
         <button type="button" className={`ohmi-button ohmi-full-width ${completed.includes(step) ? 'ohmi-secondary' : 'ohmi-primary'}`} onClick={() => {

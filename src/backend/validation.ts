@@ -87,6 +87,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
     if (!['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
     if (payload.code !== undefined && (typeof payload.code !== 'string' || payload.code.length > 8000)) throw new Error('Invalid code length.');
     if (payload.assignmentId !== undefined) uuid(payload.assignmentId);
+    if (payload.circuitAnalysisId !== undefined) uuid(payload.circuitAnalysisId);
     if (payload.conversationId !== undefined) uuid(payload.conversationId);
     if (payload.context !== undefined && (!Array.isArray(payload.context) || payload.context.length > 4)) throw new Error('Invalid context.');
     if (payload.calculation !== undefined) {

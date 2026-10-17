@@ -208,13 +208,28 @@ export async function handleRequest(request: Request): Promise<unknown> {
     }
     if (action === 'conversations.open') {
       const convId = String(payload.id);
+      const beforePosition = typeof payload.beforePosition === 'number' && Number.isInteger(payload.beforePosition) ? payload.beforePosition : undefined;
+
+      let msgQuery = client
+        .from('ohmi_messages')
+        .select('id,role,content,position,created_at,structured_result')
+        .eq('conversation_id', convId)
+        .eq('user_id', user.id);
+
+      if (beforePosition !== undefined) {
+        msgQuery = msgQuery.lt('position', beforePosition);
+      }
+
       const [convRes, msgRes] = await Promise.all([
         client.from('ohmi_conversations').select('id,title,analysis_id,created_at,updated_at').eq('id', convId).eq('user_id', user.id).single(),
-        client.from('ohmi_messages').select('id,role,content,position,created_at,structured_result').eq('conversation_id', convId).eq('user_id', user.id).order('position', { ascending: true }).limit(50)
+        msgQuery.order('position', { ascending: false }).limit(50)
       ]);
       fail(convRes.error);
       fail(msgRes.error);
-      return { conversation: convRes.data, messages: msgRes.data };
+      const rawMessages = (msgRes.data || []) as any[];
+      const messages = [...rawMessages].reverse();
+      const hasOlder = rawMessages.length === 50 && messages[0]?.position > 1;
+      return { conversation: convRes.data, messages, hasOlder, earliestPosition: messages[0]?.position };
     }
     if (action === 'conversations.create') {
       const title = typeof payload.title === 'string' && payload.title.trim()
@@ -325,6 +340,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
           context: payload.context,
           calculation: payload.calculation,
           assignmentId: payload.assignmentId,
+          circuitAnalysisId: payload.circuitAnalysisId,
           conversationId: payload.conversationId
         }),
         signal: controller.signal

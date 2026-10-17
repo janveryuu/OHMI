@@ -970,5 +970,95 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(data.result.comparisons).toHaveLength(1);
       expect(data.result.comparisons[0].requirementId).toBe('manual-1');
     });
+
+    it('extracts multiple visible text parts while excluding thought parts', async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: {
+                  parts: [
+                    { thought: true, text: 'Secret internal reasoning that should not be visible' },
+                    { text: 'A resistor limits current. ' },
+                    { text: 'Connect it in series with the LED.' }
+                  ]
+                }
+              }
+            ],
+            usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 40 }
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000010',
+        operation: 'chat',
+        language: 'english',
+        message: 'What does a resistor do?'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.result.answer).toBe('A resistor limits current. Connect it in series with the LED.');
+      expect(data.result.answer).not.toContain('Secret internal reasoning');
+    });
+
+    it('returns a readable synopsis instead of raw JSON string as tutorial answer', async () => {
+      const tutorialJson = {
+        status: 'tutorial',
+        title: 'Blink an LED',
+        objective: 'Learn series resistors',
+        steps: [
+          { step: 1, instruction: 'Place LED', why: 'Visual indicator', check: 'Check orientation' }
+        ]
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: JSON.stringify(tutorialJson) }] }
+              }
+            ],
+            usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 80 }
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000011',
+        operation: 'tutorial',
+        language: 'english',
+        message: 'Build guide'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.result.steps).toHaveLength(1);
+      expect(data.result.answer).toBe('Here is your step-by-step guide for Blink an LED with 1 steps.');
+      expect(data.result.answer.startsWith('{')).toBe(false);
+    });
   });
 });

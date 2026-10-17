@@ -189,12 +189,17 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     context = [],
     calculation,
     assignmentId,
+    circuitAnalysisId,
     conversationId
   } = body;
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!requestId || !uuidRegex.test(requestId)) {
     return errorResponse('invalid_request', 'A valid UUID requestId is required.', 400);
+  }
+
+  if (circuitAnalysisId !== undefined && !uuidRegex.test(circuitAnalysisId)) {
+    return errorResponse('invalid_request', 'Invalid circuitAnalysisId format.', 400);
   }
 
   if (!['chat', 'image', 'pdf', 'tutorial'].includes(operation)) {
@@ -341,6 +346,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     code: code?.trim() ?? '',
     calculation: calculation ?? null,
     assignmentId: assignmentId ?? '',
+    circuitAnalysisId: circuitAnalysisId ?? '',
     conversationId: conversationId ?? '',
     fileHash,
     context: Array.isArray(context) ? context.slice(-4) : []
@@ -437,8 +443,10 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   }
 
   // 6. Build prompt & invoke Gemini (zero automatic retries)
-  const systemInstruction = `You are OHMI, an encouraging, friendly, and expert electronics learning buddy for students using Tinkercad Circuits.
+  const systemInstruction = `You are OHMI, an encouraging, friendly, and expert electronics learning buddy for students using Tinkercad Circuits. Prompt version: ohmi-tutor-v2.
 Your role is educational tutoring:
+- Behavioral contract: OHMI is a patient circuit buddy: clear, observant, practical and quietly witty. Answer the actual question first; explain why when useful; suggest one concrete next check. Correct mistakes kindly. Use light situational humor at most occasionally, never mock the student or joke through a safety warning. No repeated greetings, persona introductions, excessive emojis, canned praise or filler.
+- Conciseness: Default ordinary concept answers to about 40–100 words, usually a short paragraph or 2–4 bullets. Simple factual follow-ups may be shorter. Explicit worked explanations may use about 150–300 words. Tutorials use small complete steps.
 - Language: Respond in ${language === 'filipino' ? 'Filipino (Tagalog)' : language === 'taglish' ? 'natural Taglish (conversational mix of English and Filipino common among Filipino engineering students)' : 'clear English'}. Keep technical terms, units (V, mA, Ω, kΩ, µF), pin names (D13, A0, GND, 5V), and code in standard format.
 - Educational principles: Explain the "why" simply. Guide students step-by-step. Never claim that a circuit is electrically verified from an image alone.
 - Uncertainty & Missing info: Acknowledge missing or ambiguous info honestly. If a student asks for a component or resistor value without specifying the supply voltage, LED forward voltage, or target current, do NOT assume a single answer — explain what values are needed and ask the student for clarification.
@@ -448,7 +456,7 @@ Your role is educational tutoring:
   * Standard E12 Resistors: Always note standard E12 values (e.g. 220Ω for ideal 200Ω; 100Ω for ideal 86.7Ω) and calculate the resulting current.
   * Resistor Power Dissipation: P = V * I = V² / R = I² * R. Compare power dissipation with standard 1/4W (250mW) resistors.
   * Resistors in Series: Rs = R1 + R2 + ... + Rn. Resistors in Parallel: 1/Rp = 1/R1 + 1/R2 + ... + 1/Rn.
-- Arduino: Ensure sketches include proper setup() and loop(), explain pin modes (OUTPUT/INPUT), and caution against using pins 0/1 for LEDs or buttons because they are hardware Serial RX/TX and using them interferes with code uploading and Serial debugging.`;
+- Arduino: Ensure sketches include proper setup() and loop(), explain pin modes (OUTPUT/INPUT), and caution against using pins 0/1 for LEDs or buttons because they are hardware Serial RX/TX on Uno R3 and using them interferes with code uploading and Serial debugging.`;
 
   // Format contents
   const contents: any[] = [];
@@ -481,34 +489,60 @@ Your role is educational tutoring:
   if (arduinoValidation && arduinoValidation.warnings.length > 0) {
     promptText += `\n\n[Automated Arduino Checks]:\n${arduinoValidation.warnings.join('\n')}`;
   }
+  if (circuitAnalysisId) {
+    const { data: circuitArtifact } = await userClient
+      .from('ohmi_analyses')
+      .select('id, user_id, title, payload, artifact_kind')
+      .eq('id', circuitAnalysisId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (circuitArtifact && circuitArtifact.artifact_kind === 'circuit_check') {
+      const p = circuitArtifact.payload;
+      const findings = Array.isArray(p?.findings)
+        ? p.findings.slice(0, 5).map((f: any) => `${f.title || f.category}: ${f.message}`).join('; ')
+        : '';
+      promptText += `\n\n[Prior Circuit Review Observations (Prior Model Feedback)]: ${circuitArtifact.title || 'Review'}. Findings: ${findings || 'None noted.'}`;
+    }
+  }
   if (operation === 'image') {
     promptText += '\n\nPlease analyze this circuit screenshot. Describe the visible components, wiring connections, and any potential mistakes or wiring issues you notice. Clearly state any uncertainties.';
   } else if (operation === 'pdf') {
     promptText += '\n\nPlease analyze this electronics assignment PDF. Identify the main learning objective, required components, pin connections, and deliverables. Cite specific page numbers for each requirement.';
   } else if (operation === 'tutorial') {
-    promptText += `\n\nPlease provide an ordered, step-by-step guide to build this circuit.
+    promptText += `\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits.
+Follow this strict pedagogical sequence:
+1. Identify and gather all required parts first (create a complete components list with standard ratings/values).
+2. Locate each part in Tinkercad using the search bar (explain searching the exact component name).
+3. Place and orient components on the workspace/breadboard. (Ask the student to choose and confirm breadboard rows/pins; never invent unseen pin locations or assume unverified board models).
+4. Wire one connection at a time. Explain the purpose of each terminal/pin (e.g. anode vs cathode, 5V vs GND, signal pin).
+5. Check power, polarity, and resistor/component ratings before connecting power.
+6. If Arduino code is needed, explain pin mapping in setup() and loop(), matching the confirmed wiring.
+7. Instruct the student on starting the Tinkercad simulation manually and what observable behavior to expect.
+8. Include single-variable troubleshooting checkpoints.
+
 Respond with a JSON object formatted as:
 {
   "status": "tutorial" | "needs_clarification",
   "title": "Title of the tutorial",
-  "objective": "Learning objective",
+  "objective": "Clear learning objective",
   "components": [
-    { "name": "Component Name", "quantity": 1, "notes": "optional notes" }
+    { "name": "Component Name", "quantity": 1, "notes": "e.g. 220 Ω standard E12 resistor" }
   ],
   "steps": [
     {
       "step": 1,
-      "instruction": "What component to place and how to wire it",
-      "why": "Clear electronics explanation of why this step is done",
-      "check": "How the student verifies this before powering on",
+      "instruction": "One manageable action describing what to place or wire",
+      "why": "Clear electronics explanation of why this step is required",
+      "check": "Concrete visible checkpoint the student verifies before proceeding",
       "code": "optional code snippet"
     }
   ],
   "code": "optional complete Arduino sketch if required",
   "clarificationQuestions": ["Question 1 if status is needs_clarification"],
-  "notes": "Explanation of any impossibilities or clarifications"
+  "notes": "Explanation of any assumptions, clarifications, or component guidance"
 }
-If requirements are missing, contradictory, or impossible (e.g. supply voltage less than LED forward voltage without a booster), set "status": "needs_clarification", explain in "notes" and "clarificationQuestions", and leave "steps" empty.
+If requirements, supply voltage, or component values are missing or contradictory, set "status": "needs_clarification", ask specific clarification questions in "clarificationQuestions", explain in "notes", and leave "steps" empty.
 For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24.`;
   }
 
@@ -648,7 +682,17 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     return errorResponse('unavailable', 'AI response was incomplete.', 502);
   }
 
-  const answerText = candidate?.content?.parts?.[0]?.text;
+  const rawParts = candidate?.content?.parts;
+  let answerText = '';
+  if (Array.isArray(rawParts)) {
+    answerText = rawParts
+      .filter((p: any) => p && typeof p.text === 'string' && !p.thought)
+      .map((p: any) => p.text)
+      .join('');
+  } else if (typeof rawParts?.[0]?.text === 'string') {
+    answerText = rawParts[0].text;
+  }
+
   if (!answerText || !answerText.trim()) {
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: requestId,
@@ -690,9 +734,13 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
       return errorResponse('unavailable', tutVal.error || 'Tutorial did not meet required format.', 502);
     }
 
+    const tutorialSynopsis = tutVal.result.answer || (tutVal.result.status === 'tutorial'
+      ? `Here is your step-by-step guide for ${tutVal.result.title || 'your circuit'} with ${tutVal.result.steps?.length || 0} steps.`
+      : tutVal.result.notes || 'Tutorial details');
+
     resultPayload = {
       ...tutVal.result,
-      answer: tutVal.result.answer || answerText,
+      answer: tutorialSynopsis,
       ...(calculationResult ? { calculation: calculationResult } : {}),
       ...(arduinoValidation ? { arduinoValidation } : (tutVal.result.arduinoValidation ? { arduinoValidation: tutVal.result.arduinoValidation } : {}))
     };
