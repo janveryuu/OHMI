@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { request } from './bridge';
-import { clampMascot, fitMascotForPanel, MASCOT_SIZE, panelRect, type Point, type SavedState } from './placement';
+import { clampMascot, expandedChatRect, fitMascotForPanel, MASCOT_SIZE, panelRect, type Point, type SavedState } from './placement';
 import { AssistantPanel } from './AssistantPanel';
 import type { Motion, Preferences } from './preview';
 import { useAccount } from './useAccount';
@@ -11,9 +11,14 @@ const directions: Record<string, readonly [number, number]> = { ArrowLeft: [-1, 
 export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: string; initial: SavedState; initialPreferences: Preferences }) {
   const [position, setPosition] = useState(initial.position);
   const [open, setOpen] = useState(initial.open);
+  const [chatExpanded, setChatExpanded] = useState(false);
   const [screen, setScreen] = useState(viewport);
   const mascotRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const prevRect = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+  const prevExpanded = useRef(chatExpanded);
+  const currentAnimation = useRef<Animation | null>(null);
   const drag = useRef<{ start: Point; origin: Point; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
   const previousOpen = useRef(open);
@@ -23,6 +28,10 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
   const [systemReducedMotion, setSystemReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const motionTimer = useRef<number | undefined>(undefined);
   const account = useAccount();
+
+  useEffect(() => {
+    setChatExpanded(false);
+  }, [account.state.user?.id]);
 
   useEffect(() => {
     const language = account.state.profile?.language;
@@ -77,9 +86,11 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
     };
     window.addEventListener('resize', resize);
     window.visualViewport?.addEventListener('resize', resize);
+    window.visualViewport?.addEventListener('scroll', resize);
     return () => {
       window.removeEventListener('resize', resize);
       window.visualViewport?.removeEventListener('resize', resize);
+      window.visualViewport?.removeEventListener('scroll', resize);
     };
   }, [open]);
 
@@ -94,6 +105,7 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
   const setPanelOpen = (next: boolean) => {
     const nextPosition = next ? fitMascotForPanel(position, screen) : position;
     setPosition(nextPosition);
+    if (!next) setChatExpanded(false);
     setOpen(next);
     save({ position: nextPosition, open: next });
     if (next) reactTo('happy');
@@ -137,27 +149,94 @@ export function OhmiApp({ imageUrl, initial, initialPreferences }: { imageUrl: s
     }
   };
 
-  const rect = panelRect(position, screen);
+  const visualViewportRect = useCallback(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    const width = vv ? vv.width : (typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const height = vv ? vv.height : (typeof window !== 'undefined' ? window.innerHeight : 800);
+    const offsetLeft = vv ? vv.offsetLeft : 0;
+    const offsetTop = vv ? vv.offsetTop : 0;
+    return { width, height, offsetLeft, offsetTop };
+  }, []);
+
+  const vv = visualViewportRect();
+  const compactRect = panelRect(position, screen);
+  const expandedRectBase = expandedChatRect({ width: vv.width, height: vv.height });
+  const expandedRect = {
+    x: Math.round(vv.offsetLeft + expandedRectBase.x),
+    y: Math.round(vv.offsetTop + expandedRectBase.y),
+    width: expandedRectBase.width,
+    height: expandedRectBase.height,
+  };
+  const rect = (chatExpanded && open) ? expandedRect : compactRect;
+
+  useLayoutEffect(() => {
+    if (prevExpanded.current !== chatExpanded) {
+      const el = panelRef.current;
+      if (el && prevRect.current && open && preferences.animations && !systemReducedMotion) {
+        currentAnimation.current?.cancel();
+        const first = prevRect.current;
+        const last = el.getBoundingClientRect();
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        const sx = first.width / (last.width || 1);
+        const sy = first.height / (last.height || 1);
+        if (Math.abs(dx) > 1 || Math.abs(dy) > 1 || Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01) {
+          const anim = el.animate([
+            { transformOrigin: 'top left', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+            { transformOrigin: 'top left', transform: 'none' },
+          ], {
+            duration: 240,
+            easing: 'cubic-bezier(.16, 1, .3, 1)',
+            fill: 'none',
+          });
+          currentAnimation.current = anim;
+          anim.onfinish = () => { if (currentAnimation.current === anim) currentAnimation.current = null; };
+          anim.oncancel = () => { if (currentAnimation.current === anim) currentAnimation.current = null; };
+        }
+      }
+      prevExpanded.current = chatExpanded;
+    }
+    if (panelRef.current) {
+      prevRect.current = panelRef.current.getBoundingClientRect();
+    }
+  }, [chatExpanded, open, preferences.animations, systemReducedMotion, rect.x, rect.y, rect.width, rect.height]);
 
   return (
     <div className={`ohmi-root${!preferences.animations || systemReducedMotion ? ' ohmi-static' : ''}`} data-appearance={preferences.appearance}>
         <section
+          ref={panelRef}
           id="ohmi-panel"
-          className={`ohmi-panel${open ? ' ohmi-panel-open' : ''}`}
+          className={`ohmi-panel${open ? ' ohmi-panel-open' : ''}${chatExpanded && open ? ' ohmi-panel-expanded' : ''}`}
           role="dialog"
           aria-modal="false"
           aria-labelledby="ohmi-title"
           aria-hidden={!open}
           inert={!open}
           onKeyDown={(event) => {
+            if ((event.nativeEvent as KeyboardEvent).isComposing) return;
             if (event.key === 'Escape') {
               event.stopPropagation();
+              setChatExpanded(false);
               setPanelOpen(false);
             }
           }}
           style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, maxHeight: rect.height }}
         >
-          <AssistantPanel key={account.state.user?.id ?? 'signed-out'} imageUrl={imageUrl} preferences={preferences} onPreferencesChange={savePreferences} onMotion={reactTo} onClose={() => setPanelOpen(false)} closeRef={closeRef} open={open} systemReducedMotion={systemReducedMotion} preferenceError={preferenceError} account={account} />
+          <AssistantPanel
+            key={account.state.user?.id ?? 'signed-out'}
+            imageUrl={imageUrl}
+            preferences={preferences}
+            onPreferencesChange={savePreferences}
+            onMotion={reactTo}
+            onClose={() => setPanelOpen(false)}
+            closeRef={closeRef}
+            open={open}
+            systemReducedMotion={systemReducedMotion}
+            preferenceError={preferenceError}
+            account={account}
+            chatExpanded={chatExpanded}
+            onChatExpandedChange={setChatExpanded}
+          />
         </section>
 
       <button

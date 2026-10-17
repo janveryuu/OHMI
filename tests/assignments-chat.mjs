@@ -123,10 +123,14 @@ export async function testAssignmentWorkspace(context) {
             },
           };
         }
+        if (message?.action === 'files.open') {
+          globalThis.__fileOpened = true;
+          return { ok: true, data: 'https://upload.supabase.co/signed/sample.pdf' };
+        }
         if (message?.action === 'files.finish') {
           globalThis.__testAssignments.push({
-            id: 'asg-test-1',
-            original_name: 'brief.pdf',
+            id: message.payload?.id || 'asg-test-1',
+            original_name: message.payload?.name || globalThis.__lastUploadedName || 'brief.pdf',
             size_bytes: 1024,
             mime_type: 'application/pdf',
             status: 'ready',
@@ -141,7 +145,7 @@ export async function testAssignmentWorkspace(context) {
         return nativeSend(message, ...rest);
       };
 
-      // Mock XHR for file upload
+      // Mock XHR for file upload with delay and abort support
       const OriginalXHR = window.XMLHttpRequest;
       class MockXHR extends OriginalXHR {
         open(method, url) {
@@ -150,21 +154,28 @@ export async function testAssignmentWorkspace(context) {
         }
         send(body) {
           if (this._url?.includes('upload.supabase.co')) {
-            setTimeout(() => {
+            const isCancel = body?.name?.includes('cancel');
+            const delay = isCancel ? 800 : 40;
+            this._timer1 = setTimeout(() => {
               if (this.upload.onprogress) {
                 this.upload.onprogress({ lengthComputable: true, loaded: 512, total: 1024 });
               }
-            }, 20);
-            setTimeout(() => {
+            }, delay / 2);
+            this._timer2 = setTimeout(() => {
               if (this.upload.onprogress) {
                 this.upload.onprogress({ lengthComputable: true, loaded: 1024, total: 1024 });
               }
               Object.defineProperty(this, 'status', { value: 200, writable: false });
               if (this.onload) this.onload();
-            }, 60);
+            }, delay);
             return;
           }
           super.send(body);
+        }
+        abort() {
+          clearTimeout(this._timer1);
+          clearTimeout(this._timer2);
+          if (this.onabort) this.onabort();
         }
       }
       window.XMLHttpRequest = MockXHR;
@@ -204,19 +215,47 @@ export async function testAssignmentWorkspace(context) {
     const activeAfterSecondary = await uploadIntentPage.evaluate(() => document.activeElement?.id);
     assert.equal(activeAfterSecondary, 'ohmi-assignment-file', 'Secondary upload button reuses scroll/focus handler');
 
-    // 3. Test synthetic upload end to end
-    // PDF file header signature %PDF-1.4: 0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34
-    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25, 0xC4, 0xE5, 0xF2, 0xE5, 0x0A, 0x00]);
+    // 3. Test validation edge cases
+    // 3a. Mismatched signature: .pdf with corrupt bytes
+    await uploadIntentPage.setInputFiles('#ohmi-assignment-file', {
+      name: 'corrupt.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from([0x00, 0x01, 0x02, 0x03]),
+    });
+    assert.equal(await saveButton.isEnabled(), true);
+    await saveButton.click();
+    await uploadIntentPage.getByText('Choose a valid PDF, PNG, or JPG file with a matching file type.', { exact: true }).waitFor();
+
+    // 3b. Oversized file (>10 MiB)
+    const largeBuffer = Buffer.alloc(11 * 1024 * 1024);
+    await uploadIntentPage.setInputFiles('#ohmi-assignment-file', {
+      name: 'large.pdf',
+      mimeType: 'application/pdf',
+      buffer: largeBuffer,
+    });
+    await saveButton.click();
+    await uploadIntentPage.getByText('Choose a file between 1 byte and 10 MiB.', { exact: true }).waitFor();
+
+    // 3c. In-flight upload abort / cancellation
+    const validPdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25, 0xC4, 0xE5, 0xF2, 0xE5, 0x0A, 0x00]);
+    await uploadIntentPage.setInputFiles('#ohmi-assignment-file', {
+      name: 'cancel-me.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from(validPdfBytes),
+    });
+    await saveButton.click();
+    const cancelBtn = uploadIntentPage.getByRole('button', { name: 'Cancel upload', exact: true });
+    await cancelBtn.waitFor();
+    await cancelBtn.click();
+    await uploadIntentPage.getByText('Upload cancelled.', { exact: true }).waitFor();
+
+    // 3d. Valid PDF upload end to end
     await uploadIntentPage.setInputFiles('#ohmi-assignment-file', {
       name: 'brief.pdf',
       mimeType: 'application/pdf',
-      buffer: Buffer.from(pdfBytes),
+      buffer: Buffer.from(validPdfBytes),
     });
-
-    assert.equal(await saveButton.isEnabled(), true, 'Save is enabled after valid file chosen');
     await saveButton.click();
-
-    // Verify upload progress and notice
     await uploadIntentPage.getByText('Assignment saved privately. No AI analysis was performed.', { exact: true }).waitFor();
     assert.equal(
       await uploadIntentPage.getByText('brief.pdf', { exact: true }).isVisible(),
@@ -224,7 +263,12 @@ export async function testAssignmentWorkspace(context) {
       'Uploaded assignment appears in PrivateAssignments list'
     );
 
-    // Test delete: prompt cancellation retains assignment
+    // 3e. Test "Open file" action
+    await uploadIntentPage.getByRole('button', { name: 'Open file', exact: true }).click();
+    const fileOpened = await uploadIntentPage.evaluate(() => globalThis.__fileOpened);
+    assert.equal(fileOpened, true, 'Clicking Open file triggers files.open');
+
+    // 3f. Test delete: cancellation keeps assignment, confirm deletes it
     uploadIntentPage.on('dialog', async (dialog) => {
       assert.equal(dialog.type(), 'confirm');
       await dialog.dismiss();
@@ -236,7 +280,6 @@ export async function testAssignmentWorkspace(context) {
       'Dismissing delete confirmation preserves assignment'
     );
 
-    // Now accept delete
     uploadIntentPage.removeAllListeners('dialog');
     uploadIntentPage.on('dialog', async (dialog) => {
       await dialog.accept();
@@ -290,4 +333,132 @@ export async function testAssignmentWorkspace(context) {
   }
 
   console.log('PASS Assignment workspace: honest initial loading, upload intent, verified upload/delete, and isolation.');
+}
+
+export async function testExpandableChat(context, screenshots) {
+  const page = await context.newPage();
+  try {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('https://www.tinkercad.com/things/expandable-chat-test/editel');
+    await page.locator('.ohmi-mascot').waitFor();
+
+    const mascot = page.locator('.ohmi-mascot');
+    const panel = page.locator('#ohmi-panel');
+
+    // Open assistant panel if closed
+    if ((await mascot.getAttribute('aria-expanded')) !== 'true') {
+      await mascot.click();
+    }
+    await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
+
+    // Navigate to Ask section
+    await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+    await page.getByRole('heading', { name: 'Ask OHMI', exact: true }).waitFor();
+
+    // 1. Verify Expand chat button attributes
+    const expandBtn = page.getByRole('button', { name: 'Expand chat', exact: true });
+    assert.equal(await expandBtn.isVisible(), true, 'Expand chat button is visible in Ask header');
+    assert.equal(await expandBtn.getAttribute('aria-expanded'), 'false', 'aria-expanded is false initially');
+    assert.equal(await expandBtn.getAttribute('aria-controls'), 'ohmi-panel', 'aria-controls is ohmi-panel');
+
+    // Enter draft text
+    const question = page.getByLabel('Your demo question', { exact: true });
+    await question.fill('Multiline draft line 1\nMultiline draft line 2');
+
+    // Measure compact bounding box
+    const compactBox = await panel.boundingBox();
+    assert.ok(compactBox.width <= 360, `Compact panel width <= 360 (was ${compactBox.width})`);
+
+    // 2. Expand chat
+    await expandBtn.click();
+    await page.waitForTimeout(300); // 240ms FLIP animation
+
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), true, 'Panel has expanded class');
+    const restoreBtn = page.getByRole('button', { name: 'Restore chat size', exact: true });
+    assert.equal(await restoreBtn.isVisible(), true, 'Restore button is visible when expanded');
+    assert.equal(await restoreBtn.getAttribute('aria-expanded'), 'true', 'aria-expanded is true when expanded');
+
+    const expandedBox = await panel.boundingBox();
+    assert.ok(expandedBox.width > compactBox.width, `Expanded width (${expandedBox.width}) > compact (${compactBox.width})`);
+    assert.ok(expandedBox.height >= compactBox.height, `Expanded height (${expandedBox.height}) >= compact (${compactBox.height})`);
+
+    // Draft preserved across toggle
+    assert.equal(await question.inputValue(), 'Multiline draft line 1\nMultiline draft line 2', 'Draft text preserved in expanded chat');
+
+    if (screenshots) {
+      await page.screenshot({ path: `${screenshots}/chat-expanded-1280x800.png` });
+    }
+
+    // 3. Test Escape key order: expanded chat restores to compact on Escape
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(100);
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), false, 'Escape restores compact chat');
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-open')), true, 'Assistant remains open after Escape');
+    assert.equal(await question.inputValue(), 'Multiline draft line 1\nMultiline draft line 2', 'Draft preserved after Escape restore');
+
+    // 4. Test More menu Escape ordering
+    await page.getByRole('button', { name: 'Expand chat', exact: true }).click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'More sections', exact: true }).click();
+    assert.equal(await page.locator('#ohmi-more').isVisible(), true, 'More menu opened');
+
+    // First Escape closes More menu; chat remains expanded
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#ohmi-more').count(), 0, 'First Escape closes More menu');
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), true, 'Chat remains expanded after closing More');
+
+    // Second Escape restores compact chat
+    await page.keyboard.press('Escape');
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), false, 'Second Escape restores compact chat');
+
+    // Third Escape minimizes panel
+    await page.keyboard.press('Escape');
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-open')), false, 'Third Escape minimizes assistant');
+
+    // Reopen assistant
+    await mascot.click();
+    await page.getByRole('dialog', { name: 'OHMI', exact: true }).waitFor();
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), false, 'Reopened in compact mode');
+    assert.equal(await question.inputValue(), 'Multiline draft line 1\nMultiline draft line 2', 'Draft preserved across minimize/reopen');
+
+    // 5. Test section navigation restores compact
+    await page.getByRole('button', { name: 'Expand chat', exact: true }).click();
+    await page.waitForTimeout(300);
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), true);
+    await page.getByRole('button', { name: 'Home', exact: true }).click();
+    assert.equal(await panel.evaluate((el) => el.classList.contains('ohmi-panel-expanded')), false, 'Navigating away from Ask restores compact');
+
+    await page.getByRole('button', { name: 'Ask section', exact: true }).click();
+    assert.equal(await question.inputValue(), 'Multiline draft line 1\nMultiline draft line 2', 'Draft preserved navigating away and back');
+
+    // 6. Test send demo & scroll continuity
+    await page.getByRole('button', { name: 'Use sample attachment', exact: true }).click();
+    await page.getByRole('button', { name: 'Send demo', exact: true }).click();
+    await page.locator('.ohmi-message-ohmi').waitFor();
+
+    // Verify message has data-message-id
+    const messageIdCount = await page.locator('.ohmi-message[data-message-id]').count();
+    assert.ok(messageIdCount > 0, 'Messages have data-message-id attribute');
+
+    // Expand and restore with messages
+    await page.getByRole('button', { name: 'Expand chat', exact: true }).click();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.ohmi-message').count(), 2, 'Messages preserved when expanded');
+    await page.getByRole('button', { name: 'Restore chat size', exact: true }).click();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.ohmi-message').count(), 2, 'Messages preserved when restored');
+
+    // 7. Verify narrow viewport (e.g. 390x844)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(100);
+    await page.getByRole('button', { name: 'Expand chat', exact: true }).click();
+    await page.waitForTimeout(300);
+    const narrowExpandedBox = await panel.boundingBox();
+    assert.ok(narrowExpandedBox.width <= 390, 'Expanded chat fits narrow width');
+    assert.ok(narrowExpandedBox.x >= 12, '12px margin on narrow width');
+
+    console.log('PASS Expandable Ask: one panel, two sizes, Escape hierarchy, draft & message continuity, and narrow-window responsiveness.');
+  } finally {
+    await page.close();
+  }
 }

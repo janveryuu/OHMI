@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampMascot, fitMascotForPanel, initialMascot, panelRect, readSavedState } from './placement';
+import { clampMascot, expandedChatRect, fitMascotForPanel, initialMascot, panelRect, readSavedState } from './placement';
 
 const viewport = { width: 1280, height: 800 };
 
@@ -47,5 +47,31 @@ describe('mascot placement', () => {
       position: { x: 1180, y: 12 },
       open: true,
     });
+  });
+
+  it('computes centered expandedChatRect clamped at reasonable dimensions', () => {
+    const rect1366 = expandedChatRect({ width: 1366, height: 768 });
+    expect(rect1366.width).toBe(960);
+    expect(rect1366.height).toBe(744);
+    expect(rect1366.x).toBe(203);
+    expect(rect1366.y).toBe(12);
+
+    const rect1280 = expandedChatRect({ width: 1280, height: 800 });
+    expect(rect1280.width).toBe(960);
+    expect(rect1280.height).toBe(776);
+    expect(rect1280.x).toBe(160);
+    expect(rect1280.y).toBe(12);
+
+    const rectSmall = expandedChatRect({ width: 360, height: 600 });
+    expect(rectSmall.width).toBe(336);
+    expect(rectSmall.height).toBe(576);
+    expect(rectSmall.x).toBe(12);
+    expect(rectSmall.y).toBe(12);
+
+    const rectTiny = expandedChatRect({ width: 10, height: 10 });
+    expect(rectTiny.width).toBe(0);
+    expect(rectTiny.height).toBe(0);
+    expect(rectTiny.x).toBe(12);
+    expect(rectTiny.y).toBe(12);
   });
 });

@@ -15,7 +15,8 @@ describe('trusted extension requests', () => {
   });
   it('keeps credentials and upload authorization out of content-script requests', () => {
     expect(validateRequest(message('auth.signIn', { email: 'student@example.com', password: 'a-good-password' }), account, id).action).toBe('auth.signIn');
-    for (const action of ['auth.signIn', 'auth.google', 'files.prepare']) expect(() => validateRequest(message(action), content, id)).toThrow();
+    for (const action of ['auth.signIn', 'auth.google', 'files.prepare', 'files.finish']) expect(() => validateRequest(message(action), content, id)).toThrow();
+    for (const action of ['files.prepare', 'files.finish']) expect(() => validateRequest(message(action), { ...account, id: 'foreign-ext' }, id)).toThrow();
     expect(() => validateRequest(message('auth.google'), { ...account, url: `chrome-extension://${id}/other.html` }, id)).toThrow();
   });
   it('rejects unknown actions and invalid owner-controlled inputs', () => {

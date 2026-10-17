@@ -40,6 +40,14 @@ export function panelRect(position: Point, viewport: Viewport) {
   return { x, y, width, height };
 }
 
+export function expandedChatRect(viewport: Viewport): { x: number; y: number; width: number; height: number } {
+  const width = Math.max(0, Math.min(960, viewport.width - EDGE * 2));
+  const height = Math.max(0, Math.min(800, viewport.height - EDGE * 2));
+  const x = Math.max(EDGE, Math.round((viewport.width - width) / 2));
+  const y = Math.max(EDGE, Math.round((viewport.height - height) / 2));
+  return { x, y, width, height };
+}
+
 export function fitMascotForPanel(position: Point, viewport: Viewport): Point {
   const next = clampMascot(position, viewport);
   const usableHeight = Math.min(260, Math.max(0, viewport.height - MASCOT_SIZE - EDGE * 2 - 12));

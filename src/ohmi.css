@@ -153,13 +153,20 @@
 .ohmi-notice .ohmi-icon-button { width: 32px; height: 32px; color: inherit; }
 .ohmi-success { margin-top: 12px; background: var(--ohmi-mint); color: var(--ohmi-teal); }
 
+.ohmi-panel-expanded { z-index: 3; }
 .ohmi-panel-content[data-section="chat"] { display: flex; flex-direction: column; }
-.ohmi-chat-layout { display: flex; flex-direction: column; flex: 1; min-height: 260px; gap: 10px; }
+@media (max-height: 480px) {
+  .ohmi-panel-content[data-section="chat"] { overflow-y: auto; }
+}
+.ohmi-chat-layout { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px; }
+.ohmi-chat-toolbar { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.ohmi-conversation-history { flex-shrink: 0; max-height: 120px; overflow-y: auto; overscroll-behavior: contain; }
 .ohmi-chat-log { flex: 1; min-height: 72px; overflow: auto; overscroll-behavior: contain; padding: 2px; scrollbar-width: thin; scrollbar-color: var(--ohmi-border) var(--ohmi-surface); }
 .ohmi-chat-log:focus-visible { outline: 2px solid var(--ohmi-teal); outline-offset: -2px; }
 .ohmi-chat-start { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; background: var(--ohmi-tint); color: var(--ohmi-muted); }
 .ohmi-chat-start p { font-size: 13px; }
 .ohmi-message { max-width: 94%; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ohmi-tint); overflow-wrap: anywhere; }
+.ohmi-message pre, .ohmi-message code { max-width: 100%; overflow-x: auto; }
 .ohmi-message-user { margin-left: auto; border-bottom-right-radius: 3px; background: var(--ohmi-teal); color: var(--ohmi-on-teal); }
 .ohmi-message-ohmi { border-bottom-left-radius: 3px; }
 .ohmi-message-label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 750; }

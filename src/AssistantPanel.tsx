@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { Icon } from './Icon';
 import { demoReply, GUIDE_STEPS, readPreferences, type Motion, type Preferences, type Section } from './preview';
 import { PrivateAssignments } from './PrivateAssignments';
@@ -49,6 +49,8 @@ type Props = {
   systemReducedMotion: boolean;
   preferenceError: boolean;
   account: ReturnType<typeof useAccount>;
+  chatExpanded?: boolean;
+  onChatExpandedChange?: (value: boolean) => void;
 };
 
 const titles: Record<Section, string> = {
@@ -80,7 +82,7 @@ function UploadPreview({ kind, state, onSample, onUnavailable }: { kind: 'assign
   </div>;
 }
 
-export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onMotion, onClose, closeRef, open, systemReducedMotion, preferenceError, account }: Props) {
+export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onMotion, onClose, closeRef, open, systemReducedMotion, preferenceError, account, chatExpanded = false, onChatExpandedChange }: Props) {
   const [section, setSection] = useState<Section>('home');
   const [more, setMore] = useState(false);
   const [notice, setNotice] = useState('');
@@ -108,8 +110,74 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const moreRef = useRef<HTMLButtonElement>(null);
   const firstMoreRef = useRef<HTMLButtonElement>(null);
   const previousSection = useRef(section);
+  const scrollSnapshot = useRef<{ pinnedToBottom: boolean; messageId: string | null; offset: number; scrollTop: number } | null>(null);
+  const justSent = useRef(false);
+  const previousExpanded = useRef(chatExpanded);
+
+  const captureScroll = useCallback(() => {
+    const el = chatLogRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const pinnedToBottom = distanceToBottom <= 48;
+    if (pinnedToBottom) {
+      scrollSnapshot.current = { pinnedToBottom: true, messageId: null, offset: 0, scrollTop: el.scrollTop };
+      return;
+    }
+    const messageNodes = el.querySelectorAll<HTMLElement>('[data-message-id]');
+    let firstVisibleId: string | null = null;
+    let offset = 0;
+    const containerRect = el.getBoundingClientRect();
+    for (const node of messageNodes) {
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom >= containerRect.top) {
+        firstVisibleId = node.getAttribute('data-message-id');
+        offset = rect.top - containerRect.top;
+        break;
+      }
+    }
+    scrollSnapshot.current = {
+      pinnedToBottom: false,
+      messageId: firstVisibleId,
+      offset,
+      scrollTop: el.scrollTop,
+    };
+  }, []);
+
+  const restoreScroll = useCallback(() => {
+    const el = chatLogRef.current;
+    const snapshot = scrollSnapshot.current;
+    if (!el || !snapshot) return;
+    if (snapshot.pinnedToBottom) {
+      el.scrollTop = el.scrollHeight;
+    } else if (snapshot.messageId) {
+      const target = el.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(snapshot.messageId)}"]`);
+      if (target) {
+        const containerRect = el.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const currentRel = targetRect.top - containerRect.top;
+        el.scrollTop += (currentRel - snapshot.offset);
+      } else {
+        el.scrollTop = snapshot.scrollTop;
+      }
+    } else {
+      el.scrollTop = snapshot.scrollTop;
+    }
+  }, []);
+
+  const toggleExpanded = () => {
+    captureScroll();
+    const selStart = inputRef.current?.selectionStart;
+    const selEnd = inputRef.current?.selectionEnd;
+    onChatExpandedChange?.(!chatExpanded);
+    requestAnimationFrame(() => {
+      if (inputRef.current && selStart !== null && selEnd !== null && selStart !== undefined && selEnd !== undefined) {
+        inputRef.current.setSelectionRange(selStart, selEnd);
+      }
+    });
+  };
 
   const navigate = (next: Section) => {
+    if (next !== 'chat' && chatExpanded) onChatExpandedChange?.(false);
     setSection(next);
     setMore(false);
     setNotice('');
@@ -139,8 +207,44 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   }, [circuit, onMotion]);
 
   useEffect(() => {
-    if (section === 'chat' && chatLogRef.current) chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    if (section !== 'chat' || !chatLogRef.current) return;
+    const el = chatLogRef.current;
+    if (justSent.current) {
+      el.scrollTop = el.scrollHeight;
+      justSent.current = false;
+    } else {
+      const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (distanceToBottom <= 48) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
   }, [messages, pendingReply, section]);
+
+  useLayoutEffect(() => {
+    if (previousExpanded.current !== chatExpanded) {
+      previousExpanded.current = chatExpanded;
+      restoreScroll();
+    }
+  }, [chatExpanded, restoreScroll]);
+
+  useEffect(() => {
+    const el = chatLogRef.current;
+    if (!el) return;
+    let frameId: number | null = null;
+    const observer = new ResizeObserver(() => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        if (scrollSnapshot.current?.pinnedToBottom) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, []);
 
   useEffect(() => {
     if (lastUserId.current !== account.state.user?.id) {
@@ -227,6 +331,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         accountId: currentUserId
       });
       if (res?.messages) {
+        justSent.current = true;
         setMessages(res.messages.map((m) => ({
           id: ++messageId.current,
           role: m.role === 'user' ? 'user' : 'ohmi',
@@ -245,6 +350,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     const text = draft.trim();
     if (!text || pendingReply !== null) return;
     const currentUserId = account.state.user?.id;
+    justSent.current = true;
     setMessages((current) => [...current, { id: ++messageId.current, role: 'user', text, attachment: attached }]);
     setDraft('');
     setAttached(false);
@@ -426,10 +532,16 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const motionAvailable = preferences.animations && !systemReducedMotion;
 
   return <div className="ohmi-assistant" onKeyDown={(event) => {
-    if (event.key === 'Escape' && more) {
-      event.stopPropagation();
-      setMore(false);
-      moreRef.current?.focus();
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === 'Escape') {
+      if (more) {
+        event.stopPropagation();
+        setMore(false);
+        moreRef.current?.focus();
+      } else if (chatExpanded && section === 'chat') {
+        event.stopPropagation();
+        onChatExpandedChange?.(false);
+      }
     }
   }}>
     <header className="ohmi-panel-header">
@@ -438,6 +550,19 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         <div><h2 id="ohmi-title" translate="no">OHMI</h2><p>Your circuit buddy</p></div>
       </div>
       <div className="ohmi-header-actions">
+        {section === 'chat' && (
+          <button
+            type="button"
+            className="ohmi-icon-button"
+            aria-label={chatExpanded ? 'Restore chat size' : 'Expand chat'}
+            title={chatExpanded ? 'Restore chat size' : 'Expand chat'}
+            aria-expanded={chatExpanded}
+            aria-controls="ohmi-panel"
+            onClick={toggleExpanded}
+          >
+            <Icon name={chatExpanded ? 'restore' : 'expand'} />
+          </button>
+        )}
         <button type="button" className="ohmi-icon-button" aria-label="Open Settings" title="Settings" onClick={() => navigate('settings')}><Icon name="settings" /></button>
         <button ref={closeRef} type="button" className="ohmi-icon-button ohmi-close" aria-label="Minimize OHMI" title="Minimize OHMI" onClick={onClose}><Icon name="close" /></button>
       </div>
@@ -509,7 +634,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         )}
         <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label="Local demo conversation" aria-live="polite" tabIndex={0}>
           {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>What’s puzzling you? Try a question about the sample LED circuit.</p></div>}
-          {messages.map((message) => <div key={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
+          {messages.map((message) => <div key={message.id} data-message-id={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
             <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
             <div lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}>{renderMessageText(message.text)}</div>
             {message.attachment && <span className="ohmi-file-chip"><Icon name="assignments" size={14} />led-lab.pdf (sample)</span>}

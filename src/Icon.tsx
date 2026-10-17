@@ -15,6 +15,8 @@ const paths = {
   back: 'M15 5l-7 7 7 7',
   spark: 'M13 2L4 14h7l-1 8 10-13h-8z',
   info: 'M12 11v6 M12 7v.1 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',
+  expand: 'M15 3h6v6 M9 21H3v-6 M21 3l-7 7 M3 21l7-7',
+  restore: 'M4 14h6v6 M20 10h-6V4 M14 10l7-7 M10 14l-7 7',
 } as const;
 
 export function Icon({ name, size = 20 }: { name: keyof typeof paths; size?: number }) {
