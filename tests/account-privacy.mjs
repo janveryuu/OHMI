@@ -90,7 +90,8 @@ export async function testAccountPrivacy(context) {
       });
       await account.goto(`chrome-extension://${extensionId}/account.html`);
       await account.getByRole('heading', { name: 'Your private workspace', exact: true }).waitFor();
-      assert.equal(await account.getByRole('button', { name: 'Reset password', exact: true }).isDisabled(), true, 'Signed-in reset is gated too');
+      assert.equal(await account.getByRole('button', { name: 'Reset password', exact: true }).count(), 0, 'Unavailable Reset password button is hidden when email delivery is off');
+      assert.equal(await account.locator('.ohmi-notice').count(), 0, 'No SMTP warning in authenticated workspace');
       assert.equal(await account.getByRole('button', { name: 'Sign out', exact: true }).isEnabled(), true);
     } finally { await account.close(); }
     console.log('PASS account privacy: A/B/sign-out resets messages, drafts, attachments and pending replies; same-account navigation/refresh preserves state. Synthetic accounts; no hosted writes.');

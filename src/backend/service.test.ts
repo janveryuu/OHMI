@@ -308,5 +308,30 @@ describe('worker failure handling', () => {
       result: null
     }));
   });
+
+  it('rejects on session read error rather than interpreting as signed out', async () => {
+    const { handleRequest } = await service();
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: new Error('Session storage corrupted')
+    });
+    await expect(handleRequest({ action: 'account.state', payload: {} })).rejects.toThrow('Session storage corrupted');
+  });
+
+  it('returns signed-out state when session is truly absent with no error', async () => {
+    const { handleRequest } = await service();
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: null
+    });
+    const state = await handleRequest({ action: 'account.state', payload: {} });
+    expect(state).toEqual({
+      configured: true,
+      user: null,
+      profile: null,
+      assignments: [],
+      recovery: false
+    });
+  });
 });
 

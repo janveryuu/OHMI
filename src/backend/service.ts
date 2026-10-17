@@ -29,8 +29,8 @@ async function notifyAccount() {
 async function currentUser() {
   if (!backend) throw new Error('Supabase is not configured. Ask the project owner to configure OHMI.');
   const session = await backend.client.auth.getSession();
-  if (!session.data.session) return null;
   fail(session.error);
+  if (!session.data.session) return null;
   const result = await backend.client.auth.getUser();
   if (result.error && [400, 401, 403].includes(result.error.status ?? 0)) {
     await backend.client.auth.signOut({ scope: 'local' });

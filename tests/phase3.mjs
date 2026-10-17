@@ -14,7 +14,7 @@ export async function testPhase3(context, page, screenshots) {
   await account.setViewportSize({ width: 320, height: 600 });
   assert.equal(await account.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Account fits small screens');
   await account.screenshot({ path: join(screenshots, 'phase-3-account-small.png'), fullPage: true });
-  await account.getByText('Email confirmation and password reset are pending email delivery setup. Use Google sign-in for now.', { exact: true }).waitFor();
+  await account.getByText('Continue with Google. Email registration and password recovery are not available yet.', { exact: true }).waitFor();
   for (const name of ['Create account', 'Forgot password?', 'Enter confirmation code']) {
     assert.equal(await account.getByRole('button', { name, exact: true }).isDisabled(), true, `${name} is gated until email delivery works`);
   }

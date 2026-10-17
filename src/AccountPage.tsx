@@ -93,22 +93,33 @@ export function AccountPage() {
       setError(message); await account.refresh();
     } finally { xhrRef.current = null; setUploading(false); }
   };
+  const isInitialLoading = account.loading && !account.state.user && !account.error && !error;
+
   return <div className="ohmi-root ohmi-account-root"><main className="ohmi-account-card">
     <header className="ohmi-account-brand"><img src="/assets/mascot/ohmi-pixel-front.png" alt="OHMI mascot" width={56} height={56} /><div><strong translate="no">OHMI</strong><p>Your circuit buddy</p></div></header>
-    <h1>{showAccount ? 'Your private workspace' : headings[mode]}</h1>
-    <p className="ohmi-muted">{showAccount ? 'Manage your account and saved assignments.' : 'Sign in securely in this extension-owned page.'}</p>
-    {(error || account.error) && <div className="ohmi-notice" role="alert"><p>{error || account.error}</p><button type="button" className="ohmi-text-button" onClick={() => { setError(''); void account.refresh(); }}>Retry account</button></div>}
-    {notice && <p className="ohmi-success" role="status">{notice}</p>}
-    {account.loading && <p className="ohmi-loading" role="status">Loading account…</p>}
-    {!account.state.configured && <p className="ohmi-notice">Supabase setup is not configured. Ask the project owner to connect OHMI.</p>}
-    {!emailReady && <p className="ohmi-notice">Email confirmation and password reset are pending email delivery setup. Use Google sign-in for now.</p>}
-    {showAccount ? <>
+    {isInitialLoading ? <>
+      <h1>Loading your OHMI workspace…</h1>
+      <p className="ohmi-muted">Connecting securely to your account.</p>
+      <p className="ohmi-loading" role="status">Loading account…</p>
+    </> : showAccount ? <>
+      <h1>Your private workspace</h1>
+      <p className="ohmi-muted">Manage your account and saved assignments.</p>
+      {(error || account.error) && <div className="ohmi-notice" role="alert"><p>{error || account.error}</p><button type="button" className="ohmi-text-button" onClick={() => { setError(''); void account.refresh(); }}>Retry account</button></div>}
+      {notice && <p className="ohmi-success" role="status">{notice}</p>}
+      {account.loading && <p className="ohmi-loading" role="status">Refreshing workspace…</p>}
       <p className="ohmi-account-email">{account.state.user?.email}</p>
       <form className="ohmi-account-form" onSubmit={(event) => { event.preventDefault(); void run('profile.name', { name }, () => setNotice('Account name saved.')); }}><label htmlFor="ohmi-display-name">Display name</label><input id="ohmi-display-name" name="name" autoComplete="name" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /><button type="submit" className="ohmi-button ohmi-secondary" disabled={busy || uploading || account.loading}>Save account name</button></form>
-      <div className="ohmi-account-actions"><button type="button" className="ohmi-text-button" disabled={!emailReady || busy || uploading || account.loading} onClick={() => changeMode('forgot')}>Reset password</button><button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => { void run('auth.signOut', {}, () => { changeMode('login'); setFile(null); setSelected(null); }); }}>Sign out</button></div>
-      <section id="upload" className="ohmi-account-upload"><h2>Upload an assignment</h2><p className="ohmi-muted">PDF, PNG, or JPG. Maximum 10 MiB. Private to your account.</p><label htmlFor="ohmi-assignment-file">Assignment file</label><input ref={fileRef} id="ohmi-assignment-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" disabled={uploading || busy || account.loading} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPercent(null); setError(''); }} />{file && <p className="ohmi-muted">{file.name}</p>}<button type="button" className="ohmi-button ohmi-primary ohmi-full-width" disabled={!file || uploading || busy || account.loading} onClick={() => { void upload(); }}>{uploading ? 'Uploading assignment…' : 'Save private assignment'}</button>{percent !== null && <div className="ohmi-upload-progress"><progress aria-label="Assignment upload progress" value={percent} max={100} /><p role="status" className="ohmi-muted">{uploading ? percent >= 99 ? 'Verifying upload…' : `Uploading ${percent}%` : percent === 100 ? 'Upload complete' : 'Upload stopped'}</p></div>}{uploading && <button type="button" className="ohmi-text-button" onClick={() => xhrRef.current?.abort()} disabled={!xhrRef.current}>Cancel upload</button>}</section>
+      <div className="ohmi-account-actions">{emailReady && <button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => changeMode('forgot')}>Reset password</button>}<button type="button" className="ohmi-text-button" disabled={busy || uploading || account.loading} onClick={() => { void run('auth.signOut', {}, () => { changeMode('login'); setFile(null); setSelected(null); }); }}>Sign out</button></div>
+      <section id="upload" className="ohmi-account-upload" aria-busy={account.loading}><h2>Upload an assignment</h2><p className="ohmi-muted">PDF, PNG, or JPG. Maximum 10 MiB. Private to your account.</p><label htmlFor="ohmi-assignment-file">Assignment file</label><input ref={fileRef} id="ohmi-assignment-file" type="file" accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg" disabled={uploading || busy || account.loading} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPercent(null); setError(''); }} />{file && <p className="ohmi-muted">{file.name}</p>}<button type="button" className="ohmi-button ohmi-primary ohmi-full-width" disabled={!file || uploading || busy || account.loading} onClick={() => { void upload(); }}>{uploading ? 'Uploading assignment…' : 'Save private assignment'}</button>{percent !== null && <div className="ohmi-upload-progress"><progress aria-label="Assignment upload progress" value={percent} max={100} /><p role="status" className="ohmi-muted">{uploading ? percent >= 99 ? 'Verifying upload…' : `Uploading ${percent}%` : percent === 100 ? 'Upload complete' : 'Upload stopped'}</p></div>}{uploading && <button type="button" className="ohmi-text-button" onClick={() => xhrRef.current?.abort()} disabled={!xhrRef.current}>Cancel upload</button>}</section>
       {selected && account.state.user ? <AssignmentSteps key={account.state.user.id + selected.id} accountId={account.state.user.id} assignment={selected} onBack={() => setSelected(null)} /> : <PrivateAssignments {...account} refresh={account.refresh} onGuide={setSelected} onUpload={() => fileRef.current?.focus()} />}
     </> : <>
+      <h1>{headings[mode]}</h1>
+      <p className="ohmi-muted">Sign in securely in this extension-owned page.</p>
+      {(error || account.error) && <div className="ohmi-notice" role="alert"><p>{error || account.error}</p><button type="button" className="ohmi-text-button" onClick={() => { setError(''); void account.refresh(); }}>Retry account</button></div>}
+      {notice && <p className="ohmi-success" role="status">{notice}</p>}
+      {account.loading && <p className="ohmi-loading" role="status">Loading account…</p>}
+      {!account.state.configured && <p className="ohmi-notice">Supabase setup is not configured. Ask the project owner to connect OHMI.</p>}
+      {!emailReady && <p className="ohmi-notice">Continue with Google. Email registration and password recovery are not available yet.</p>}
       {mode === 'login' && <button type="button" className="ohmi-button ohmi-secondary ohmi-full-width" disabled={busy || account.loading || !account.state.configured} onClick={() => { void run('auth.google'); }}>Continue with Google</button>}
       <form className="ohmi-account-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
         {mode !== 'reset' && <><label htmlFor="ohmi-auth-email">Email</label><input id="ohmi-auth-email" name="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></>}
