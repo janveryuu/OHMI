@@ -304,6 +304,10 @@ try {
     false,
   );
   await page.reload();
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.theme === "dark" &&
+    document.documentElement.dataset.reduceMotion === "true",
+  );
   assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
   assert.equal(
     await page.locator("html").getAttribute("data-reduce-motion"),

@@ -1,3 +1,13 @@
+if (self.location.pathname === '/sw.js') {
+/* Retire the former root worker on the standalone app origin without reloading user sessions. */
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil(
+  caches.keys().then(keys => Promise.all(
+    keys.filter(key => key.startsWith('ohmi-public-shell-')).map(key => caches.delete(key))
+  )).then(() => self.registration.unregister())
+));
+
+} else {
 /* Public-only shell. Never cache navigations, APIs, RSC payloads, files or chat. */
 const CACHE='ohmi-app-public-shell-v2';
 const PUBLIC_SHELL=['/app/offline.html','/app/mascot.png','/app/icons/icon-192.png','/app/icons/icon-512.png','/app/icons/icon-maskable-512.png','/app/icons/apple-touch-icon.png'];
@@ -12,3 +22,5 @@ self.addEventListener('fetch',event=>{
   }
   if(PUBLIC_SHELL.includes(url.pathname))event.respondWith(caches.open(CACHE).then(cache=>cache.match(request)).then(cached=>cached||fetch(request)));
 });
+
+}

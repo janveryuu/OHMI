@@ -9,7 +9,7 @@ The owner authorized frontend routing and production deployment on 24 October 20
 
 ## Routing
 
-The landing project's `website/vercel.json` externally rewrites `/app` and `/app/:path*` to the same prefixed paths on `https://ohmi-workspace.vercel.app`. This is an internal proxy: browser URLs, assets, Next image optimization, fonts, RSC requests and installation remain on the official origin. Each project builds independently. No paid microfrontend service or backend proxy is required.
+The landing project's `website/vercel.json` externally rewrites `/app` and `/app/:path*` to the same prefixed paths on `https://ohmi-workspace.vercel.app`. Both slash-preserving page rules and unslashed entry/asset rules are required because Vercel matches trailing slashes explicitly. This is an internal proxy: browser URLs, assets, Next image optimization, fonts, RSC requests and installation remain on the official origin. Each project builds independently. No paid microfrontend service or backend proxy is required.
 
 Next.js builds with `basePath: "/app"` and `trailingSlash: true`. `/app` and unslashed child routes redirect to their same-origin slash form. Slash forms are intentional: the app root, manifest start URL and worker scope all fit `/app/`. Next Link/router handle the prefix; raw image, icon, manifest and offline paths include it explicitly. Navigation selection and mobile label selectors account for the new paths without changing styling.
 
@@ -19,7 +19,7 @@ Launch OHMI and Meet OHMI link to `/app`; feature cards use `/app/ask`, `/app/ch
 
 Manifest identity, start URL and scope are `/app/`; shortcuts and icon URLs share that prefix. `/app/sw.js` registers only for `/app/`, explicitly ignores other paths and query-bearing requests, and caches exactly six public offline/mascot/icon assets in `ohmi-app-public-shell-v2`. It never caches private responses, chat, files, API or RSC content. Landing pages remain outside worker control. Updates still require the existing Apply update action.
 
-Only on the standalone project, `/sw.js` serves a retirement worker. It unregisters the old root worker and deletes only its former `ohmi-public-shell-*` caches, without forcing a session reload. Existing installations on the old origin cannot transfer identity or local preferences across origins. Reinstall from the official `/app/` URL to use the official origin. Browser/OS installation UI remains platform-dependent.
+Only on the standalone project, `/sw.js` serves the same script in retirement mode, selected by its own script URL. Vercel serves public files before configured rewrites, so retirement is handled inside the worker rather than a rewrite. It unregisters the old root worker and deletes only its former `ohmi-public-shell-*` caches, without forcing a session reload. Existing installations on the old origin cannot transfer identity or local preferences across origins. Reinstall from the official `/app/` URL to use the official origin. Browser/OS installation UI remains platform-dependent.
 
 No Supabase, AI providers, Chrome extension, credentials, remote uploads or backend behavior changed. Both projects retain their existing Hobby plan, zero app environment variables, isolated roots and security headers.
 

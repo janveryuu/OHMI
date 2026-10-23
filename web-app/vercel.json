@@ -46,12 +46,6 @@
       "permanent": false
     }
   ],
-  "rewrites": [
-    {
-      "source": "/sw.js",
-      "destination": "/app/legacy-sw.js"
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",

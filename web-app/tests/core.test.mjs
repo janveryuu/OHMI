@@ -59,7 +59,7 @@ test("app worker ignores landing, private requests and RSC; only public app asse
   const handlers = {}, installed = [];
   runInNewContext(await readFile(new URL("../public/sw.js", import.meta.url), "utf8"), {
     URL,
-    self: { location: { origin: "https://meetohmi.vercel.app" }, addEventListener: (name, handler) => handlers[name] = handler },
+    self: { location: { origin: "https://meetohmi.vercel.app", pathname: "/app/sw.js" }, addEventListener: (name, handler) => handlers[name] = handler },
     caches: { open: async () => ({ addAll: async urls => installed.push(...urls) }) },
   });
   let install;
@@ -75,8 +75,8 @@ test("app worker ignores landing, private requests and RSC; only public app asse
 test("legacy worker retires only its old cache and registration without navigating clients", async () => {
   const handlers = {}, deleted = [];
   let unregistered = false, activation;
-  runInNewContext(await readFile(new URL("../public/legacy-sw.js", import.meta.url), "utf8"), {
-    self: { addEventListener: (name, handler) => handlers[name] = handler, registration: { unregister: async () => unregistered = true } },
+  runInNewContext(await readFile(new URL("../public/sw.js", import.meta.url), "utf8"), {
+    self: { location: { pathname: "/sw.js" }, addEventListener: (name, handler) => handlers[name] = handler, registration: { unregister: async () => unregistered = true } },
     caches: { keys: async () => ["ohmi-public-shell-v1", "ohmi-app-public-shell-v2", "unrelated"], delete: async name => deleted.push(name) },
   });
   handlers.activate({ waitUntil: promise => activation = promise });
