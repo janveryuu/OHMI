@@ -1,0 +1,285 @@
+"use client";
+import Image from "next/image";
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import {
+  House,
+  MessageCircle,
+  FolderOpen,
+  ScanLine,
+  BookOpen,
+  ChartNoAxesCombined,
+  Settings2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ArrowUpRight,
+  MoreHorizontal,
+  Sparkles,
+  Search,
+  Sun,
+  Moon,
+  ChevronDown,
+} from "lucide-react";
+import { navigation } from "@/lib/content";
+import { useApp } from "./app-provider";
+import { Button } from "./ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Companion } from "./companion";
+import { PwaControls } from "./pwa-controls";
+
+const icons = {
+  House,
+  MessageCircle,
+  FolderOpen,
+  ScanLine,
+  BookOpen,
+  ChartNoAxesCombined,
+  Settings2,
+};
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname(),
+    app = useApp(),
+    systemReduced = useReducedMotion();
+  const reduced = systemReduced || app.reduceMotion;
+  const [collapsed, setCollapsed] = useState(false),
+    [more, setMore] = useState(false),
+    [search, setSearch] = useState(false),
+    [query, setQuery] = useState("");
+  const label = navigation.find((n) => n.href === pathname)?.label || "OHMI";
+  const nav = (mobile = false) =>
+    navigation
+      .filter((_, i) => !mobile || i < 4)
+      .map((item) => {
+        const Icon = icons[item.icon];
+        const active = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`nav-item ${active ? "active" : ""}`}
+            aria-label={item.label}
+            aria-current={active ? "page" : undefined}
+            title={item.label}
+            onClick={() => setMore(false)}
+          >
+            {active && (
+              <motion.span
+                className="nav-pill"
+                layoutId={mobile ? "mobile-active" : "desktop-active"}
+                transition={reduced ? { duration: 0 } : undefined}
+              />
+            )}
+            <Icon size={20} strokeWidth={1.7} aria-hidden="true" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      });
+  return (
+    <div className={`app-layout ${collapsed ? "compact" : ""}`}>
+      <a href="#main" className="skip">
+        Skip to content
+      </a>
+      <PwaControls statusOnly />
+      <aside className="sidebar">
+        <Link href="/" className="brand" aria-label="OHMI dashboard">
+          <Image src="/mascot.png" alt="" width="37" height="44" />
+          <span>
+            OHMI<span className="brand-dot">.</span>
+            <small>Your circuit buddy</small>
+          </span>
+        </Link>
+        <div className="nav-group">
+          <p className="sidebar-label">Your workspace</p>
+          <nav aria-label="Main navigation">{nav()}</nav>
+        </div>
+        <div className="sidebar-bottom">
+          <div className="companion-promo">
+            <Sparkles size={18} aria-hidden="true" />
+            <h3>A little help, anywhere.</h3>
+            <p>Keep your circuit buddy close while you build.</p>
+            <Companion trigger="Launch Floating OHMI" globalLauncher />
+          </div>
+          <Link
+            className="profile-link"
+            href="/settings"
+            aria-label="Open demo profile"
+          >
+            <span className="avatar">
+              {app.name.slice(0, 1).toUpperCase() || "A"}
+            </span>
+            <span>
+              <strong>{app.name || "Alex"} Rivera</strong>
+              <small>Demo student profile</small>
+            </span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => setCollapsed(!collapsed)}
+            className="collapse-control"
+          >
+            {collapsed ? (
+              <PanelLeftOpen size={18} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </Button>
+        </div>
+      </aside>
+      <div className="main-shell">
+        <header className="topbar">
+          <div className="breadcrumb">
+            <span>My workspace</span>
+            <span className="muted">/</span>
+            <strong>{label}</strong>
+          </div>
+          <Link href="/" className="mobile-brand">
+            OHMI<span>.</span>
+          </Link>
+          <div className="row">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Search workspace"
+              onClick={() => setSearch(true)}
+            >
+              <Search size={19} />
+            </Button>
+            <span className="demo-label">Frontend demo</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle appearance"
+              onClick={() =>
+                app.setTheme(
+                  document.documentElement.dataset.theme === "dark"
+                    ? "light"
+                    : "dark",
+                )
+              }
+            >
+              {app.theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+            </Button>
+            <Link
+              href="/settings"
+              aria-label="Open profile"
+              className="avatar small-avatar"
+            >
+              {app.name.slice(0, 1) || "A"}
+            </Link>
+          </div>
+        </header>
+        <main id="main" className="main-content" tabIndex={-1}>
+          {children}
+          <footer className="workspace-footer">
+            <span>A little curiosity goes a long way.</span>
+            <span>
+              Made for curious minds <Sparkles size={12} aria-hidden="true" />
+            </span>
+          </footer>
+        </main>
+      </div>
+      <nav className="bottom-nav" aria-label="Mobile navigation">
+        {nav(true)}
+        <button
+          className={`nav-item ${more ? "active" : ""}`}
+          onClick={() => setMore(true)}
+          aria-label="More navigation"
+        >
+          <MoreHorizontal size={21} />
+          <span>More</span>
+        </button>
+      </nav>
+      <Dialog open={more} onOpenChange={setMore}>
+        <DialogContent className="more-sheet">
+          <DialogTitle>Your workspace</DialogTitle>
+          <DialogDescription>More ways to learn with OHMI.</DialogDescription>
+          <nav aria-label="More navigation" className="stack-sm">
+            {navigation.slice(4).map((item) => {
+              const Icon = icons[item.icon];
+              return (
+                <Link
+                  className="more-link"
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMore(false)}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  {item.label}
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              );
+            })}
+          </nav>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setMore(false);
+              window.dispatchEvent(new Event("ohmi-launch-companion"));
+            }}
+          >
+            Launch Floating OHMI
+            <ArrowUpRight size={15} />
+          </Button>
+          <PwaControls />
+        </DialogContent>
+      </Dialog>
+      <Dialog open={search} onOpenChange={setSearch}>
+        <DialogContent>
+          <DialogTitle>Find your next step</DialogTitle>
+          <DialogDescription>
+            Search the app’s pages and tools.
+          </DialogDescription>
+          <label className="field">
+            Search workspace
+            <input
+              className="input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Try circuit checker…"
+              name="workspace-search"
+              autoComplete="off"
+            />
+          </label>
+          <div className="stack-sm">
+            {navigation
+              .filter((n) =>
+                n.label.toLowerCase().includes(query.toLowerCase()),
+              )
+              .map((n) => (
+                <Link
+                  className="more-link"
+                  key={n.href}
+                  href={n.href}
+                  onClick={() => {
+                    setSearch(false);
+                    setQuery("");
+                  }}
+                >
+                  {n.label}
+                  <ArrowUpRight size={16} />
+                </Link>
+              ))}
+            {!navigation.some((n) =>
+              n.label.toLowerCase().includes(query.toLowerCase()),
+            ) && (
+              <p className="muted">
+                No pages found. Try “guide” or “assignments”.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -1,0 +1,512 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T15:50:38.462540+00:00",
+  "title": "Design System: OHMI Web App",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Background",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary",
+        "tonalRamp": [
+          "oklch(15% 0.12 165)",
+          "oklch(26% 0.12 165)",
+          "oklch(38% 0.12 165)",
+          "oklch(49% 0.12 165)",
+          "oklch(61% 0.12 165)",
+          "oklch(72% 0.12 165)",
+          "oklch(84% 0.12 165)",
+          "oklch(95% 0.12 165)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "Primary Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Secondary",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "secondary-foreground": {
+        "role": "neutral",
+        "displayName": "Secondary Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Muted Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "primary",
+        "displayName": "Accent Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.12 165)",
+          "oklch(26% 0.12 165)",
+          "oklch(38% 0.12 165)",
+          "oklch(49% 0.12 165)",
+          "oklch(61% 0.12 165)",
+          "oklch(72% 0.12 165)",
+          "oklch(84% 0.12 165)",
+          "oklch(95% 0.12 165)"
+        ]
+      },
+      "destructive": {
+        "role": "semantic",
+        "displayName": "Destructive",
+        "tonalRamp": [
+          "oklch(15% 0.12 25)",
+          "oklch(26% 0.12 25)",
+          "oklch(38% 0.12 25)",
+          "oklch(49% 0.12 25)",
+          "oklch(61% 0.12 25)",
+          "oklch(72% 0.12 25)",
+          "oklch(84% 0.12 25)",
+          "oklch(95% 0.12 25)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Input",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "background-dark": {
+        "role": "neutral",
+        "displayName": "Background Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "foreground-dark": {
+        "role": "neutral",
+        "displayName": "Foreground Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "card-dark": {
+        "role": "neutral",
+        "displayName": "Card Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "primary-dark": {
+        "role": "primary",
+        "displayName": "Primary Dark",
+        "tonalRamp": [
+          "oklch(15% 0.12 165)",
+          "oklch(26% 0.12 165)",
+          "oklch(38% 0.12 165)",
+          "oklch(49% 0.12 165)",
+          "oklch(61% 0.12 165)",
+          "oklch(72% 0.12 165)",
+          "oklch(84% 0.12 165)",
+          "oklch(95% 0.12 165)"
+        ]
+      },
+      "primary-foreground-dark": {
+        "role": "primary",
+        "displayName": "Primary Foreground Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "secondary-dark": {
+        "role": "neutral",
+        "displayName": "Secondary Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "secondary-foreground-dark": {
+        "role": "neutral",
+        "displayName": "Secondary Foreground Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "muted-foreground-dark": {
+        "role": "neutral",
+        "displayName": "Muted Foreground Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Accent Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "accent-foreground-dark": {
+        "role": "primary",
+        "displayName": "Accent Foreground Dark",
+        "tonalRamp": [
+          "oklch(15% 0.12 165)",
+          "oklch(26% 0.12 165)",
+          "oklch(38% 0.12 165)",
+          "oklch(49% 0.12 165)",
+          "oklch(61% 0.12 165)",
+          "oklch(72% 0.12 165)",
+          "oklch(84% 0.12 165)",
+          "oklch(95% 0.12 165)"
+        ]
+      },
+      "destructive-dark": {
+        "role": "semantic",
+        "displayName": "Destructive Dark",
+        "tonalRamp": [
+          "oklch(15% 0.12 25)",
+          "oklch(26% 0.12 25)",
+          "oklch(38% 0.12 25)",
+          "oklch(49% 0.12 25)",
+          "oklch(61% 0.12 25)",
+          "oklch(72% 0.12 25)",
+          "oklch(84% 0.12 25)",
+          "oklch(95% 0.12 25)"
+        ]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Border Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      },
+      "input-dark": {
+        "role": "neutral",
+        "displayName": "Input Dark",
+        "tonalRamp": [
+          "oklch(15% 0.025 165)",
+          "oklch(26% 0.025 165)",
+          "oklch(38% 0.025 165)",
+          "oklch(49% 0.025 165)",
+          "oklch(61% 0.025 165)",
+          "oklch(72% 0.025 165)",
+          "oklch(84% 0.025 165)",
+          "oklch(95% 0.025 165)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page headline",
+        "purpose": "Global page title; dashboard and phone variants are documented in DESIGN.md."
+      },
+      "body": {
+        "displayName": "Study body",
+        "purpose": "Default reading and control text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-light",
+        "value": "0 8px 30px #173d2910",
+        "purpose": "Resting study panel in light mode."
+      },
+      {
+        "name": "panel-dark",
+        "value": "0 8px 30px #050e0a30",
+        "purpose": "Resting study panel in dark mode."
+      },
+      {
+        "name": "dialog",
+        "value": "0 24px 80px #0a241d30",
+        "purpose": "Modal elevation."
+      },
+      {
+        "name": "companion",
+        "value": "0 16px 64px #0a241d38",
+        "purpose": "Floating companion elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "study-spring",
+        "value": "spring(stiffness: 340, damping: 32)",
+        "purpose": "Provider default and route entry; suppress spatial movement with reduced motion."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.98), 0.15s",
+        "purpose": "Button acknowledgment."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone-max",
+        "value": "767px"
+      },
+      {
+        "name": "tablet-min",
+        "value": "768px"
+      },
+      {
+        "name": "desktop-min",
+        "value": "1200px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Paired theme tokens with press feedback and visible focus.",
+      "html": "<button class=\"ds-button\">Continue learning</button>",
+      "css": ".ds-button{font:500 14px/1.5 \"Geist Variable\",sans-serif;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border-radius:11px;border:0;cursor:pointer;transition:background-color .18s,color .18s,transform .15s}.ds-button:active{transform:scale(.98)}.ds-button:focus-visible{outline:3px solid var(--ring,#08776b);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:var(--primary,#08776b);color:var(--primary-foreground,#fafffd)}.ds-button:hover{background:color-mix(in srgb,var(--primary,#08776b) 90%,transparent)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Paired theme tokens with press feedback and visible focus.",
+      "html": "<button class=\"ds-button\">Continue learning</button>",
+      "css": ".ds-button{font:500 14px/1.5 \"Geist Variable\",sans-serif;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border-radius:11px;border:0;cursor:pointer;transition:background-color .18s,color .18s,transform .15s}.ds-button:active{transform:scale(.98)}.ds-button:focus-visible{outline:3px solid var(--ring,#08776b);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:var(--secondary,#edf3f0);color:var(--secondary-foreground,#304d45)}.ds-button:hover{background:color-mix(in srgb,var(--secondary,#edf3f0) 90%,transparent)}"
+    },
+    {
+      "name": "Labeled Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Visible label above a stroked field.",
+      "html": "<label class=\"ds-field\">Search workspace<input class=\"ds-input\" placeholder=\"Try circuit checker\"></label>",
+      "css": ".ds-field{display:grid;gap:7px;font:500 14px/1.5 \"Geist Variable\",sans-serif;color:var(--foreground,#20332f)}.ds-input{padding:12px 14px;border:1px solid var(--input,#ccd9d2);border-radius:12px;background:var(--card,#fdfefd);color:var(--foreground,#20332f);font:inherit}.ds-input::placeholder{color:var(--muted-foreground,#566b61)}.ds-input:focus-visible{outline:3px solid var(--ring,#08776b);outline-offset:4px}"
+    },
+    {
+      "name": "Study Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Shared resting surface for grouped study content.",
+      "html": "<section class=\"ds-panel\"><h2>Pick up where you left off</h2><p>Your first LED circuit</p></section>",
+      "css": ".ds-panel{padding:24px;border-radius:16px;background:var(--card,#fdfefd);color:var(--foreground,#20332f);box-shadow:var(--shadow,0 8px 30px #173d2910);font:14px/1.5 \"Geist Variable\",sans-serif}.ds-panel h2{font-size:20px;font-weight:600;letter-spacing:-.025em;margin:0 0 20px}.ds-panel p{margin:0}"
+    },
+    {
+      "name": "Context Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Compact informational label.",
+      "html": "<span class=\"ds-badge\">Beginner guide</span>",
+      "css": ".ds-badge{font:550 11px/1.5 \"Geist Variable\",sans-serif;padding:4px 9px;border-radius:999px;background:var(--accent,#dff5ec);color:var(--accent-foreground,#09695c);white-space:nowrap}"
+    },
+    {
+      "name": "Active Destination",
+      "kind": "nav",
+      "description": "Inset selected destination in the adaptive navigation.",
+      "html": "<nav aria-label=\"Workspace\"><a class=\"ds-nav\" href=\"#\" aria-current=\"page\">Dashboard</a></nav>",
+      "css": ".ds-nav{display:flex;padding:13px 14px;min-height:46px;align-items:center;border-radius:12px;background:var(--accent,#dff5ec);color:var(--accent-foreground,#09695c);font:600 13px/1.5 \"Geist Variable\",sans-serif;text-decoration:none}.ds-nav:hover{background:var(--secondary,#edf3f0)}.ds-nav:focus-visible{outline:3px solid var(--ring,#08776b);outline-offset:4px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Calm teal study workspace",
+    "overview": "Operate mode. A personal electronics workspace with iOS-adjacent adaptive navigation, inset groups, restrained translucent chrome and spring feedback. The explicit user brief fixes the mint/pixel identity; this app extends it without replacing the landing page or redesigning the mascot. No approved visual comp exists: this document records the implemented code.",
+    "keyCharacteristics": [
+      "Teal actions and pale mint selection on cool green neutrals.",
+      "Self-hosted Geist, compact labels and comfortable body leading.",
+      "Rounded task surfaces, adaptive navigation and finite companion greetings."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Pair Rule",
+        "body": "Change foreground and background tokens together when switching themes; preserve their roles rather than reusing a light-theme literal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Chrome Rule",
+        "body": "Reserve stronger elevation for overlays; regular study content uses the shared panel treatment.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse semantic color pairs in both themes.",
+      "Do preserve adaptive navigation, safe areas, visible labels and keyboard focus.",
+      "Do use the exact original pixel mascot with crisp rendering and responsive Next Image delivery.",
+      "Do make movement acknowledge navigation, state or a finite greeting and respect reduced motion."
+    ],
+    "donts": [
+      "Don't replace the mint/pixel identity or imply that an iOS reference is an approved comp.",
+      "Don't turn chrome microcopy or small badges into the body-text scale.",
+      "Don't claim electrical verification from an image or disguise demo activity as live student data."
+    ]
+  }
+}

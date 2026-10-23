@@ -6,6 +6,8 @@
 
 > Mascot authority: [OHMI_MASCOT.md](OHMI_MASCOT.md) defines the approved pixel-art PNG assets. Use its front image for the future floating mascot and its six-view sheet for future animation reference. The original 3D-style wording below is historical; these assets are 2D illustrations, not rigged models.
 
+> 23 October 2026: The owner authorized a separate **Web App + PWA frontend** stage in `web-app/`. See `web-app/README.md`, `web-app/PRODUCT.md` and `web-app/docs/VERIFICATION.md`. This is a local demonstration with no backend, authentication, live AI or production deployment. The extension and landing page remain independent. This authorization does not advance the extension roadmap or authorize hosted changes.
+
 # OHMI — Project Context and Development Guidelines
 
 Act as an experienced senior full-stack developer, Chrome extension engineer, AI integration specialist, and UI/UX designer.
