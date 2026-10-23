@@ -1,6 +1,6 @@
 # OHMI cinematic landing page
 
-Local review build of the owner's MotionSites-inspired countryside redesign. **Not deployed or approved for production.** Production remains https://meetohmi.vercel.app/ on `codex/ohmi-website`.
+Owner-approved MotionSites-inspired countryside landing page, live at https://meetohmi.vercel.app/ from `codex/ohmi-website`. The PWA is live at https://ohmi-workspace.vercel.app/. See [deployment, updates and rollback](DEPLOYMENT.md).
 
 Canonical source is `src/`. `dist/` is now generated and ignored. Native HTML/CSS/JavaScript; no application dependencies, environment variables, trackers, backend or AI requests.
 
@@ -24,6 +24,6 @@ The supplied countryside PNG and canonical mascot PNG remain unchanged in `src/a
 
 Environmental animation uses a small native WebGL source-image wind field with separate grass, hair, cloth, sky and antenna regions. It is **not** an image-to-video generation. OHMI's face/body stay fixed. A 24-second periodic field renders at a capped 30 fps. Pause control, hidden/offscreen pause, reduced motion, data-saving mode, unavailable WebGL and context loss retain still content. Entrance uses WAAPI with a 160 ms headline stagger.
 
-Existing public `#top`, `#explore`, `#how-it-works`, `#get-started` and `#faq` anchors remain available. Existing FAQ/legal answers are preserved. Launch OHMI opens the clearly labeled local scripted preview; there is no fake download or live AI.
+Existing public `#top`, `#explore`, `#how-it-works`, `#get-started` and `#faq` anchors remain available. Legal answers are preserved; the setup FAQ now links to the deployed PWA. Launch OHMI and Meet OHMI use `/app`; Ask, Checker and Guided Builds cards open their corresponding PWA sections. The in-page scripted preview remains available. No live AI or cloud backend is connected.
 
-Verification and limits: [cinematic report](design/cinematic/VERIFICATION.md). Original master prompt and reference comparison decisions: [implementation contract](design/cinematic/PLAN.md). Build output and screenshots/recordings are excluded from Git. No production deployment is authorized until owner review.
+Production evidence is under `design/production/`. Earlier review results and limits remain in the [cinematic report](design/cinematic/VERIFICATION.md); original design decisions are in the [implementation contract](design/cinematic/PLAN.md). Build output and working recordings are ignored; selected production proof is versioned. The owner authorized frontend production hosting on 24 October 2026. Backend integration remains outside this release.
