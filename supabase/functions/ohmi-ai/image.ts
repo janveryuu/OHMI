@@ -37,7 +37,7 @@ export function getJpegDimensions(buf: Uint8Array): { width: number; height: num
       continue;
     }
     const marker = buf[offset + 1];
-    if (marker === 0xFF || marker === 0x00) {
+    if (marker === undefined || marker === 0xFF || marker === 0x00) {
       offset++;
       continue;
     }

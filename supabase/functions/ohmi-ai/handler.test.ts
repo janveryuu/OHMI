@@ -1059,6 +1059,384 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(data.result.steps).toHaveLength(1);
       expect(data.result.answer).toBe('Here is your step-by-step guide for Blink an LED with 1 steps.');
       expect(data.result.answer.startsWith('{')).toBe(false);
+
+      const tutCompleteCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_complete_ai');
+      expect(tutCompleteCall).toBeDefined();
+      expect(tutCompleteCall[1].p_output.prompt_version).toBe('ohmi-tutor-v2');
+      expect(tutCompleteCall[1].p_output.answer).toBe('Here is your step-by-step guide for Blink an LED with 1 steps.');
+    });
+  });
+
+  describe('Qwen Transport Adapter in handleAiRequest', () => {
+    const qwenEnv = {
+      ...defaultEnv,
+      OHMI_AI_PROVIDER: 'qwen',
+      QWEN_API_KEY: 'test-qwen-api-key',
+      QWEN_MODEL: 'qwen3.8-flash'
+    };
+
+    it('rejects request when Qwen provider is selected but QWEN_API_KEY is missing', async () => {
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000020',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: { ...defaultEnv, OHMI_AI_PROVIDER: 'qwen', QWEN_API_KEY: '' },
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(500);
+      const data = await res.json();
+      expect(data.ok).toBe(false);
+      expect(data.code).toBe('server_error');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('routes V1 chat request to Qwen Chat Completions endpoint with correct auth and model', async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { role: 'assistant', content: 'Qwen response explaining series resistance.' }
+              }
+            ],
+            usage: { prompt_tokens: 42, completion_tokens: 18, total_tokens: 60 },
+            model: 'qwen3.8-flash'
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000021',
+        operation: 'chat',
+        language: 'english',
+        message: 'Explain resistors in series'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: qwenEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.result.answer).toBe('Qwen response explaining series resistance.');
+      expect(data.model).toBe('qwen3.8-flash');
+
+      // Verify transport dispatch
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions');
+      expect(init.headers['Authorization']).toBe('Bearer test-qwen-api-key');
+
+      const body = JSON.parse(init.body);
+      expect(body.model).toBe('qwen3.8-flash');
+      expect(body.enable_thinking).toBe(false);
+      expect(body.stream).toBe(false);
+      expect(body.messages[0].role).toBe('system');
+      expect(body.messages[1].role).toBe('user');
+      expect(body.messages[1].content).toContain('Explain resistors in series');
+
+      // Verify persistence recorded Qwen model
+      const completeCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_complete_ai');
+      expect(completeCall).toBeDefined();
+      expect(completeCall[1].p_model).toBe('qwen3.8-flash');
+      expect(completeCall[1].p_input_tokens).toBe(42);
+      expect(completeCall[1].p_output_tokens).toBe(18);
+    });
+
+    it('routes V1 PDF request to Qwen with native file part and generic filename (never signed URL)', async () => {
+      // Mock assignment fetch
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: '22222222-2222-2222-2222-222222222222',
+            user_id: mockUser.id,
+            original_name: 'lab1.pdf',
+            object_path: `${mockUser.id}/lab1.pdf`,
+            mime_type: 'application/pdf',
+            size_bytes: 500,
+            status: 'ready'
+          },
+          error: null
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+      });
+
+      // Minimal valid 1-page PDF
+      const samplePdfBytes = new Uint8Array([
+        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xc4, 0xe5, 0xf2, 0xe5, 0x0a,
+        0x31, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, 0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65,
+        0x2f, 0x43, 0x61, 0x74, 0x61, 0x6c, 0x6f, 0x67, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x20,
+        0x32, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, 0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a,
+        0x32, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, 0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65,
+        0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x2f, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x20, 0x31, 0x2f,
+        0x4b, 0x69, 0x64, 0x73, 0x5b, 0x33, 0x20, 0x30, 0x20, 0x52, 0x5d, 0x3e, 0x3e, 0x0a, 0x65,
+        0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, 0x33, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, 0x3c,
+        0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x2f, 0x50, 0x61, 0x72,
+        0x65, 0x6e, 0x74, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x2f, 0x4d, 0x65, 0x64, 0x69, 0x61,
+        0x42, 0x6f, 0x78, 0x5b, 0x30, 0x20, 0x30, 0x20, 0x36, 0x31, 0x32, 0x20, 0x37, 0x39, 0x32,
+        0x5d, 0x3e, 0x3e, 0x0a, 0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, 0x78, 0x72, 0x65, 0x66,
+        0x0a, 0x30, 0x20, 0x34, 0x0a, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+        0x20, 0x36, 0x35, 0x35, 0x33, 0x35, 0x20, 0x66, 0x20, 0x0a, 0x30, 0x30, 0x30, 0x30, 0x30,
+        0x30, 0x30, 0x30, 0x31, 0x35, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x20, 0x0a,
+        0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x36, 0x38, 0x20, 0x30, 0x30, 0x30, 0x30,
+        0x30, 0x20, 0x6e, 0x20, 0x0a, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x32, 0x35,
+        0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x20, 0x0a, 0x74, 0x72, 0x61, 0x69, 0x6c,
+        0x65, 0x72, 0x0a, 0x3c, 0x3c, 0x2f, 0x53, 0x69, 0x7a, 0x65, 0x20, 0x34, 0x2f, 0x52, 0x6f,
+        0x6f, 0x74, 0x20, 0x31, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, 0x73, 0x74, 0x61, 0x72,
+        0x74, 0x78, 0x72, 0x65, 0x66, 0x0a, 0x32, 0x30, 0x30, 0x0a, 0x25, 0x25, 0x45, 0x4f, 0x46
+      ]);
+
+      mockStorage.from.mockReturnValue({
+        download: vi.fn().mockResolvedValue({
+          data: new Blob([samplePdfBytes]),
+          error: null
+        })
+      });
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { role: 'assistant', content: 'Objective: Analyze circuit on page 1.' }
+              }
+            ],
+            usage: { prompt_tokens: 110, completion_tokens: 25, total_tokens: 135 },
+            model: 'qwen3.8-flash'
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000022',
+        operation: 'pdf',
+        language: 'english',
+        assignmentId: '22222222-2222-2222-2222-222222222222',
+        message: 'Analyze this lab PDF'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: qwenEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [, init] = mockFetch.mock.calls[0];
+      const body = JSON.parse(init.body);
+
+      // Confirm PDF file part reached mocked provider with sanitized generic filename
+      const contentParts = body.messages[1].content;
+      const filePart = contentParts.find((p: any) => p.type === 'file');
+      expect(filePart).toBeDefined();
+      expect(filePart.file_name).toBe('assignment.pdf');
+      expect(filePart.file_data).toContain('data:application/pdf;base64,');
+    });
+
+    it('routes V2 circuit_check request to Qwen with image_url parts and response_format json_object', async () => {
+      const circuitResult = {
+        schemaVersion: 2,
+        status: 'reviewed',
+        summary: 'Circuit review of LED and 220 ohm resistor on pin 13.',
+        findings: [
+          {
+            id: 'finding-1',
+            severity: 'info',
+            certainty: 'observed',
+            observation: 'LED in series with 220 ohm resistor.',
+            why: 'Current limiting.',
+            action: 'Good.',
+            evidence: [{ kind: 'code', startLine: 1, endLine: 1 }]
+          }
+        ],
+        unknowns: [],
+        questions: [],
+        comparisons: [],
+        steps: [],
+        limitations: ['Visual review only.']
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { role: 'assistant', content: JSON.stringify(circuitResult) }
+              }
+            ],
+            usage: { prompt_tokens: 350, completion_tokens: 120, total_tokens: 470 },
+            model: 'qwen3.8-flash'
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 2,
+        operation: 'circuit_check',
+        requestId: '00000000-0000-0000-0000-000000000023',
+        language: 'english',
+        mode: 'check',
+        message: 'Check this LED circuit',
+        board: 'uno-r3',
+        code: 'void setup() { pinMode(13, OUTPUT); } void loop() {}',
+        images: [
+          {
+            id: 'overview',
+            mimeType: 'image/png',
+            data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+          }
+        ]
+      });
+
+      const res = await handleAiRequest(req, {
+        env: qwenEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.model).toBe('qwen3.8-flash');
+      expect(data.result.status).toBe('reviewed');
+
+      const [, init] = mockFetch.mock.calls[0];
+      const body = JSON.parse(init.body);
+      expect(body.response_format).toEqual({ type: 'json_object' });
+      expect(body.max_tokens).toBe(3072);
+
+      const contentParts = body.messages[1].content;
+      const imgPart = contentParts.find((p: any) => p.type === 'image_url');
+      expect(imgPart).toBeDefined();
+      expect(imgPart.image_url.url).toContain('data:image/png;base64,');
+    });
+
+    it('handles Qwen AllocationQuota.FreeTierOnly quota exhaustion error with 503 code unavailable', async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: 'AllocationQuota.FreeTierOnly',
+            message: 'Free tier quota exhausted or expired for model qwen3.8-flash'
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000024',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: qwenEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(503);
+      const data = await res.json();
+      expect(data.ok).toBe(false);
+      expect(data.code).toBe('unavailable');
+      expect(data.error).toContain('free quota is exhausted or expired');
+
+      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
+      expect(failCall).toBeDefined();
+      expect(failCall[1].p_error_code).toBe('quota_exhausted');
+    });
+
+    it('handles Qwen timeout cleanly with 504 and fails AI without fallback', async () => {
+      mockFetch.mockImplementationOnce(() => {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        return Promise.reject(error);
+      });
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000025',
+        operation: 'chat',
+        language: 'english',
+        message: 'Calculate resistance'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: qwenEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(504);
+      const data = await res.json();
+      expect(data.ok).toBe(false);
+      expect(data.code).toBe('timeout');
+
+      // Exactly 1 fetch attempt, zero automatic fallbacks to Gemini
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
+      expect(failCall).toBeDefined();
+      expect(failCall[1].p_error_code).toBe('timeout');
+    });
+
+    it('redacts Qwen secret keys from error messages', async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'AuthenticationError',
+              message: 'Invalid key: Bearer sk-secretqwenkey1234567890'
+            }
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000026',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: { ...qwenEnv, QWEN_API_KEY: 'sk-secretqwenkey1234567890' },
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(502);
+      const data = await res.json();
+      expect(data.error).toBe('AI provider returned an error.');
+
+      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
+      expect(failCall).toBeDefined();
+      expect(failCall[1].p_error_message).not.toContain('sk-secretqwenkey1234567890');
+      expect(failCall[1].p_error_message).toContain('[REDACTED');
     });
   });
 });

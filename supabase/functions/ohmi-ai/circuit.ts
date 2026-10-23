@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { validateCircuitImage } from './image.ts';
+import { buildCircuitCheckSystemInstruction } from './tutor-policy.ts';
 import type {
   CircuitRequestV2,
   CircuitEvidence,
@@ -620,24 +621,9 @@ export function validateEvidenceReference(ref: unknown, evidence: CircuitEvidenc
 }
 
 export function buildCircuitPrompt(req: CircuitRequestV2, evidence: CircuitEvidence): { systemInstruction: string; userPrompt: string } {
-  const langDesc = req.language === 'filipino' ? 'Filipino (Tagalog)' : req.language === 'taglish' ? 'natural Taglish' : 'clear English';
+  const systemInstruction = `${buildCircuitCheckSystemInstruction(req.language)}
 
-  const systemInstruction = `You are OHMI, an expert, encouraging, and friendly educational circuit checker for students using Autodesk Tinkercad Circuits.
-Analyze the student's visible circuit evidence, Arduino source code, and simulation observations.
-Language: Respond in ${langDesc}. Preserve code, pin names (D13, A0, GND, 5V), component names, and units (V, mA, Ω, kΩ, µF) in standard notation.
-Educational Rules:
-- Distinguish visible component presence from verified electrical connectivity. Wires crossing visually on breadboard do not prove electrical connection.
-- Never claim a circuit is electrically verified from an image alone.
-- If code is provided without an image, conduct a code review and explicitly state that physical wiring is unobserved.
-- For each finding, provide observation, why, and action, with exact evidence citations.
-- When referencing image evidence, cite imageId ('overview' or 'detail') and location description.
-- When referencing code evidence, cite startLine and endLine (1-based integers within supplied line count, max 20 lines).
-- When referencing simulation, quote an exact substring from the user's simulation text (max 160 chars).
-- When comparing requirements, evaluate against supplied requirement IDs with status ('supported', 'possible_mismatch', or 'not_observable').
-- If requirements are contradictory, missing, or impossible, set status to 'needs_clarification' and ask clear questions.
-- If the circuit is beyond low-voltage educational scope, set status to 'unsupported'.
-- Otherwise, set status to 'reviewed'.
-You must output a strictly valid JSON object conforming to the CircuitCheckResult schema:
+CircuitCheckResult schema:
 {
   "schemaVersion": 2,
   "status": "reviewed" | "needs_clarification" | "unsupported",

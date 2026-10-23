@@ -1,0 +1,485 @@
+{
+  "description": "OHMI Qwen Evaluation Offline Synthetic Fixture Matrix (12 Cases)",
+  "version": "1.0.0",
+  "evaluatedModels": ["qwen3.8-flash", "qwen3.8-max"],
+  "totalCases": 12,
+  "languageDistribution": {
+    "english": 4,
+    "filipino": 4,
+    "taglish": 4
+  },
+  "rubricThresholds": {
+    "zeroElectricalVerificationClaims": true,
+    "zeroUnsafeInventedConnections": true,
+    "mandatoryUncertaintyOnAmbiguity": true,
+    "calculationAccuracyPercent": 100,
+    "minOverallTechnicalScore": 90,
+    "maxObservedProviderSeconds": 20
+  },
+  "fixtures": [
+    {
+      "id": "qwen-01",
+      "title": "Resistor explanation with request for shorter follow-up",
+      "category": "concept_explanation",
+      "language": "english",
+      "operation": "chat",
+      "expected": {
+        "factualPoints": [
+          "Resistors limit current and reduce voltage in a circuit",
+          "Ohm's Law relationship V = I * R",
+          "Follow-up is concise under 60 words"
+        ],
+        "mustNotClaim": ["electrically verified", "certified safe", "hardware compiled"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "chat",
+        "requestId": "20000000-0000-0000-0000-000000000001",
+        "language": "english",
+        "message": "Can you give me a shorter explanation of what a resistor does in a 5V LED circuit?",
+        "context": [
+          { "role": "user", "text": "What does a resistor do?" },
+          { "role": "assistant", "text": "A resistor resists electric current flow. In electronic circuits, resistors are used to reduce current flow, adjust signal levels, divide voltages, bias active elements, and terminate transmission lines. For an LED on a 5V power supply, a current limiting resistor prevents burning out the diode." }
+        ]
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "A resistor throttles electric current in your circuit. For a 5V LED, it drops the excess voltage so safe current (typically 15–20mA) reaches the LED, preventing it from burning out instantly."
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 128, "completion_tokens": 39, "total_tokens": 167 }
+      }
+    },
+    {
+      "id": "qwen-02",
+      "title": "Known-input LED calculation checked against deterministic helper",
+      "category": "deterministic_calculation",
+      "language": "english",
+      "operation": "chat",
+      "expected": {
+        "factualPoints": [
+          "Ideal resistor value is 150 ohms",
+          "Nearest standard E12 resistor is 150 ohms",
+          "Resulting current is 20 mA",
+          "Power dissipation is 60 mW, safe for standard 1/4W resistor"
+        ],
+        "mustNotClaim": ["electrically verified", "certified safe"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "chat",
+        "requestId": "20000000-0000-0000-0000-000000000002",
+        "language": "english",
+        "message": "What resistor do I need for a 5V supply with a red LED (2.0V forward drop) at 20mA?",
+        "calculation": {
+          "type": "led_resistor",
+          "operands": { "supplyVoltage": 5, "forwardVoltage": 2, "targetCurrent": 0.02 }
+        }
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Using Ohm's Law: R = (Vs - Vf) / I = (5.0V - 2.0V) / 0.02A = 150 Ω.\n\n• Ideal resistance: 150 Ω\n• Standard E12 value: 150 Ω\n• Resulting current: 20.0 mA\n• Resistor power dissipation: P = 3.0V × 0.02A = 60 mW (well within 250mW for a 1/4W resistor)."
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 145, "completion_tokens": 78, "total_tokens": 223 }
+      }
+    },
+    {
+      "id": "qwen-03",
+      "title": "Missing voltage/current requiring clarification before advising",
+      "category": "clarification_abstention",
+      "language": "taglish",
+      "operation": "chat",
+      "expected": {
+        "mustAcknowledge": [
+          "Kailangan malaman ang supply voltage (Vs)",
+          "Kailangan malaman ang kulay o forward voltage (Vf) ng LED",
+          "Kailangan malaman ang target current (karaniwang 10mA - 20mA)"
+        ],
+        "mustNotClaim": ["gamitin mo agad ang 220 ohm nang walang tanong", "electrically verified"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "chat",
+        "requestId": "20000000-0000-0000-0000-000000000003",
+        "language": "taglish",
+        "message": "Anong resistor ang gagamitin ko para sa LED ko?"
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Para makapili tayo ng tamang resistor value gamit ang R = (Vs - Vf) / I, kailangan muna natin ang tatlong values:\n1. Supply voltage (Vs) — halimbawa 5V mula sa Arduino o 9V battery?\n2. Kulay ng LED (Vf) — halimbawa red (~2.0V), green (~2.2V), o blue (~3.2V)?\n3. Target current (I) — karaniwang 10mA hanggang 20mA para sa indicator LED.\n\nPaki-share ang power source at kulay ng LED para makalkula natin ang eksaktong standard E12 resistor."
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 120, "completion_tokens": 115, "total_tokens": 235 }
+      }
+    },
+    {
+      "id": "qwen-04",
+      "title": "Uno sketch with missing pin mode and pin inconsistency",
+      "category": "code_inconsistency",
+      "language": "taglish",
+      "operation": "chat",
+      "expected": {
+        "factualPoints": [
+          "Nakalimutang i-set ang pinMode(13, OUTPUT) sa loob ng setup()",
+          "May conflict sa pin: ginamit ang pin 12 sa digitalWrite pero pin 13 ang binanggit sa comment o kabila",
+          "Serial RX/TX pin 0 at 1 ay dapat iwasan para sa ordinaryong I/O"
+        ],
+        "mustNotClaim": ["compiled successfully", "hardware tested"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "chat",
+        "requestId": "20000000-0000-0000-0000-000000000004",
+        "language": "taglish",
+        "message": "Bakit hindi umiilaw ang LED ko sa sketch na ito?",
+        "code": "void setup() {\n  // Setting up pins\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(12, LOW);\n  delay(1000);\n}"
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "May dalawang visible issues sa sketch mo:\n\n1. **Kulang ang `pinMode`**: Sa `setup()`, kailangang ideklara ang pin bilang OUTPUT gamit ang `pinMode(13, OUTPUT);`.\n2. **Pin Inconsistency**: Pin 13 ang ginawang `HIGH`, pero pin 12 naman ang ginawang `LOW`. Kung pin 13 ang nakakabit sa LED, hindi ito mamamatay sa loop.\n\nSubukang ayusin ang `setup()`:\n```cpp\nvoid setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}\n```"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 190, "completion_tokens": 140, "total_tokens": 330 }
+      }
+    },
+    {
+      "id": "qwen-05",
+      "title": "Confirmed LED breadboard screenshot with labeled ground truth",
+      "category": "standard_valid_circuit",
+      "language": "english",
+      "operation": "circuit_check",
+      "expected": {
+        "factualPoints": [
+          "LED anode connected to digital pin 13 through series resistor",
+          "Resistor value observed as 220 ohms (red-red-brown)",
+          "Cathode connected to ground rail (GND)",
+          "Simulation and code match the wiring"
+        ],
+        "mustNotClaim": ["electrically verified", "certified safe"]
+      },
+      "request": {
+        "version": 2,
+        "operation": "circuit_check",
+        "requestId": "20000000-0000-0000-0000-000000000005",
+        "language": "english",
+        "mode": "check",
+        "message": "Review my Tinkercad LED circuit.",
+        "board": "uno-r3",
+        "code": "void setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);\n  digitalWrite(13, LOW);\n  delay(500);\n}",
+        "images": [
+          {
+            "id": "overview",
+            "mimeType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAALUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwH4WwAAHbAepkAAAAAElFTkSuQmCC"
+          }
+        ]
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\"schemaVersion\":2,\"status\":\"reviewed\",\"summary\":\"Standard LED indicator circuit connected to pin 13 with an in-series 220 ohm current-limiting resistor.\",\"findings\":[{\"id\":\"finding-1\",\"severity\":\"info\",\"certainty\":\"observed\",\"observation\":\"LED anode is in series with a 220 ohm resistor connected to digital pin 13.\",\"why\":\"Pin 13 switches 5V power while the resistor limits current to approximately 13.6 mA.\",\"action\":\"Verify breadboard tie-points make firm mechanical contact.\",\"evidence\":[{\"kind\":\"code\",\"startLine\":2,\"endLine\":2},{\"kind\":\"image\",\"imageId\":\"overview\",\"location\":\"Breadboard pin 13 and resistor connection\"}]}],\"unknowns\":[\"Actual forward voltage drop of the physical LED model is not directly measurable from the screenshot.\"],\"questions\":[\"Does the simulation turn the LED on and off at 1Hz when you click Start Simulation?\"],\"comparisons\":[],\"steps\":[{\"step\":1,\"instruction\":\"Start Tinkercad simulation and confirm the LED blinks once per second.\",\"why\":\"Verifies code execution matches visible breadboard behavior.\",\"check\":\"LED illuminates for 500ms and turns off for 500ms.\"}],\"limitations\":[\"Visual review only; unverified electrical continuity.\"]}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 420, "completion_tokens": 210, "total_tokens": 630 }
+      }
+    },
+    {
+      "id": "qwen-06",
+      "title": "Ambiguous rail/crossing screenshot requiring uncertainty abstention",
+      "category": "uncertain_wiring",
+      "language": "filipino",
+      "operation": "circuit_check",
+      "expected": {
+        "mustAcknowledge": [
+          "Hindi malinaw kung sa positive rail o negative ground rail nakakabit ang jumper wire",
+          "May wire crossing na tumatakip sa breadboard tie-points",
+          "Kailangan ng mas malapit o mas malinaw na anggulo bago magpatuloy"
+        ],
+        "mustNotClaim": ["konektado ito sa 5V nang may kasiguraduhan", "electrically verified"]
+      },
+      "request": {
+        "version": 2,
+        "operation": "circuit_check",
+        "requestId": "20000000-0000-0000-0000-000000000006",
+        "language": "filipino",
+        "mode": "check",
+        "message": "Paki-check kung tama ang pagkakakabit ng power rails sa breadboard ko.",
+        "board": "uno-r3",
+        "code": "void setup() {} void loop() {}",
+        "images": [
+          {
+            "id": "overview",
+            "mimeType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAALUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwH4WwAAHbAepkAAAAAElFTkSuQmCC"
+          }
+        ]
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\"schemaVersion\":2,\"status\":\"needs_clarification\",\"summary\":\"Hindi ganap na matiyak ang koneksyon ng power rail dahil sa natatakpang breadboard tie-points.\",\"findings\":[{\"id\":\"finding-1\",\"severity\":\"warning\",\"certainty\":\"possible\",\"observation\":\"May wire crossing sa itaas ng breadboard power strip na nagdudulot ng kalabuan sa koneksyon ng 5V at GND.\",\"why\":\"Maaaring magdulot ng short circuit kung magkapalit ang 5V at GND rails.\",\"action\":\"Ilipat nang bahagya ang wire o kumuha ng mas malapit na screenshot.\",\"evidence\":[{\"kind\":\"image\",\"imageId\":\"overview\",\"location\":\"Breadboard power strip wire crossing\"}]}],\"unknowns\":[\"Hindi makumpirma kung aling rail (pula o asul) ang eksaktong pinapasukan ng pulang jumper wire.\"],\"questions\":[\"Pakisuri kung ang pulang wire mula sa 5V pin ay nakakabit sa positibong (+) rail na may pulang linya?\"],\"comparisons\":[],\"steps\":[],\"limitations\":[\"Pagsusuring biswal lamang; hindi beripikadong electrical continuity.\"]}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 395, "completion_tokens": 240, "total_tokens": 635 }
+      }
+    },
+    {
+      "id": "qwen-07",
+      "title": "Text PDF assignment with page-numbered requirements",
+      "category": "pdf_citation",
+      "language": "english",
+      "operation": "pdf",
+      "expected": {
+        "factualPoints": [
+          "Requirement 1 cited on Page 1: 330 ohm resistor for LED",
+          "Requirement 2 cited on Page 2: Potentiometer analog input on Pin A0",
+          "Page citations correctly reference extracted PDF pages"
+        ],
+        "mustNotClaim": ["electrically verified"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "pdf",
+        "requestId": "20000000-0000-0000-0000-000000000007",
+        "language": "english",
+        "assignmentId": "22222222-2222-2222-2222-222222222222",
+        "message": "Extract all circuit component requirements and cite the page numbers."
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Learning Objective: Interface an analog sensor (potentiometer) and PWM LED control in Tinkercad Circuits.\n\nComponent Requirements:\n1. 330 Ω Resistor (Page 1) — \"Students must connect a 330 ohm current-limiting resistor to digital pin 9.\"\n2. 10 kΩ Potentiometer (Page 2) — \"Connect the wiper terminal of the 10k potentiometer to analog pin A0.\"\n3. Arduino Uno R3 and Breadboard (Page 1) — Standard Tinkercad simulation platform."
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 310, "completion_tokens": 105, "total_tokens": 415 }
+      }
+    },
+    {
+      "id": "qwen-08",
+      "title": "Scanned/diagram PDF with fact present only in visual diagram",
+      "category": "pdf_image_fact",
+      "language": "taglish",
+      "operation": "pdf",
+      "expected": {
+        "factualPoints": [
+          "Button pull-down resistor value is 10k ohms as labeled on schematic diagram",
+          "Fact was extracted from diagram, not from document body text"
+        ],
+        "mustNotClaim": ["electrically verified"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "pdf",
+        "requestId": "20000000-0000-0000-0000-000000000008",
+        "language": "taglish",
+        "assignmentId": "22222222-2222-2222-2222-222222222222",
+        "message": "Ano ang nakasaad na pull-down resistor value sa schematic diagram ng laboratory PDF na ito?"
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Batay sa nakalimbag na schematic diagram sa Figure 2 ng lab handout, ang pull-down resistor para sa push button na nakakabit sa Digital Pin 2 ay may value na **10 kΩ (10,000 ohms)**. Nagsisilbi itong reference papuntang Ground (GND) para maiwasan ang floating input state kapag hindi nakapindot ang button."
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 340, "completion_tokens": 78, "total_tokens": 418 }
+      }
+    },
+    {
+      "id": "qwen-09",
+      "title": "Conflicting assignment requirement and screenshot evidence",
+      "category": "conflicting_evidence",
+      "language": "filipino",
+      "operation": "circuit_check",
+      "expected": {
+        "factualPoints": [
+          "Hinihingi sa assignment ang 220 ohm resistor para sa LED",
+          "Ang nakikita sa screenshot ay 10k ohm resistor (brown-black-orange) na magdudulot ng sobrang lamat na ilaw",
+          "Dapat ipaliwanag ang pagkakaiba at imungkahi ang tamang resistor"
+        ],
+        "mustNotClaim": ["electrically verified", "certified safe"]
+      },
+      "request": {
+        "version": 2,
+        "operation": "circuit_check",
+        "requestId": "20000000-0000-0000-0000-000000000009",
+        "language": "filipino",
+        "mode": "check",
+        "message": "Suriin ang LED ko ayon sa assignment requirement.",
+        "board": "uno-r3",
+        "requirementText": "Requirement: Connect a red LED to digital pin 9 using a 220 ohm resistor.",
+        "code": "void setup() { pinMode(9, OUTPUT); } void loop() { digitalWrite(9, HIGH); }",
+        "images": [
+          {
+            "id": "overview",
+            "mimeType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAALUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwH4WwAAHbAepkAAAAAElFTkSuQmCC"
+          }
+        ]
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\"schemaVersion\":2,\"status\":\"reviewed\",\"summary\":\"May hindi pagkakatugma sa resistor: 220 Ω ang hinihingi ng requirement ngunit 10 kΩ ang nakakabit sa breadboard.\",\"findings\":[{\"id\":\"finding-1\",\"severity\":\"warning\",\"certainty\":\"observed\",\"observation\":\"Ang resistor sa tabi ng LED ay may kulay na brown-black-orange (10 kΩ) sa halip na red-red-brown (220 Ω).\",\"why\":\"Sa 10 kΩ, humigit-kumulang 0.3 mA lamang ang kuryenteng dadaloy, kaya maaaring napakahina o hindi iilaw ang LED.\",\"action\":\"Palitan ang 10 kΩ resistor ng 220 Ω resistor sa Tinkercad inspector window.\",\"evidence\":[{\"kind\":\"requirement\",\"requirementId\":\"req-1\"},{\"kind\":\"image\",\"imageId\":\"overview\",\"location\":\"Resistor color bands near LED\"}]}],\"unknowns\":[],\"questions\":[\"Napapansin mo ba kung gaano kahina ang ilaw ng LED sa simulation kapag 10k ang nakakabit?\"],\"comparisons\":[],\"steps\":[{\"step\":1,\"instruction\":\"I-click ang resistor sa Tinkercad at palitan ang Resistance value sa '220' at unit sa 'Ω' (ohms).\",\"why\":\"Upang tumugma sa hinihingi ng assignment at magbigay ng tamang 13.6mA current.\",\"check\":\"Tingnan kung ang kulay ng resistor bands ay naging red-red-brown.\"}],\"limitations\":[\"Pagsusuring biswal lamang; hindi beripikadong electrical continuity.\"]}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 460, "completion_tokens": 260, "total_tokens": 720 }
+      }
+    },
+    {
+      "id": "qwen-10",
+      "title": "Beginner guide with confirmed board, components, and checkpoints",
+      "category": "beginner_guide",
+      "language": "filipino",
+      "operation": "tutorial",
+      "expected": {
+        "factualPoints": [
+          "Components list identified before placement",
+          "Ordered sequential steps starting at step 1",
+          "Each step has non-empty instruction, why, and check",
+          "Includes verification checkpoints"
+        ],
+        "mustNotClaim": ["electrically verified"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "tutorial",
+        "requestId": "20000000-0000-0000-0000-000000000010",
+        "language": "filipino",
+        "message": "Turuan mo ako kung paano magkabit ng push button na may pull-down resistor sa Arduino Uno."
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"status\": \"tutorial\",\n  \"title\": \"Push Button na may 10k Pull-Down Resistor sa Arduino Uno\",\n  \"objective\": \"Matutunan kung paano ikabit ang digital input button sa Arduino Pin 2 na may matatag na pull-down reference.\",\n  \"components\": [\n    { \"name\": \"Arduino Uno R3\", \"quantity\": 1, \"notes\": \"Microcontroller board\" },\n    { \"name\": \"Half-size Breadboard\", \"quantity\": 1, \"notes\": \"Prototyping workspace\" },\n    { \"name\": \"Push Button (Tactile Switch)\", \"quantity\": 1, \"notes\": \"Momentary SPST switch\" },\n    { \"name\": \"10 kΩ Resistor\", \"quantity\": 1, \"notes\": \"Pull-down resistor, brown-black-orange\" },\n    { \"name\": \"Jumper Wires\", \"quantity\": 4, \"notes\": \"Solid core jumper wires\" }\n  ],\n  \"steps\": [\n    {\n      \"step\": 1,\n      \"instruction\": \"Ilagay ang tactile push button sa gitnang kanal ng breadboard upang ang magkabilang terminals ay nasa magkahiwalay na rows.\",\n      \"why\": \"Tinitiyak ng gitnang kanal na ang kaliwa at kanang pares ng terminals ay hiwalay hangga't hindi pinipindot.\",\n      \"check\": \"Naka-straddle ang mga paa ng button sa gitnang tulay at nakabaon nang matibay.\"\n    },\n    {\n      \"step\": 2,\n      \"instruction\": \"Ikabit ang pulang jumper wire mula sa Arduino 5V pin papunta sa breadboard positive (+) rail, at itim na wire mula GND papunta sa negative (-) rail.\",\n      \"why\": \"Nagbibigay ng 5V logic power at ground reference sa buong power rails ng breadboard.\",\n      \"check\": \"Pulang wire sa 5V, itim na wire sa GND, parehong nakabaon sa tamang rail columns.\"\n    },\n    {\n      \"step\": 3,\n      \"instruction\": \"Ikabit ang terminal 1a ng push button sa 5V positive rail gamit ang maikling jumper wire.\",\n      \"why\": \"Nagbibigay ng mataas na logic voltage kapag sumara ang switch contacts sa pagpindot.\",\n      \"check\": \"Ang terminal 1a ay kasalo ng 5V jumper wire sa iisang row.\"\n    },\n    {\n      \"step\": 4,\n      \"instruction\": \"Ikabit ang isang paa ng 10 kΩ resistor sa terminal 1b ng button, at ang kabilang paa sa GND (-) rail.\",\n      \"why\": \"Nagsisilbing pull-down resistor, pinapanatili ang input sa 0V (LOW) kapag bukas ang button.\",\n      \"check\": \"Bumabagtas ang resistor mula sa terminal row ng button hanggang sa asul na negative ground rail.\"\n    },\n    {\n      \"step\": 5,\n      \"instruction\": \"Ikabit ang jumper wire mula sa terminal 1b ng button (ang junction kasama ang 10k resistor) papunta sa Arduino Digital Pin 2.\",\n      \"why\": \"Bumabasa ng digital logic: 0V (LOW) kapag hindi nakapindot, 5V (HIGH) kapag pinindot.\",\n      \"check\": \"Naka-konektado ang Pin 2 sa node sa pagitan ng switch at ng pull-down resistor.\"\n    }\n  ],\n  \"code\": \"void setup() { pinMode(2, INPUT); Serial.begin(9600); } void loop() { int state = digitalRead(2); Serial.println(state); delay(100); }\",\n  \"notes\": \"Palaging tiyakin na nakabagtas ang push button sa gitnang kanal upang hindi mag-short circuit ang mga terminal nito.\"\n}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 380, "completion_tokens": 390, "total_tokens": 770 }
+      }
+    },
+    {
+      "id": "qwen-11",
+      "title": "Structured educational diagram request with known net connections",
+      "category": "educational_diagram",
+      "language": "filipino",
+      "operation": "tutorial",
+      "expected": {
+        "factualPoints": [
+          "Diagram data identifies node terminals correctly",
+          "Arduino 5V goes to rail; Pin 13 goes to series resistor to LED anode; cathode goes to GND",
+          "Labels explicitly noted as proposed educational design"
+        ],
+        "mustNotClaim": ["certified circuit schematic", "electrically verified"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "tutorial",
+        "requestId": "20000000-0000-0000-0000-000000000011",
+        "language": "filipino",
+        "message": "Gawan mo ako ng step-by-step schematic diagram plan para sa simpleng LED circuit gamit ang Pin 13 at 220 ohm resistor."
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"status\": \"tutorial\",\n  \"title\": \"Edukasyonal na Plano ng Koneksyon para sa Pin 13 LED\",\n  \"objective\": \"Maunawaan ang sunod-sunod na netlist connections para sa digital output circuit.\",\n  \"components\": [\n    { \"name\": \"Arduino Uno R3\", \"quantity\": 1, \"notes\": \"Pin 13 at GND terminals\" },\n    { \"name\": \"220 Ω Resistor\", \"quantity\": 1, \"notes\": \"Current limiter (red-red-brown)\" },\n    { \"name\": \"Red LED\", \"quantity\": 1, \"notes\": \"Polarized diode\" }\n  ],\n  \"steps\": [\n    {\n      \"step\": 1,\n      \"instruction\": \"Ikonekta ang jumper wire mula sa Arduino Pin D13 papunta sa terminal 1 ng 220 ohm resistor.\",\n      \"why\": \"Pin D13 ang nagbibigay ng 5V switching signal.\",\n      \"check\":\"Naka-konektado ang Pin D13 sa isang paa ng resistor sa breadboard.\"\n    },\n    {\n      \"step\": 2,\n      \"instruction\": \"Ikabit ang terminal 2 ng 220 ohm resistor sa Anode (mahabang paa) ng LED.\",\n      \"why\": \"Bumabagsak ang 3.0V sa resistor upang 2.0V lamang ang mapunta sa LED anode.\",\n      \"check\": \"Nasa parehong row ng breadboard ang resistor leg at ang LED anode.\"\n    },\n    {\n      \"step\": 3,\n      \"instruction\": \"Ikonekta ang Cathode (maikling paa na may flat edge) ng LED sa Arduino GND pin.\",\n      \"why\": \"Kumukumpleto sa electrical return path pabalik sa supply reference.\",\n      \"check\": \"Ang LED cathode ay may direktang linya papunta sa GND pin ng Arduino.\"\n    }\n  ],\n  \"notes\": \"Ito ay isang gabay sa pag-aaral (educational schematic proposal), hindi certified electrical engineering blueprint.\"\n}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 360, "completion_tokens": 320, "total_tokens": 680 }
+      }
+    },
+    {
+      "id": "qwen-12",
+      "title": "Downloadable study notes and minimal safe Arduino sketch",
+      "category": "study_notes_code",
+      "language": "taglish",
+      "operation": "tutorial",
+      "expected": {
+        "factualPoints": [
+          "Safe minimal Arduino sketch formatted cleanly without markdown errors",
+          "Setup initializes pin modes; loop has non-blocking or bounded delays",
+          "Study notes explain standard formulas"
+        ],
+        "mustNotClaim": ["hardware verified", "certified compilation"]
+      },
+      "request": {
+        "version": 1,
+        "operation": "tutorial",
+        "requestId": "20000000-0000-0000-0000-000000000012",
+        "language": "taglish",
+        "message": "Pahingi ng study notes at malinis na Arduino code para sa LED blinker na may potentiometer delay."
+      },
+      "mockQwenResponse": {
+        "model": "qwen3.8-flash",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"status\": \"tutorial\",\n  \"title\": \"Potentiometer-Controlled LED Blinker Study Notes\",\n  \"objective\": \"Matutunan ang analog input reading (analogRead) at pagkontrol sa blink delay ng LED.\",\n  \"components\": [\n    { \"name\": \"Arduino Uno R3\", \"quantity\": 1, \"notes\": \"Pins A0, D13, 5V, GND\" },\n    { \"name\": \"10 kΩ Potentiometer\", \"quantity\": 1, \"notes\": \"Analog voltage divider\" },\n    { \"name\": \"Red LED & 220 Ω Resistor\", \"quantity\": 1, \"notes\": \"Digital indicator output\" }\n  ],\n  \"steps\": [\n    {\n      \"step\": 1,\n      \"instruction\": \"Ikabit ang wiper (gitnang pin) ng potentiometer sa Analog Pin A0, ang kaliwang pin sa 5V, at ang kanang pin sa GND.\",\n      \"why\": \"Gumagawa ito ng variable voltage divider mula 0V hanggang 5V.\",\n      \"check\": \"Naka-seat nang maayos ang tatlong terminals sa magkakahiwalay na columns.\"\n    },\n    {\n      \"step\": 2,\n      \"instruction\": \"Ikabit ang LED anode sa 220 ohm resistor papuntang Digital Pin 13, at ang cathode sa GND.\",\n      \"why\": \"Proteksyon sa LED laban sa labis na kuryente mula sa Pin 13.\",\n      \"check\": \"Tamang polarity ng LED: mahabang paa sa resistor, maikling paa sa GND.\"\n    }\n  ],\n  \"code\": \"const int ledPin = 13;\\nconst int potPin = A0;\\n\\nvoid setup() {\\n  pinMode(ledPin, OUTPUT);\\n}\\n\\nvoid loop() {\\n  int potValue = analogRead(potPin);\\n  int blinkDelay = map(potValue, 0, 1023, 50, 1000);\\n  digitalWrite(ledPin, HIGH);\\n  delay(blinkDelay);\\n  digitalWrite(ledPin, LOW);\\n  delay(blinkDelay);\\n}\",\n  \"notes\": \"Study Tip: Ang analogRead() ay nagbabalik ng integer mula 0 hanggang 1023 katumbas ng 0V hanggang 5V (10-bit ADC resolution ng Arduino Uno).\"\n}"
+            }
+          }
+        ],
+        "usage": { "prompt_tokens": 380, "completion_tokens": 340, "total_tokens": 720 }
+      }
+    }
+  ]
+}

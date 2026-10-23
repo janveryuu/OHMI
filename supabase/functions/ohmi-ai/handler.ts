@@ -18,6 +18,11 @@ import { validateCircuitImage } from './image.ts';
 import { validatePdfDocument, verifyPageCitation } from './pdf.ts';
 import { validateTutorialResult, extractTutorialJson } from './tutorial.ts';
 import { validateCircuitRequest, validateCircuitResult, buildCircuitPrompt } from './circuit.ts';
+import {
+  OHMI_TUTOR_VERSION,
+  buildAskSystemInstruction,
+  buildTutorialSystemInstruction
+} from './tutor-policy.ts';
 import type { CircuitRequestV2, CircuitEvidence, CircuitCheckResult } from '../../../src/backend/contracts.ts';
 
 export const MODEL = 'gemini-3.5-flash-lite';
@@ -71,12 +76,25 @@ export async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
   return hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+import {
+  callQwenChatCompletions,
+  validateQwenModel,
+  DEFAULT_QWEN_MODEL,
+  sanitizeErrorMessage,
+  type QwenChatMessage,
+  type QwenContentPart
+} from './qwen.ts';
+
 export interface AiHandlerDependencies {
   env?: {
     SUPABASE_URL?: string;
     SUPABASE_ANON_KEY?: string;
     SUPABASE_SERVICE_ROLE_KEY?: string;
     GEMINI_API_KEY?: string;
+    QWEN_API_KEY?: string;
+    QWEN_BASE_URL?: string;
+    QWEN_MODEL?: string;
+    OHMI_AI_PROVIDER?: string;
     OHMI_AI_ENABLED?: string;
   };
   createClient?: typeof createClient;
@@ -96,6 +114,366 @@ const getEnv = (key: string, deps?: AiHandlerDependencies): string => {
   }
   return '';
 };
+
+export interface AiTransportRequest {
+  provider: 'gemini' | 'qwen';
+  model: string;
+  systemInstruction: string;
+  promptText: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  images?: Array<{ mimeType: string; data: string }>;
+  pdf?: { mimeType: string; data: string; fileName?: string };
+  maxTokens: number;
+  temperature?: number;
+  responseFormat?: 'text' | 'json_object';
+  geminiApiKey?: string;
+  qwenApiKey?: string;
+  qwenBaseUrl?: string;
+  timeoutMs?: number;
+  fetchFn?: typeof fetch;
+}
+
+export interface AiTransportResponse {
+  ok: true;
+  provider: 'gemini' | 'qwen';
+  model: string;
+  text: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  finishReason: string;
+}
+
+export interface AiTransportError {
+  ok: false;
+  provider: 'gemini' | 'qwen';
+  model: string;
+  status: number;
+  code: 'timeout' | 'rate_limit' | 'unavailable' | 'safety' | 'payload_too_large' | 'invalid_json' | 'quota_exhausted' | 'empty_answer' | 'provider_error';
+  message: string;
+  retryAfterSeconds?: number;
+}
+
+export type AiTransportResult = AiTransportResponse | AiTransportError;
+
+/**
+ * Internal unified transport seam for ohmi-ai provider requests.
+ * Adapts Gemini and Qwen to a single contract returning visible text, model, usage,
+ * and normalized error statuses without SDK auto-retries or cross-provider fallbacks.
+ */
+export async function callAiProviderTransport(req: AiTransportRequest): Promise<AiTransportResult> {
+  const timeoutMs = req.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const fetchFn = req.fetchFn || fetch;
+
+  if (req.provider === 'qwen') {
+    const qwenApiKey = (req.qwenApiKey || '').trim();
+    if (!qwenApiKey) {
+      return {
+        ok: false,
+        provider: 'qwen',
+        model: req.model,
+        status: 500,
+        code: 'provider_error',
+        message: 'Qwen API key is not configured.'
+      };
+    }
+
+    const messages: QwenChatMessage[] = [];
+    if (req.history && req.history.length > 0) {
+      for (const h of req.history) {
+        messages.push({
+          role: h.role,
+          content: h.content
+        });
+      }
+    }
+
+    const hasMedia = (req.images && req.images.length > 0) || Boolean(req.pdf);
+    if (hasMedia) {
+      const parts: QwenContentPart[] = [{ type: 'text', text: req.promptText }];
+      if (req.images) {
+        for (const img of req.images) {
+          parts.push({
+            type: 'image_url',
+            image_url: { url: `data:${img.mimeType};base64,${img.data}` }
+          });
+        }
+      }
+      if (req.pdf) {
+        parts.push({
+          type: 'file',
+          file_data: `data:${req.pdf.mimeType};base64,${req.pdf.data}`,
+          file_name: req.pdf.fileName || 'assignment.pdf'
+        });
+      }
+      messages.push({ role: 'user', content: parts });
+    } else {
+      messages.push({ role: 'user', content: req.promptText });
+    }
+
+    const qwenRes = await callQwenChatCompletions({
+      apiKey: qwenApiKey,
+      baseUrl: req.qwenBaseUrl,
+      model: req.model,
+      systemInstruction: req.systemInstruction,
+      messages,
+      maxTokens: req.maxTokens,
+      temperature: req.temperature ?? 0.1,
+      responseFormat: req.responseFormat,
+      timeoutMs,
+      fetchFn
+    });
+
+    if (!qwenRes.ok) {
+      return {
+        ok: false,
+        provider: 'qwen',
+        model: req.model,
+        status: qwenRes.status,
+        code: qwenRes.code,
+        message: qwenRes.message,
+        retryAfterSeconds: qwenRes.retryAfterSeconds
+      };
+    }
+
+    return {
+      ok: true,
+      provider: 'qwen',
+      model: qwenRes.model,
+      text: qwenRes.content,
+      promptTokens: qwenRes.promptTokens,
+      completionTokens: qwenRes.completionTokens,
+      totalTokens: qwenRes.totalTokens,
+      finishReason: qwenRes.finishReason
+    };
+  }
+
+  // Gemini transport
+  const geminiApiKey = (req.geminiApiKey || '').trim();
+  if (!geminiApiKey) {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 500,
+      code: 'provider_error',
+      message: 'Gemini API key is not configured.'
+    };
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent?key=${geminiApiKey}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const contents: any[] = [];
+  if (req.history && req.history.length > 0) {
+    for (const h of req.history) {
+      contents.push({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.content }]
+      });
+    }
+  }
+
+  const userParts: any[] = [{ text: req.promptText }];
+  if (req.images) {
+    for (const img of req.images) {
+      userParts.push({
+        inlineData: {
+          mimeType: img.mimeType,
+          data: img.data
+        }
+      });
+    }
+  }
+  if (req.pdf) {
+    userParts.push({
+      inlineData: {
+        mimeType: req.pdf.mimeType,
+        data: req.pdf.data
+      }
+    });
+  }
+  contents.push({ role: 'user', parts: userParts });
+
+  let providerRes: Response;
+  let responseText: string;
+  try {
+    providerRes = await fetchFn(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: req.systemInstruction }] },
+        contents,
+        generationConfig: {
+          maxOutputTokens: req.maxTokens,
+          temperature: req.temperature ?? 0.1,
+          ...(req.responseFormat === 'json_object' ? { responseMimeType: 'application/json' } : {})
+        }
+      }),
+      signal: controller.signal
+    });
+
+    if (providerRes.ok) {
+      responseText = await providerRes.text();
+    } else {
+      responseText = await providerRes.text().catch(() => '');
+    }
+  } catch (_err: unknown) {
+    clearTimeout(timer);
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 504,
+      code: 'timeout',
+      message: 'Request timed out after 24 seconds.'
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!providerRes.ok) {
+    const status = providerRes.status;
+    let errMsg = `Provider error ${status}`;
+    try {
+      const errJson = JSON.parse(responseText);
+      errMsg = errJson?.error?.message || errMsg;
+    } catch { /* empty */ }
+
+    const cleanErr = sanitizeErrorMessage(errMsg, geminiApiKey);
+    if (status === 429) {
+      return {
+        ok: false,
+        provider: 'gemini',
+        model: req.model,
+        status: 429,
+        code: 'rate_limit',
+        message: cleanErr,
+        retryAfterSeconds: 60
+      };
+    }
+    if (status === 503 || status === 502) {
+      return {
+        ok: false,
+        provider: 'gemini',
+        model: req.model,
+        status,
+        code: 'unavailable',
+        message: cleanErr,
+        retryAfterSeconds: 60
+      };
+    }
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'provider_error',
+      message: cleanErr
+    };
+  }
+
+  if (responseText.length > 64 * 1024) {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'payload_too_large',
+      message: 'Provider response exceeded 64 KiB.'
+    };
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'invalid_json',
+      message: 'Provider returned malformed JSON.'
+    };
+  }
+
+  const promptTokens = data.usageMetadata?.promptTokenCount;
+  const candidateTokens = data.usageMetadata?.candidatesTokenCount;
+  const hasUsage = typeof promptTokens === 'number' && typeof candidateTokens === 'number';
+  const inputTokens = hasUsage ? promptTokens : Math.floor(req.maxTokens / 2);
+  const outputTokens = hasUsage ? candidateTokens : Math.ceil(req.maxTokens / 2);
+
+  const candidate = data.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+
+  if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'BLOCKLIST') {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'safety',
+      message: `Provider safety block: ${finishReason}`
+    };
+  }
+
+  if (finishReason === 'MAX_TOKENS') {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'payload_too_large',
+      message: 'Provider response was truncated (MAX_TOKENS).'
+    };
+  }
+
+  if (finishReason && finishReason !== 'STOP') {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'unavailable',
+      message: `Provider response not complete: ${finishReason}`
+    };
+  }
+
+  const rawParts = candidate?.content?.parts;
+  let answerText = '';
+  if (Array.isArray(rawParts)) {
+    answerText = rawParts
+      .filter((p: any) => p && typeof p.text === 'string' && !p.thought)
+      .map((p: any) => p.text)
+      .join('');
+  } else if (typeof rawParts?.[0]?.text === 'string') {
+    answerText = rawParts[0].text;
+  }
+
+  if (!answerText || !answerText.trim()) {
+    return {
+      ok: false,
+      provider: 'gemini',
+      model: req.model,
+      status: 502,
+      code: 'empty_answer',
+      message: 'Provider returned empty candidate.'
+    };
+  }
+
+  return {
+    ok: true,
+    provider: 'gemini',
+    model: req.model,
+    text: answerText,
+    promptTokens: inputTokens,
+    completionTokens: outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    finishReason: 'STOP'
+  };
+}
 
 export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies): Promise<Response> {
   if (req.method === 'OPTIONS') {
@@ -123,12 +501,32 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY', deps);
   const supabaseServiceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY', deps);
   const geminiApiKey = getEnv('GEMINI_API_KEY', deps);
+  const qwenApiKey = getEnv('QWEN_API_KEY', deps);
+  const qwenBaseUrl = getEnv('QWEN_BASE_URL', deps);
+  const rawProvider = getEnv('OHMI_AI_PROVIDER', deps);
+  const provider = (rawProvider ? rawProvider.trim().toLowerCase() : 'gemini');
+
+  if (provider !== 'gemini' && provider !== 'qwen') {
+    return errorResponse('server_error', `Unsupported AI provider "${provider}".`, 500);
+  }
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return errorResponse('server_error', 'Supabase backend configuration is missing.', 500);
   }
-  if (!geminiApiKey) {
+  if (provider === 'gemini' && !geminiApiKey) {
     return errorResponse('server_error', 'AI provider configuration is missing.', 500);
+  }
+  if (provider === 'qwen' && !qwenApiKey) {
+    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
+  }
+
+  let activeModel: string = MODEL;
+  if (provider === 'qwen') {
+    try {
+      activeModel = validateQwenModel(getEnv('QWEN_MODEL', deps) || DEFAULT_QWEN_MODEL);
+    } catch (err: unknown) {
+      return errorResponse('server_error', err instanceof Error ? err.message : 'Invalid Qwen model.', 500);
+    }
   }
 
   const clientFactory = deps?.createClient || createClient;
@@ -340,6 +738,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   // Canonical input hash including conversationId (P4-7)
   const inputHash = await sha256Hex(JSON.stringify({
     version: 1,
+    provider,
+    model: activeModel,
     operation,
     language,
     message: message.trim(),
@@ -362,7 +762,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     p_target: targetId,
     p_hash: inputHash,
     p_language: language,
-    p_model: MODEL,
+    p_model: activeModel,
     p_conversation_id: conversationId || null
   });
 
@@ -400,6 +800,9 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
 
         if (msg?.structured_result) {
           replayedResult = msg.structured_result;
+          if (!replayedResult.answer && msg?.content) {
+            replayedResult.answer = msg.content;
+          }
         } else if (msg?.content) {
           replayedResult = { status: 'answer', answer: msg.content };
         }
@@ -433,7 +836,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
         operation,
         language,
         result: replayedResult,
-        model: reservation.model || MODEL
+        model: reservation.model || activeModel
       });
     }
     if (reservation.status === 'pending') {
@@ -442,41 +845,22 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('failed', 'This request previously failed. Please submit a new question.', 400);
   }
 
-  // 6. Build prompt & invoke Gemini (zero automatic retries)
-  const systemInstruction = `You are OHMI, an encouraging, friendly, and expert electronics learning buddy for students using Tinkercad Circuits. Prompt version: ohmi-tutor-v2.
-Your role is educational tutoring:
-- Behavioral contract: OHMI is a patient circuit buddy: clear, observant, practical and quietly witty. Answer the actual question first; explain why when useful; suggest one concrete next check. Correct mistakes kindly. Use light situational humor at most occasionally, never mock the student or joke through a safety warning. No repeated greetings, persona introductions, excessive emojis, canned praise or filler.
-- Conciseness: Default ordinary concept answers to about 40–100 words, usually a short paragraph or 2–4 bullets. Simple factual follow-ups may be shorter. Explicit worked explanations may use about 150–300 words. Tutorials use small complete steps.
-- Language: Respond in ${language === 'filipino' ? 'Filipino (Tagalog)' : language === 'taglish' ? 'natural Taglish (conversational mix of English and Filipino common among Filipino engineering students)' : 'clear English'}. Keep technical terms, units (V, mA, Ω, kΩ, µF), pin names (D13, A0, GND, 5V), and code in standard format.
-- Educational principles: Explain the "why" simply. Guide students step-by-step. Never claim that a circuit is electrically verified from an image alone.
-- Uncertainty & Missing info: Acknowledge missing or ambiguous info honestly. If a student asks for a component or resistor value without specifying the supply voltage, LED forward voltage, or target current, do NOT assume a single answer — explain what values are needed and ask the student for clarification.
-- Electronics math & physics:
-  * Ohm's Law: V = I * R, I = V / R, R = V / I.
-  * LED Current Limiting Resistor: R = (Vs - Vf) / I. If Vs <= Vf, explain that the LED cannot turn on directly from that supply because the supply voltage is less than or equal to the LED forward voltage.
-  * Standard E12 Resistors: Always note standard E12 values (e.g. 220Ω for ideal 200Ω; 100Ω for ideal 86.7Ω) and calculate the resulting current.
-  * Resistor Power Dissipation: P = V * I = V² / R = I² * R. Compare power dissipation with standard 1/4W (250mW) resistors.
-  * Resistors in Series: Rs = R1 + R2 + ... + Rn. Resistors in Parallel: 1/Rp = 1/R1 + 1/R2 + ... + 1/Rn.
-- Arduino: Ensure sketches include proper setup() and loop(), explain pin modes (OUTPUT/INPUT), and caution against using pins 0/1 for LEDs or buttons because they are hardware Serial RX/TX on Uno R3 and using them interferes with code uploading and Serial debugging.`;
-
-  // Format contents
-  const contents: any[] = [];
+    // 6. Build prompt & invoke AI provider (zero automatic retries)
+  const systemInstruction = operation === 'tutorial'
+    ? buildTutorialSystemInstruction(language)
+    : buildAskSystemInstruction(language, operation);
 
   // Bounded context history (up to 4 pairs)
+  const historyList: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   if (Array.isArray(context)) {
     for (const item of context.slice(-4)) {
       if (item && typeof item.text === 'string' && (item.role === 'user' || item.role === 'assistant')) {
-        contents.push({
-          role: item.role === 'user' ? 'user' : 'model',
-          parts: [{ text: item.text.slice(0, 1000) }]
+        historyList.push({
+          role: item.role,
+          content: item.text.slice(0, 1000)
         });
       }
     }
-  }
-
-  // User message parts
-  const userParts: any[] = [];
-  if (inlineMediaPart) {
-    userParts.push(inlineMediaPart);
   }
 
   let promptText = message;
@@ -546,162 +930,96 @@ If requirements, supply voltage, or component values are missing or contradictor
 For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24.`;
   }
 
-  userParts.push({ text: promptText });
-  contents.push({ role: 'user', parts: userParts });
-
-  // Call Gemini with strict timeout and single attempt. Keep deadline through body read.
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${geminiApiKey}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  let providerRes: Response;
-  let responseText: string;
-  try {
-    const fetchFn = deps?.fetch || fetch;
-    providerRes = await fetchFn(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents,
-        generationConfig: {
-          maxOutputTokens: operation === 'tutorial' ? 2048 : 1536,
-          temperature: 0.1,
-          ...(operation === 'tutorial' ? { responseMimeType: 'application/json' } : {})
-        }
-      }),
-      signal: controller.signal
-    });
-
-    if (providerRes.ok) {
-      responseText = await providerRes.text();
+  let mediaImage: { mimeType: string; data: string } | undefined;
+  let mediaPdf: { mimeType: string; data: string; fileName?: string } | undefined;
+  if (inlineMediaPart) {
+    if (inlineMediaPart.inlineData.mimeType === 'application/pdf') {
+      mediaPdf = {
+        mimeType: 'application/pdf',
+        data: inlineMediaPart.inlineData.data,
+        fileName: 'assignment.pdf'
+      };
     } else {
-      responseText = await providerRes.text().catch(() => '');
+      mediaImage = {
+        mimeType: inlineMediaPart.inlineData.mimeType,
+        data: inlineMediaPart.inlineData.data
+      };
     }
-  } catch (err: unknown) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'timeout',
-      p_error_message: 'Request timed out after 24 seconds.',
-      p_model: MODEL
-    });
-    return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
-  } finally {
-    clearTimeout(timer);
   }
 
-  if (!providerRes.ok) {
-    const status = providerRes.status;
-    let errMsg = `Provider error ${status}`;
-    try {
-      const errJson = JSON.parse(responseText);
-      errMsg = errJson?.error?.message || errMsg;
-    } catch { /* empty */ }
+  // Call provider through unified transport seam
+  const transportRes = await callAiProviderTransport({
+    provider,
+    model: activeModel,
+    systemInstruction,
+    promptText,
+    history: historyList,
+    images: mediaImage ? [mediaImage] : undefined,
+    pdf: mediaPdf,
+    maxTokens: operation === 'tutorial' ? 2048 : 1536,
+    responseFormat: operation === 'tutorial' ? 'json_object' : 'text',
+    geminiApiKey,
+    qwenApiKey,
+    qwenBaseUrl,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    fetchFn: deps?.fetch || fetch
+  });
+
+  if (!transportRes.ok) {
+    const errCode = transportRes.code === 'payload_too_large' && transportRes.message.includes('truncated')
+      ? 'truncated'
+      : transportRes.code;
 
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: requestId,
-      p_error_code: status === 429 ? 'rate_limit' : status === 503 ? 'unavailable' : 'provider_error',
-      p_error_message: errMsg.slice(0, 200),
-      p_model: MODEL
+      p_error_code: errCode,
+      p_error_message: transportRes.message.slice(0, 200),
+      p_model: activeModel
     });
 
-    if (status === 429 || status === 503) {
+    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: MODEL,
-        p_retry_after: 60
+        p_model: activeModel,
+        p_retry_after: transportRes.retryAfterSeconds || 60
       });
-      return errorResponse(status === 429 ? 'rate_limit' : 'unavailable', 'AI provider is temporarily busy or rate limited. Try again in a minute.', status, 60);
+      return errorResponse(
+        transportRes.code,
+        'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.status,
+        transportRes.retryAfterSeconds || 60
+      );
+    }
+
+    if (transportRes.code === 'timeout') {
+      return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
+    }
+
+    if (transportRes.code === 'quota_exhausted') {
+      return errorResponse('unavailable', 'AI provider free quota is exhausted or expired.', 503);
+    }
+
+    if (transportRes.code === 'payload_too_large') {
+      return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
+    }
+
+    if (transportRes.code === 'safety') {
+      return errorResponse('unavailable', 'AI response was filtered by safety guidelines.', 502);
+    }
+
+    if (transportRes.code === 'empty_answer') {
+      return errorResponse('unavailable', 'AI returned no answer. Try rephrasing your question.', 502);
+    }
+
+    if (transportRes.code === 'invalid_json') {
+      return errorResponse('unavailable', 'Received invalid response from AI provider.', 502);
     }
 
     return errorResponse('provider_error', 'AI provider returned an error.', 502);
   }
 
-  // 7. Parse & validate provider response
-  if (responseText.length > 64 * 1024) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'payload_too_large',
-      p_error_message: 'Provider response exceeded 64 KiB.',
-      p_model: MODEL
-    });
-    return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
-  }
-
-  let data: any;
-  try {
-    data = JSON.parse(responseText);
-  } catch {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'invalid_json',
-      p_error_message: 'Provider returned malformed JSON.',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'Received invalid response from AI provider.', 502);
-  }
-
-  // Token accounting: conservative estimate if unknown (never 0!) (P4-8)
-  const reservedEstimate = (operation === 'tutorial' || assignmentId) ? 4096 : 2048;
-  const promptTokens = data.usageMetadata?.promptTokenCount;
-  const candidateTokens = data.usageMetadata?.candidatesTokenCount;
-  const hasUsage = typeof promptTokens === 'number' && typeof candidateTokens === 'number';
-  const inputTokens = hasUsage ? promptTokens : Math.floor(reservedEstimate / 2);
-  const outputTokens = hasUsage ? candidateTokens : Math.ceil(reservedEstimate / 2);
-
-  // Validate candidate and finish reason (P4-4)
-  const candidate = data.candidates?.[0];
-  const finishReason = candidate?.finishReason;
-
-  if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'BLOCKLIST') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'safety',
-      p_error_message: `Provider safety block: ${finishReason}`,
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was filtered by safety guidelines.', 502);
-  }
-
-  if (finishReason === 'MAX_TOKENS') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'truncated',
-      p_error_message: 'Provider response was truncated (MAX_TOKENS).',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was truncated.', 502);
-  }
-
-  if (finishReason && finishReason !== 'STOP') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'incomplete',
-      p_error_message: `Provider response not complete: ${finishReason}`,
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was incomplete.', 502);
-  }
-
-  const rawParts = candidate?.content?.parts;
-  let answerText = '';
-  if (Array.isArray(rawParts)) {
-    answerText = rawParts
-      .filter((p: any) => p && typeof p.text === 'string' && !p.thought)
-      .map((p: any) => p.text)
-      .join('');
-  } else if (typeof rawParts?.[0]?.text === 'string') {
-    answerText = rawParts[0].text;
-  }
-
-  if (!answerText || !answerText.trim()) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: requestId,
-      p_error_code: 'empty_answer',
-      p_error_message: 'Provider returned empty candidate.',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI returned no answer. Try rephrasing your question.', 502);
-  }
+  const answerText = transportRes.text;
+  const inputTokens = transportRes.promptTokens;
+  const outputTokens = transportRes.completionTokens;
 
   // 8. Atomically complete the AI request
   let resultPayload: any = {
@@ -729,7 +1047,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
         p_request_id: requestId,
         p_error_code: 'invalid_tutorial',
         p_error_message: tutVal.error || 'Tutorial validation failed.',
-        p_model: MODEL
+        p_model: activeModel
       });
       return errorResponse('unavailable', tutVal.error || 'Tutorial did not meet required format.', 502);
     }
@@ -760,7 +1078,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     p_request_id: requestId,
     p_output: {
       message,
-      answer: answerText,
+      answer: (resultPayload as any).answer || answerText,
+      prompt_version: OHMI_TUTOR_VERSION,
       ...(resultPayload.title ? { title: resultPayload.title } : {}),
       ...(resultPayload.objective ? { objective: resultPayload.objective } : {}),
       ...(resultPayload.components ? { components: resultPayload.components } : {}),
@@ -774,7 +1093,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
-    p_model: MODEL
+    p_model: activeModel
   });
 
   if (completeRes.error) {
@@ -788,7 +1107,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     operation,
     language,
     result: resultPayload,
-    model: MODEL
+    model: activeModel
   });
 }
 
@@ -801,9 +1120,30 @@ export async function handleCircuitCheckRequest(
   userClient: any,
   deps?: AiHandlerDependencies
 ): Promise<Response> {
+  const rawProvider = getEnv('OHMI_AI_PROVIDER', deps);
+  const provider = (rawProvider ? rawProvider.trim().toLowerCase() : 'gemini');
+  if (provider !== 'gemini' && provider !== 'qwen') {
+    return errorResponse('server_error', `Unsupported AI provider "${provider}".`, 500);
+  }
+
   const geminiApiKey = getEnv('GEMINI_API_KEY', deps);
-  if (!geminiApiKey) {
+  const qwenApiKey = getEnv('QWEN_API_KEY', deps);
+  const qwenBaseUrl = getEnv('QWEN_BASE_URL', deps);
+
+  if (provider === 'gemini' && !geminiApiKey) {
     return errorResponse('server_error', 'AI provider configuration is missing.', 500);
+  }
+  if (provider === 'qwen' && !qwenApiKey) {
+    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
+  }
+
+  let activeModel: string = MODEL;
+  if (provider === 'qwen') {
+    try {
+      activeModel = validateQwenModel(getEnv('QWEN_MODEL', deps) || DEFAULT_QWEN_MODEL);
+    } catch (err: unknown) {
+      return errorResponse('server_error', err instanceof Error ? err.message : 'Invalid Qwen model.', 500);
+    }
   }
 
   // 1. Validate V2 Request schema and semantic bounds
@@ -943,6 +1283,8 @@ export async function handleCircuitCheckRequest(
 
   const inputHash = await sha256Hex(JSON.stringify({
     version: 2,
+    provider,
+    model: activeModel,
     operation: 'circuit_check',
     language: reqV2.language,
     mode: reqV2.mode,
@@ -968,7 +1310,7 @@ export async function handleCircuitCheckRequest(
     p_target: targetId,
     p_hash: inputHash,
     p_language: reqV2.language,
-    p_model: MODEL,
+    p_model: activeModel,
     p_conversation_id: reqV2.conversationId || null
   });
 
@@ -1032,7 +1374,7 @@ export async function handleCircuitCheckRequest(
         resultId: reservation.result_id,
         conversationId: reqV2.conversationId || reservation.conversation_id || undefined,
         result: replayedResult,
-        model: reservation.model || MODEL,
+        model: reservation.model || activeModel,
         ...(calculationResult ? { calculation: calculationResult } : {})
       });
     }
@@ -1043,171 +1385,84 @@ export async function handleCircuitCheckRequest(
     return errorResponse('failed', 'This request previously failed. Please submit a new question.', 400);
   }
 
-  // 6. Build prompt & invoke Gemini provider (zero automatic retries)
+  // 6. Build prompt & invoke provider through unified transport seam
   const { systemInstruction, userPrompt } = buildCircuitPrompt(reqV2, evidence);
 
-  const userParts: any[] = [{ text: userPrompt }];
+  let promptText = userPrompt;
   if (arduinoValidation && arduinoValidation.warnings.length > 0) {
-    userParts.push({ text: `\n\n[Automated Arduino Checks]:\n${arduinoValidation.warnings.join('\n')}` });
+    promptText += `\n\n[Automated Arduino Checks]:\n${arduinoValidation.warnings.join('\n')}`;
   }
 
-  for (const img of reqV2.images) {
-    userParts.push({
-      inlineData: {
-        mimeType: img.mimeType,
-        data: img.data
-      }
-    });
-  }
+  const transportRes = await callAiProviderTransport({
+    provider,
+    model: activeModel,
+    systemInstruction,
+    promptText,
+    images: reqV2.images.map((img: any) => ({ mimeType: img.mimeType, data: img.data })),
+    maxTokens: 3072,
+    responseFormat: 'json_object',
+    geminiApiKey,
+    qwenApiKey,
+    qwenBaseUrl,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    fetchFn: deps?.fetch || fetch
+  });
 
-  const contents = [
-    {
-      role: 'user',
-      parts: userParts
-    }
-  ];
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${geminiApiKey}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  let providerRes: Response;
-  let responseText: string;
-  try {
-    const fetchFn = deps?.fetch || fetch;
-    providerRes = await fetchFn(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents,
-        generationConfig: {
-          maxOutputTokens: 3072,
-          temperature: 0.1,
-          responseMimeType: 'application/json'
-        }
-      }),
-      signal: controller.signal
-    });
-
-    if (providerRes.ok) {
-      responseText = await providerRes.text();
-    } else {
-      responseText = await providerRes.text().catch(() => '');
-    }
-  } catch (err: unknown) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'timeout',
-      p_error_message: 'Request timed out after 24 seconds.',
-      p_model: MODEL
-    });
-    return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!providerRes.ok) {
-    const status = providerRes.status;
-    let errMsg = `Provider error ${status}`;
-    try {
-      const errJson = JSON.parse(responseText);
-      errMsg = errJson?.error?.message || errMsg;
-    } catch { /* empty */ }
+  if (!transportRes.ok) {
+    const errCode = transportRes.code === 'payload_too_large' && transportRes.message.includes('truncated')
+      ? 'truncated'
+      : transportRes.code;
 
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: reqV2.requestId,
-      p_error_code: status === 429 ? 'rate_limit' : status === 503 ? 'unavailable' : 'provider_error',
-      p_error_message: errMsg.slice(0, 200),
-      p_model: MODEL
+      p_error_code: errCode,
+      p_error_message: transportRes.message.slice(0, 200),
+      p_model: activeModel
     });
 
-    if (status === 429 || status === 503) {
+    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: MODEL,
-        p_retry_after: 60
+        p_model: activeModel,
+        p_retry_after: transportRes.retryAfterSeconds || 60
       });
-      return errorResponse(status === 429 ? 'rate_limit' : 'unavailable', 'AI provider is temporarily busy or rate limited. Try again in a minute.', status, 60);
+      return errorResponse(
+        transportRes.code,
+        'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.status,
+        transportRes.retryAfterSeconds || 60
+      );
+    }
+
+    if (transportRes.code === 'timeout') {
+      return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
+    }
+
+    if (transportRes.code === 'quota_exhausted') {
+      return errorResponse('unavailable', 'AI provider free quota is exhausted or expired.', 503);
+    }
+
+    if (transportRes.code === 'payload_too_large') {
+      return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
+    }
+
+    if (transportRes.code === 'safety') {
+      return errorResponse('unavailable', 'AI response was filtered by safety guidelines.', 502);
+    }
+
+    if (transportRes.code === 'empty_answer') {
+      return errorResponse('unavailable', 'AI returned no answer. Try rephrasing your question.', 502);
+    }
+
+    if (transportRes.code === 'invalid_json') {
+      return errorResponse('unavailable', 'Received invalid response from AI provider.', 502);
     }
 
     return errorResponse('provider_error', 'AI provider returned an error.', 502);
   }
 
-  // 7. Parse & validate provider response bounds
-  if (responseText.length > 64 * 1024) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'payload_too_large',
-      p_error_message: 'Provider response exceeded 64 KiB.',
-      p_model: MODEL
-    });
-    return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
-  }
-
-  let data: any;
-  try {
-    data = JSON.parse(responseText);
-  } catch {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'invalid_json',
-      p_error_message: 'Provider returned malformed JSON.',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'Received invalid response from AI provider.', 502);
-  }
-
-  // Token accounting
-  const promptTokens = data.usageMetadata?.promptTokenCount;
-  const candidateTokens = data.usageMetadata?.candidatesTokenCount;
-  const hasUsage = typeof promptTokens === 'number' && typeof candidateTokens === 'number';
-  const inputTokens = hasUsage ? promptTokens : 2048;
-  const outputTokens = hasUsage ? candidateTokens : 2048;
-
-  // Validate candidate and finish reason
-  const candidate = data.candidates?.[0];
-  const finishReason = candidate?.finishReason;
-
-  if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'BLOCKLIST') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'safety',
-      p_error_message: `Provider safety block: ${finishReason}`,
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was filtered by safety guidelines.', 502);
-  }
-
-  if (finishReason === 'MAX_TOKENS') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'truncated',
-      p_error_message: 'Provider response was truncated (MAX_TOKENS).',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was truncated.', 502);
-  }
-
-  if (finishReason && finishReason !== 'STOP') {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'incomplete',
-      p_error_message: `Provider response not complete: ${finishReason}`,
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI response was incomplete.', 502);
-  }
-
-  const answerText = candidate?.content?.parts?.[0]?.text;
-  if (!answerText || !answerText.trim()) {
-    await adminClient.rpc('ohmi_fail_ai', {
-      p_request_id: reqV2.requestId,
-      p_error_code: 'empty_answer',
-      p_error_message: 'Provider returned empty candidate.',
-      p_model: MODEL
-    });
-    return errorResponse('unavailable', 'AI returned no answer. Try rephrasing your question.', 502);
-  }
+  const answerText = transportRes.text;
+  const inputTokens = transportRes.promptTokens;
+  const outputTokens = transportRes.completionTokens;
 
   // Parse structured result JSON
   let rawParsed: unknown;
@@ -1218,7 +1473,7 @@ export async function handleCircuitCheckRequest(
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
       p_error_message: 'Failed to parse JSON from circuit check response.',
-      p_model: MODEL
+      p_model: activeModel
     });
     return errorResponse('unavailable', 'Received invalid circuit check format from AI provider.', 502);
   }
@@ -1232,7 +1487,7 @@ export async function handleCircuitCheckRequest(
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
       p_error_message: valErr.slice(0, 200),
-      p_model: MODEL
+      p_model: activeModel
     });
     return errorResponse('unavailable', valErr, 502);
   }
@@ -1243,13 +1498,14 @@ export async function handleCircuitCheckRequest(
     p_output: {
       message: reqV2.message,
       answer: validatedResult.summary,
+      prompt_version: OHMI_TUTOR_VERSION,
       ...validatedResult,
       ...(calculationResult ? { calculation: calculationResult } : {}),
       ...(arduinoValidation ? { arduinoValidation } : {})
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
-    p_model: MODEL
+    p_model: activeModel
   });
 
   if (completeRes.error) {
@@ -1265,7 +1521,7 @@ export async function handleCircuitCheckRequest(
     resultId: completeRes.data?.id,
     conversationId: reqV2.conversationId || undefined,
     result: validatedResult,
-    model: MODEL,
+    model: activeModel,
     ...(calculationResult ? { calculation: calculationResult } : {})
   });
 }
