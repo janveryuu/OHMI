@@ -18,7 +18,7 @@ npm run build
 npm run start
 ```
 
-The service worker is intentionally disabled during development. Use a dedicated localhost origin or a separate HTTPS host when deploying later. Do not mount this PWA at the landing page's root: its worker has origin-root scope. No production deployment is authorized or configured by this task.
+The service worker is intentionally disabled during development. Production uses the separate Vercel project `ohmi-workspace`, with `web-app` as its root and `codex/ohmi-web-app-pwa` as its tracked production branch. The landing page's `/app` routes redirect to this PWA's public HTTPS origin. Its worker remains isolated from the landing page.
 
 ## Included
 
@@ -41,7 +41,7 @@ No Supabase, authentication, AI SDK or upload endpoint is connected. Files use o
 
 The manifest supplies standalone display, icons, shortcuts and app metadata. A first-visit worker registers in production. It caches exactly the public offline page and approved mascot/icon assets. It never caches navigations, API/RSC responses, chat, blobs, credentials or learning records. Offline navigation opens an honest public fallback rather than stale personal screens. Updates wait until the user chooses Apply update; the UI warns that applying clears in-memory demo content.
 
-Installation requires localhost or HTTPS and browser support. Safari on iPhone/iPad uses Share > Add to Home Screen. Other supported browsers expose Install OHMI or a browser menu. Document PiP is browser-dependent; availability or denial falls back to the in-app companion.
+Installation requires localhost or HTTPS and browser support. Safari on iPhone/iPad uses Share > Add to Home Screen. Other supported browsers expose Install OHMI or a browser menu. Document PiP is browser-dependent; availability or denial falls back to the in-app companion. No environment variables are required for this frontend deployment.
 
 ## Checks
 
