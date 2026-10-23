@@ -16,32 +16,32 @@
       "permanent": false
     },
     {
-      "source": "/ask",
+      "source": "/ask/",
       "destination": "/app/ask/",
       "permanent": false
     },
     {
-      "source": "/assignments",
+      "source": "/assignments/",
       "destination": "/app/assignments/",
       "permanent": false
     },
     {
-      "source": "/checker",
+      "source": "/checker/",
       "destination": "/app/checker/",
       "permanent": false
     },
     {
-      "source": "/guide",
+      "source": "/guide/",
       "destination": "/app/guide/",
       "permanent": false
     },
     {
-      "source": "/progress",
+      "source": "/progress/",
       "destination": "/app/progress/",
       "permanent": false
     },
     {
-      "source": "/settings",
+      "source": "/settings/",
       "destination": "/app/settings/",
       "permanent": false
     }
