@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const landing=process.env.OHMI_WEBSITE_URL||'https://meetohmi.vercel.app';
-const app=process.env.OHMI_APP_URL||'https://ohmi-workspace.vercel.app';
+const app=process.env.OHMI_APP_URL||landing+'/app';
 const output=fileURLToPath(new URL('../.impeccable/review/production/',import.meta.url));
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true});
@@ -25,19 +25,53 @@ try{
     ]){
       await page.goto(landing);
       await page.locator(selector).click();
-      await page.waitForURL(app+path);
+      await page.waitForURL(app+path.replace(/\/$/, '')+'/');
       await page.getByRole('heading',{name:title,exact:true}).waitFor();
       await page.reload();
       await page.getByRole('heading',{name:title,exact:true}).waitFor();
     }
     checks.push(`Launch, Meet, Ask, Checker and Guide links plus refresh pass at ${width}px`);
   }
-  for(const path of ['/app','/app/ask','/app/checker','/app/guide']){
+  for(const path of ['/app/','/app/ask/','/app/assignments/','/app/checker/','/app/guide/','/app/progress/','/app/settings/']){
     const response=await page.request.get(landing+path,{maxRedirects:0});
-    assert.equal(response.status(),307);
-    assert.equal(response.headers().location,app+(path.slice(4)||'/'));
+    assert.equal(response.status(),200);
+    assert.equal(response.headers().location,undefined);
   }
-  checks.push('All /app entry points return correct 307 redirects');
+  checks.push('All seven /app/ routes return 200 without leaving the official origin');
+  for(const path of ['/','/ask','/assignments','/checker','/guide','/progress','/settings']){
+    const response=await page.request.get('https://ohmi-workspace.vercel.app'+path);
+    assert.equal(response.status(),200,path);
+    assert.equal(response.url(),'https://ohmi-workspace.vercel.app/app'+(path==='/'?'/':path+'/'));
+  }
+  const legacy=await page.request.get('https://ohmi-workspace.vercel.app/sw.js');
+  assert.equal(legacy.status(),200);
+  assert.match(await legacy.text(),/registration.unregister/);
+  assert.match(legacy.headers()['cache-control'],/no-store/);
+  const query=await page.request.get(landing+'/app/ask/?source=landing');
+  assert.equal(query.status(),200);
+  assert.equal(query.url(),landing+'/app/ask/?source=landing');
+  const worker=await page.request.get(landing+'/app/sw.js');
+  assert.equal(worker.status(),200);
+  assert.match(worker.headers()['content-type'],/javascript/);
+  assert.match(worker.headers()['cache-control'],/no-store/);
+  checks.push('Legacy entry URLs redirect correctly; retirement worker, query strings and uncached same-origin app worker pass');
+  const entry=await page.request.get(landing+'/app',{maxRedirects:0});
+  assert.equal(entry.status(),308);
+  assert.equal(new URL(entry.headers().location,landing).href,app+'/');
+  await page.goto(app+'/');
+  const scope=await page.evaluate(async()=> (await navigator.serviceWorker.ready).scope);
+  assert.equal(scope,app+'/');
+  for(const selector of ['link[rel="manifest"]','link[rel="icon"]','link[rel="apple-touch-icon"]']){
+    assert.ok(new URL(await page.locator(selector).first().getAttribute('href'),page.url()).pathname.startsWith('/app/'));
+  }
+  const session=await page.context().newCDPSession(page);
+  await page.waitForTimeout(1500);
+  const installability=await session.send('Page.getInstallabilityErrors');
+  assert.deepEqual(installability.installabilityErrors,[]);
+  checks.push('Chromium reports no PWA installability errors on the official origin');
+  await page.goto(landing);
+  assert.equal(await page.evaluate(()=>navigator.serviceWorker.controller),null);
+  checks.push('Canonical /app redirect stays same-origin; manifest/icons and worker use /app/; landing stays outside worker scope');
   for(const name of ['styles.css','app.js','scene.js']){
     const response=await page.request.get(landing+'/'+name);
     assert.equal(response.status(),200);

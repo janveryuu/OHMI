@@ -1,6 +1,6 @@
 # OHMI cinematic landing page
 
-Owner-approved MotionSites-inspired countryside landing page, live at https://meetohmi.vercel.app/ from `codex/ohmi-website`. The PWA is live at https://ohmi-workspace.vercel.app/. See [deployment, updates and rollback](DEPLOYMENT.md).
+Owner-approved MotionSites-inspired countryside landing page, live at https://meetohmi.vercel.app/ from `codex/ohmi-website`. The PWA is live at https://meetohmi.vercel.app/app/. See [deployment, updates and rollback](DEPLOYMENT.md).
 
 Canonical source is `src/`. `dist/` is now generated and ignored. Native HTML/CSS/JavaScript; no application dependencies, environment variables, trackers, backend or AI requests.
 

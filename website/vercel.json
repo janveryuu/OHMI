@@ -4,18 +4,39 @@
   "buildCommand": "node build.mjs",
   "installCommand": "",
   "outputDirectory": "dist",
-  "git": { "deploymentEnabled": { "*": false, "codex/ohmi-website": true } },
-  "redirects": [
-    { "source": "/app/:path*", "destination": "https://ohmi-workspace.vercel.app/:path*", "permanent": false }
-  ],
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "codex/ohmi-website": true
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/app",
+      "destination": "https://ohmi-workspace.vercel.app/app"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "https://ohmi-workspace.vercel.app/app/:path*"
     }
   ]
 }
