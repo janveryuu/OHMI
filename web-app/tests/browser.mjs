@@ -441,9 +441,9 @@ try {
   assert.equal(errors.length, 0, JSON.stringify(errors));
   await writeFile(
     new URL("report.json", out),
-    JSON.stringify({ results, errors, violations }, null, 2),
+    JSON.stringify({ base, verifiedAt: new Date().toISOString(), results, errors, violations }, null, 2),
   );
-  console.log(JSON.stringify({ results, errors, violations }, null, 2));
+  console.log(JSON.stringify({ base, verifiedAt: new Date().toISOString(), results, errors, violations }, null, 2));
   assert.equal(
     violations.length,
     0,

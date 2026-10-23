@@ -48,3 +48,11 @@ For full rollback, restore the landing deployment first (it redirects to the sta
 ## Verification limits
 
 Production evidence is stored beside this document and in `website/design/production`. Browser tests use real HTTPS URLs with desktop/tablet/mobile viewports, not physical phones. Native OS installation, Safari, screen readers and real Document Picture-in-Picture remain unqualified. The frontend remains the approved, clearly labeled demonstration with local session-only files, chat and progress.
+
+## Verified production results, 24 October 2026
+
+The full PWA browser suite against `https://meetohmi.vercel.app/app` passes all seven routes at six screen sizes (320-1440 pixels), light/dark and adaptive accessibility scans, active navigation, chat/history/cancellation, file preview/crop, guide/progress, preferences after hydration/reload, companion fallback, installation handoff, offline app-root fallback and emulated touch/reduced motion. There are zero page errors, failed responses, unexpected external requests or axe violations. Evidence: `production-browser-verification.json`.
+
+Landing production tests pass five viewport widths and preserve actual grass/hair/cloud/antenna motion with unchanged sampled mascot face. Official-domain link tests pass Launch/Meet and all three feature cards with refresh at 1440, 768 and 390 pixels. All seven direct app routes return 200 without cross-origin redirects. Query strings, manifest/icons, no-store worker headers, slash normalization, installation eligibility, old route compatibility and root worker retirement pass. The root worker deletes only its old cache, preserves app/unrelated caches, and does not navigate clients. The landing has no controlling app worker. See the landing branch's `website/design/production/links.json` and `motion.json`.
+
+Local production build and typecheck pass; five unit tests cover existing file/crop/progress boundaries plus worker isolation and retirement. No visual redesign, backend operation or paid service was introduced. Native OS installation and physical devices remain outside these browser checks.

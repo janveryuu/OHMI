@@ -1,4 +1,6 @@
 {
+  "base": "https://meetohmi.vercel.app/app",
+  "verifiedAt": "2026-10-23T19:46:13.783Z",
   "results": [
     "All routes fit 1440x1000",
     "All routes fit 1024x768",
