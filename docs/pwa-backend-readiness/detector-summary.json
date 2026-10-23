@@ -1,0 +1,11 @@
+{
+  "primaryFindings": 1,
+  "advisories": 117,
+  "disposition": "Retain approved self-hosted Geist; report design-document token drift, do not redesign or repair documentation as a side effect.",
+  "rules": [
+    "design-system-color",
+    "design-system-font-size",
+    "design-system-radius",
+    "overused-font"
+  ]
+}

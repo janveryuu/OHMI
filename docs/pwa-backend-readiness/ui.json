@@ -1,0 +1,63 @@
+{
+  "url": "https://meetohmi.vercel.app/app/",
+  "checkedAt": "2026-10-23T19:56:36.596Z",
+  "viewports": [
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "title": "OHMI | Your Circuit Buddy"
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "title": "OHMI | Your Circuit Buddy"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "title": "OHMI | Your Circuit Buddy",
+      "panel": {
+        "x": -195,
+        "y": 218.5,
+        "width": 390,
+        "height": 417,
+        "right": 195,
+        "bottom": 635.5,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "left": "195px",
+        "translate": "-50% -50%",
+        "transform": "matrix(1, 0, 0, 1, -195, 0)",
+        "position": "fixed",
+        "fullyVisible": false
+      },
+      "escapeDismisses": true
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "overflow": false,
+      "title": "OHMI | Your Circuit Buddy",
+      "panel": {
+        "x": -160,
+        "y": 218.5,
+        "width": 320,
+        "height": 417,
+        "right": 160,
+        "bottom": 635.5,
+        "viewportWidth": 320,
+        "viewportHeight": 844,
+        "left": "160px",
+        "translate": "-50% -50%",
+        "transform": "matrix(1, 0, 0, 1, -160, 0)",
+        "position": "fixed",
+        "fullyVisible": false
+      },
+      "escapeDismisses": true
+    }
+  ],
+  "errors": []
+}
