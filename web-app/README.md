@@ -2,6 +2,8 @@
 
 Standalone frontend demonstration. This folder has its own dependency lockfile, Next.js build and local server. The WXT extension, Supabase and production landing page are separate.
 
+Live app: [ohmi-workspace.vercel.app](https://ohmi-workspace.vercel.app/). Landing page: [meetohmi.vercel.app](https://meetohmi.vercel.app/). See [production setup and update instructions](docs/PRODUCTION.md).
+
 ## Preview
 
 From this folder, run:

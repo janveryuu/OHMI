@@ -14,7 +14,7 @@ User requested Next.js App Router, React, TypeScript, Tailwind, shadcn/ui, Motio
 
 ## Constraints
 
-Use the exact approved mascot PNG. Preserve teal identity. Do not imply Autodesk affiliation or electrical verification from a screenshot. No production deployment is authorized. Backend integration is a later phase.
+Use the exact approved mascot PNG. Preserve teal identity. Do not imply Autodesk affiliation or electrical verification from a screenshot. The owner authorized production frontend deployment on 24 October 2026. Backend integration remains a later phase.
 
 ## Success
 

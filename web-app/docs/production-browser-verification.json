@@ -1,0 +1,23 @@
+{
+  "origin": "https://ohmi-workspace.vercel.app",
+  "verifiedDate": "2026-10-24",
+  "results": [
+    "All routes fit 1440x1000",
+    "All routes fit 1024x768",
+    "All routes fit 768x1024",
+    "All routes fit 390x844",
+    "All routes fit 320x640",
+    "All routes fit 844x390",
+    "Chat presets, expand/restore, history and cancellation pass",
+    "Assignment local add, preview and cancel removal pass",
+    "Local crop, simulated findings and reset pass",
+    "Guide completion drives progress and achievements",
+    "Unsupported PiP fallback routes without losing session",
+    "Deferred install event remains available after navigating to Settings",
+    "Settings preferences persist; mobile More navigation works",
+    "Manifest, service worker public allowlist and offline fallback pass",
+    "Emulated mobile tap/swipe and system reduced-motion pass"
+  ],
+  "errors": [],
+  "violations": []
+}
