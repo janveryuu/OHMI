@@ -47,6 +47,24 @@ try{
   assert.equal(legacy.status(),200);
   assert.match(await legacy.text(),/registration.unregister/);
   assert.match(legacy.headers()['cache-control'],/no-store/);
+  const legacyContext=await browser.newContext();
+  try{
+    const legacyPage=await legacyContext.newPage();
+    await legacyPage.goto('https://ohmi-workspace.vercel.app/app/');
+    await legacyPage.evaluate(async()=>{
+      await navigator.serviceWorker.ready;
+      await caches.open('ohmi-public-shell-v1');
+      await caches.open('unrelated-verification-cache');
+      await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+    });
+    await legacyPage.waitForFunction(async()=> !(await navigator.serviceWorker.getRegistrations()).some(registration=>new URL(registration.scope).pathname==='/'));
+    const names=await legacyPage.evaluate(()=>caches.keys());
+    assert.ok(!names.includes('ohmi-public-shell-v1'));
+    assert.ok(names.includes('ohmi-app-public-shell-v2'));
+    assert.ok(names.includes('unrelated-verification-cache'));
+    assert.equal(legacyPage.url(),'https://ohmi-workspace.vercel.app/app/');
+    checks.push('Legacy root worker retires without navigating; new app and unrelated caches remain intact');
+  }finally{await legacyContext.close();}
   const query=await page.request.get(landing+'/app/ask/?source=landing');
   assert.equal(query.status(),200);
   assert.equal(query.url(),landing+'/app/ask/?source=landing');
@@ -87,6 +105,6 @@ try{
   await page.screenshot({path:output+'/landing-mobile.png',fullPage:true});
   await page.goto(app);await page.screenshot({path:output+'/app-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
-  await writeFile(output+'/links.json',JSON.stringify({landing,app,checks,errors},null,2));
+  await writeFile(output+'/links.json',JSON.stringify({landing,app,verifiedAt:new Date().toISOString(),checks,errors},null,2));
   console.log(JSON.stringify({checks,errors},null,2));
 }finally{await browser.close();}

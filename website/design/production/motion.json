@@ -3,24 +3,24 @@
     {
       "motionRegions": {
         "grass": {
-          "changed": 65741,
+          "changed": 66473,
           "total": 106001,
-          "ratio": 0.6201922623371477
+          "ratio": 0.6270978575673815
         },
         "hair": {
-          "changed": 6700,
+          "changed": 6642,
           "total": 13356,
-          "ratio": 0.5016471997604073
+          "ratio": 0.4973045822102426
         },
         "clouds": {
-          "changed": 18681,
+          "changed": 18985,
           "total": 79339,
-          "ratio": 0.23545797148943143
+          "ratio": 0.23928963057260616
         },
         "antennae": {
-          "changed": 1306,
+          "changed": 1376,
           "total": 4945,
-          "ratio": 0.2641051567239636
+          "ratio": 0.2782608695652174
         },
         "face": {
           "changed": 0,

@@ -9,7 +9,7 @@ The owner approved production deployment on 24 October 2026. Preserve the cinema
 | Cinematic landing | meetohmi | website | codex/ohmi-website | https://meetohmi.vercel.app/ |
 | Next.js PWA | ohmi-workspace | web-app | codex/ohmi-web-app-pwa | https://meetohmi.vercel.app/app/ |
 
-The landing project externally rewrites `/app` and `/app/:path*` to the same prefixed paths on `https://ohmi-workspace.vercel.app`. The browser stays on `meetohmi.vercel.app`. Launch OHMI and Meet OHMI use `/app`; feature cards use `/app/ask`, `/app/checker` and `/app/guide`. Navigation anchors, styles, mascot and cinematic animation code remain unchanged.
+The landing project externally rewrites `/app` and `/app/:path*` to the same prefixed paths on `https://ohmi-workspace.vercel.app`. The browser stays on `meetohmi.vercel.app`. Keep both slash-preserving page rules (`/app/`, `/app/:path*/`) and unslashed entry/asset rules (`/app`, `/app/:path*`); Vercel matches trailing slashes explicitly. Launch OHMI and Meet OHMI use `/app`; feature cards use `/app/ask`, `/app/checker` and `/app/guide`. Navigation anchors, styles, mascot and cinematic animation code remain unchanged.
 
 The independently deployed Next.js PWA uses `basePath: "/app"` and `trailingSlash: true`. Unsuffixed routes redirect to the same-origin slash form. Manifest identity/start/scope, icon and image paths, offline fallback, and worker registration use `/app/`. The worker cannot control the landing page. The standalone production alias remains available at `https://ohmi-workspace.vercel.app/app/`; its former root routes redirect for compatibility. Deploy app path support before switching the landing proxy.
 
@@ -41,3 +41,9 @@ For full rollback, use Vercel Rollback/Promote on the landing first, then the PW
 The deployed PWA remains a clearly labeled frontend demonstration. Chat uses presets, uploads are local previews, and screenshot findings are illustrative. No account, database, live AI or cloud persistence is connected. Offline caching contains only the public fallback, mascot and icons. Physical-device installation and real hardware accuracy require separate qualification.
 
 Existing installations and local preferences on the old PWA origin cannot migrate across origins. Reinstall from the official `/app/` URL. The standalone project serves a retirement worker at `/sw.js` to unregister its former root worker and clear only the old public-shell cache, without reloading user sessions.
+
+## Unified-domain production verification, 24 October 2026
+
+Actual HTTPS production checks pass: all seven prefixed routes return 200; Launch/Meet and feature links plus reload work at 1440, 768 and 390 pixels without leaving the official origin. Queries, same-origin manifest/icons, worker no-store headers, canonical redirects, old-origin redirects and root worker retirement pass. Chromium reports no installation eligibility errors; the landing remains uncontrolled by the app worker. Retirement preserves the new app cache and unrelated caches without navigating the page.
+
+The cinematic suite passes five widths, motion-region pixel checks, unchanged sampled face, pause/resume/offscreen, keyboard, reduced motion, no-JavaScript and no-WebGL. Delivered CSS, interaction and scene code match approved source after line-ending normalization. No failed responses or page errors. Evidence: `design/production/links.json` and `motion.json`. Browser emulation does not qualify native OS installation or physical devices.
