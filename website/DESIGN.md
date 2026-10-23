@@ -1,229 +1,137 @@
 ---
-name: OHMI website
-description: A friendly electronics companion in a dark mint pixel world.
+name: OHMI sunny countryside
+description: A warm circuit-learning companion in the owner's countryside illustration.
 colors:
-  bg: "#020e0b"
-  surface: "#0c211b"
-  ink: "#f5faf5"
-  muted: "#b5c8c1"
-  mint: "#a6f6df"
-  line: "#2c4b40"
+  ink: "#173f36"
+  muted: "#44675c"
+  paper: "#f1f7ef"
+  mint: "#dcead9"
+  accent: "#245c48"
+  white: "#f9fcf7"
+  focus: "#f8d254"
+  scene-ground: "#54783e"
+  preview-surface: "#e2ecdd"
+  glass: "rgb(207 228 209 / .42)"
 typography:
   display:
-    fontFamily: "Special Gothic, Manrope, sans-serif"
-    fontSize: "clamp(72px, 8.85vw, 133px)"
-    fontWeight: 700
-    lineHeight: 0.96
-    letterSpacing: "-0.04em"
+    fontFamily: "Grandstander, sans-serif"
+    fontSize: "clamp(100px,10vw,144px)"
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: "-.035em"
   headline:
-    fontFamily: "Special Gothic, Manrope, sans-serif"
-    fontSize: "clamp(38px, 4.15vw, 64px)"
-    fontWeight: 700
-    lineHeight: 1.08
-    letterSpacing: "-0.04em"
-  title:
-    fontFamily: "Manrope, sans-serif"
-    fontSize: "22px"
-    fontWeight: 750
-    lineHeight: 1.35
-    letterSpacing: "-0.025em"
+    fontFamily: "Grandstander, sans-serif"
+    fontSize: "clamp(32px,3.3vw,48px)"
+    fontWeight: 900
+    lineHeight: 1.12
+    letterSpacing: "-.025em"
   body:
-    fontFamily: "Manrope, sans-serif"
-    fontSize: "17px"
-    fontWeight: 400
-    lineHeight: 1.65
+    fontFamily: "Inter, sans-serif"
+    fontSize: "16px"
+    lineHeight: 1.6
   label:
-    fontFamily: "Manrope, sans-serif"
-    fontSize: "17px"
-    fontWeight: 600
-  brand:
-    fontFamily: "Silkscreen, Manrope, sans-serif"
-    fontSize: "38px"
-    fontWeight: 700
-    lineHeight: 1
-    letterSpacing: "-0.04em"
+    fontFamily: "Inter, sans-serif"
+    fontSize: "15px"
+    fontWeight: 500
 rounded:
-  inset: "8px"
-  illustration: "12px"
-  panel: "16px"
-  pill: "100px"
+  surface: "16px"
+  pill: "999px"
 spacing:
-  close: "12px"
-  related: "18px"
-  component: "24px"
-  roomy: "30px"
-  section-mobile: "68px"
-  section-tablet: "84px"
-  section-desktop: "112px"
+  card-gap: "20px"
+  mobile-gutter: "22px"
+  preview-padding: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.mint}"
-    textColor: "{colors.bg}"
+    backgroundColor: "{colors.white}"
+    textColor: "#315f46"
     rounded: "{rounded.pill}"
-    padding: "17px 30px"
-  button-outline:
-    backgroundColor: "transparent"
+    padding: "14px 25px"
+    height: "56px"
+  navigation:
+    backgroundColor: "{colors.glass}"
     textColor: "{colors.ink}"
     rounded: "{rounded.pill}"
-    padding: "17px 30px"
-  button-small:
-    backgroundColor: "{colors.mint}"
-    textColor: "{colors.bg}"
-    rounded: "{rounded.pill}"
-    padding: "15px 25px"
-  preview-tab:
-    backgroundColor: "transparent"
+    padding: "0 30px"
+    height: "50px"
+  feature-card:
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.pill}"
-    padding: "12px 18px"
-  preview-tab-selected:
-    backgroundColor: "{colors.mint}"
-    textColor: "{colors.bg}"
-    rounded: "{rounded.pill}"
-    padding: "12px 18px"
-  learning-panel:
-    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.surface}"
+  learning-preview:
+    backgroundColor: "{colors.preview-surface}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.panel}"
-    padding: "32px"
+    rounded: "{rounded.surface}"
+    padding: "{spacing.preview-padding}"
 ---
 
-# Design System: OHMI website
+# Design System: OHMI sunny countryside
 
 ## Overview
 
-**Creative North Star: "Bold type and horizon"**
+**Creative North Star: A circuit buddy in the countryside.** The owner's supplied sunny illustration establishes the world: open blue sky, green hills, a seated student and OHMI. White playful display type and frosted controls follow the owner-selected MotionSites composition. Quiet pale-green reading sections continue its warmth below the scene.
 
-Large, tightly set sans headings make electronics feel approachable. The approved pixel-art companion brings warmth to a green-black field, with mint actions and a luminous pixel horizon. Quiet lower sections give explanations and setup instructions room to read.
-
-This system describes the standalone marketing website, not the extension interface. It follows owner-approved Concept C in `design/concept-c-spark.png` and the direction contract in `design/SURFACE.md`; built ground truth is `dist/index.html`, `dist/styles.css`, and `dist/app.js`. Native controls and self-hosted fonts keep the surface direct and lightweight.
+This records the review build in `src/index.html`, `src/styles.css`, `src/app.js` and `src/scene.js`, governed by `design/cinematic/PLAN.md`. It supersedes the previous dark-mint website direction; the historical visual brief in `PRODUCT.md` does not describe this build. Product truth remains unchanged. This is a review branch, not a deployment record.
 
 **Key Characteristics:**
 
-- Green-black canvas, ivory hierarchy, mint actions and explanations.
-- Oversized compact headings beside the unchanged pixel mascot.
-- Pill controls, quiet hairlines, generous vertical space.
-- Scripted educational examples with visible limitations.
-- Brief entrance motion with a complete reduced-motion fallback.
+- Exact supplied countryside art, responsive delivery copies and the original approved pixel mascot.
+- Grandstander display type with Inter explanations and controls.
+- White and frosted pills, soft card shadows and generous reading space.
+- Localized environmental motion with a complete still-image presentation.
 
 ## Colors
 
-The palette uses one light mint accent over deep green neutrals; approved artwork supplies its own richer colors.
-
 ### Primary
 
-- **Mint:** primary actions, selected preview tabs, focus outlines, circuit strokes, answer identity, and restrained accents.
+Deep forest **Accent** marks selected preview questions and environmental-motion controls. The illustration supplies the saturated sky and hillside colors; do not approximate it with replacement scenery.
 
 ### Neutral
 
-- **Green Black:** uninterrupted page field and dark text within mint controls.
-- **Deep Forest Surface:** the educational preview panel, separated from the canvas without elevation.
-- **Ivory Ink:** headings, readable answer text, outlined actions, and navigation.
-- **Soft Sage:** supporting paragraphs, secondary explanations, and disclosure text.
-- **Forest Hairline:** panel borders, section dividers, and FAQ separators.
+**Ink** carries headings and controls, **Muted** carries supporting prose, and **Paper** is the page and card surface. **Mint** and **Preview Surface** distinguish secondary controls and the local learning sample. **White** carries hero text and primary actions. **Glass** lets the sky show through navigation. **Focus** supplies the visible yellow keyboard outline and text selection.
 
-**The Mint Means Action Rule.** Use mint for actionable or explanatory emphasis; keep long supporting paragraphs in Soft Sage.
+**The Sunny Scene Rule.** Keep this light palette in both operating-system color schemes; the implementation explicitly sets `color-scheme: light`.
 
 ## Typography
 
-**Display Font:** Special Gothic with Manrope and sans-serif fallbacks.
+Both fonts are self-hosted with license files. Grandstander (900) gives the headline, section headings and wordmark a friendly rounded character; Inter supports legible explanations and navigation.
 
-**Body Font:** Manrope with a sans-serif fallback.
-
-**Brand Font:** Silkscreen Bold with Manrope and sans-serif fallbacks, confined to the OHMI wordmark. Code examples use `ui-monospace, SFMono-Regular, Consolas, monospace`.
-
-All three brand/content families are self-hosted under `dist/assets/`, with SIL OFL license files. Manrope exposes weights 200–800; Special Gothic exposes weights 400–700 and width 75%–125%; Silkscreen is the 700 file. The current stylesheet does not set a display width-axis override.
-
-### Hierarchy
-
-- **Display:** the frontmatter describes the default desktop hero. Two explicit lines use tight tracking and line-height. At widths through 1250px it becomes 8.8vw; through 760px it uses `clamp(42px, 8.25vw, 62px)` with line-height 1.09; through 420px it becomes 9.6vw.
-- **Headline:** the default section heading follows the frontmatter. Setup and FAQ headings have contextual size overrides; they retain the same family and compact rhythm.
-- **Title:** Manrope provides the warmer, smaller article and question titles; setup titles use 20px on desktop.
-- **Body:** the default is the frontmatter body role. Introductory paragraphs use 18–20px; the hero introduction scales from 20–31px on large screens and becomes 18px, then 16px, on narrow screens.
-- **Label:** navigation uses the frontmatter label role. Buttons use weight 750 and 18px by default; preview tabs use weight 650 and 14px by default. Do not derive a general small-text scale from the current helper copy.
-- **Brand:** the desktop wordmark uses the frontmatter brand role. It becomes 30px through 760px and 26px through 420px; the footer uses 30px, then 28px.
-- **Technical text:** the code block uses 13px/1.75 and horizontal scrolling; it becomes 12px on mobile. Diagram labels increase to 24px through 760px and 28px through 420px in SVG coordinates to remain readable as the figure shrinks.
-
-**The Pixel Accent Rule.** Keep pixel lettering to the wordmark and pixel texture to the approved artwork and sparse decoration; explanatory prose stays in Manrope.
+The hero is two separate white lines, **MEET / OHMI**, with a smaller uppercase kicker. On phones the display becomes (82px), falling to (76px) below (370px); tablets from (560–820px) use (100px). Supporting hero text scales from (16–21px), uses a dark blue shadow and a (1px) stroke with stroke painted behind the fill to remain readable against clouds. Feature titles use Grandstander (24px); long answers stay in Inter with a (65ch) maximum measure.
 
 ## Layout
 
-The shared centered container is at most 1377px wide. Its desktop width is the viewport minus 128px; through 1250px it subtracts 80px, through 760px 48px, and through 420px 40px. Repeated section spacing uses the three section tokens in the frontmatter.
+The wide opening centers the hero in open sky while keeping the student and OHMI at lower left. The image frame preserves its source ratio (1672:941). The scene flows into three equal feature cards, followed by mascot introduction, three learning roles, scripted preview, about text, retained FAQ and source footer. Standard content uses a maximum (1180px) width and (48px) side gutters; wide screens from (1700px) expand feature content to (1280px).
 
-The desktop header is a 112px flex row. The hero has an isolated stacking context: copy above, full mascot lower-right, decorative horizon behind. Copy occupies 76% with a 970px maximum; the mascot uses 42% with a 580px maximum. Wide screens at 1600px and up cap the headline at 133px and extend hero height. Keep text and mascot visibly separate, following the approved composition.
-
-The preview uses a `.95fr / 1.05fr` split with a 66px gap; through 1000px it stacks. Companion capabilities and setup steps use three columns. FAQ starts as a `.8fr / 1.2fr` split and stacks through 1000px.
-
-Through 760px, the header becomes 90px high and hides the two secondary navigation links while retaining the setup action. The hero becomes a vertical flow; the full mascot follows the copy, centered at 76% width and at most 360px. Companion articles become image/text rows; setup and FAQ become single columns. Through 420px, companion article contents stack and the mascot grows to 84% width. The footer retains two groups, with links arranged vertically on mobile.
-
-The build is spacious rather than card-dense. Keep content sections in the shared container; only the learning example needs a full enclosing panel. FAQ answers cap at 65ch. Preserve touch-sized controls: preview tabs start at 48px high, become 46px on mobile; mobile footer links remain at least 44px high.
+Laptop adjustments apply from (821–1100px). At (820px) and below, navigation becomes a menu, text sits above a landscape window, and a (100px) image-mask fade removes the sky seam. Cards become a keyboard-focusable horizontal snap track with (22px) gutters and (77%) card widths. Tablets from (560–820px) use (47%) cards and a wider landscape crop. Reading columns stack on phones; sample-question pills become full-width rounded rows. Safe-area padding protects mobile controls and footer.
 
 ## Elevation & Depth
 
-Depth comes from tonal separation, borders, the horizon glow, and the mascot artwork. Panels and capability illustrations do not have card shadows. The mascot alone has a soft object shadow (`drop-shadow(0 18px 25px #0006)`); sparse pixel stars have a small glow. These decorative effects do not define a general elevation scale.
+Illustration, sky shading and the lower landscape fade create scene depth. Navigation uses frosted glass (18px blur) with a subtle inset highlight. Secondary hero actions use (14px) blur. Reduced transparency replaces these with solid pale-green surfaces.
 
-**The Quiet Surface Rule.** Separate functional containers with surface tone and a single hairline; leave cinematic glow to the decorative horizon and stars.
+Cards use the shared ambient shadow `0 12px 32px rgb(24 64 44 / .17)`, deepening on hover. Primary actions have a smaller ambient shadow. Lower reading sections rely on tonal surfaces and thin green dividers rather than enclosing every section in a card.
 
 ## Shapes
 
-Controls are pills. Content uses restrained soft corners: the learning panel uses the panel token, becoming 14px on mobile; capability illustration fields and speech bubbles use the illustration token; code uses the inset token. One-pixel borders and simple straight dividers organize content. Circular numbered setup markers give sequence without enclosing every step in a card.
-
-The original mascot retains its square source proportions, transparency, complete antennae and feet, and crisp `image-rendering: pixelated` scaling. Never stretch or regenerate it to fit a layout.
+Use full pills for navigation and actions, gently rounded rectangles for cards and preview surfaces, circular arrow badges and a round pale-green mascot frame. Preserve the mascot's complete silhouette, proportions and transparent source; apply pixelated rendering to its UI copies. The countryside remains a single image texture, without duplicate character layers.
 
 ## Components
 
-### Buttons
+**Navigation and actions.** The compact three-part desktop header holds the brand, centered glass navigation and launch action. Links reveal a fine underline; primary pills rise (2px), their arrows shift diagonally, and active pills compress to (.98). Keyboard focus uses a (3px) yellow outline offset (5px). The mobile menu closes on link activation, outside click or Escape, returning focus on Escape.
 
-Friendly pill links carry the primary page actions. Default height is at least 64px; the small header variant starts at 58px. Mint fill with dark text is primary; the outlined variant uses ivory text and a sage border. Hover lightens mint to `#c4ffdf` and moves the control up 2px; outline hover uses a translucent mint field. Active returns to its resting position. Arrow SVGs use a 22px square by default and inherit the text color.
+**Feature cards.** Real local PWA screenshots introduce Ask OHMI, Check My Circuit and Guided Builds; they depict frontend previews. Cards have image windows at (1.64) aspect ratio and rise (8px), with image scale (1.05), on hover or keyboard focus. Preserve their anchors to the corresponding learning explanations.
 
-All links, buttons, summaries, and focusable panels share a visible 3px mint focus outline with a 6px offset. Preserve the focused skip link, which reveals itself above the page and targets main content.
+**Learning preview.** A pale-green container holds three native question buttons and a polite live answer region. Forest fill and white text indicate selection. Responses are scripted local text; the visible limitation belongs beside the preview. No input field or upload interaction exists here.
 
-### Preview tabs
+**FAQ and source access.** Four retained answers use native details/summary disclosures with pale surfaces, muted prose and sparse green dividers. Preserve the existing `#faq`, `#get-started` and `#top` destinations, the source setup link and the focusable main target for the skip link. This preserves existing content and navigation, without introducing product capability.
 
-Pill buttons switch among three labeled, scripted examples. Transparent unselected tabs have a muted green border; the selected tab has mint fill and dark text. ARIA tab/tabpanel associations and roving tabindex are implemented. Left/right arrows wrap; Home and End jump; activation updates `?preview=` using `replaceState`. Reload and `popstate` restore a valid topic; an unknown topic falls back to the first tab.
+**Entrance and scene.** Native Web Animations API entrances rise into place with `cubic-bezier(.16,1,.3,1)`. Headline lines stagger (160ms); subsequent copy, pills and feature cards follow. Content remains visible when JavaScript fails. The WebGL source-image wind field has a (24-second) period and a (30fps) draw cap, with independently phased grass, hair, cloth, sky and antenna motion. Character face and body landmarks stay anchored. This is shader displacement, not generated video.
 
-### Learning panel
-
-The repeated example container has Deep Forest Surface, a Forest Hairline border, and 32px default padding, with responsive overrides of 26px, 36px, 24px, then 20px. A question, a clearly identified OHMI answer, a technical example, and a hairline-separated footer form its hierarchy. Hidden panels use the `hidden` attribute. The component example remains visible without JavaScript; switching needs JavaScript. There is no free-form chat input.
-
-### Capability illustrations and setup steps
-
-The three capability articles use flat illustration fields, followed by an ordinary title and supporting copy. Decorative artwork is hidden from assistive technology. Setup uses an ordered list with mint circular number markers; numbers are hidden from assistive technology because the list already supplies sequence.
-
-### FAQ
-
-Native `details`/`summary` rows supply keyboard behavior and disclosure state. Rows have hairline separators, generous vertical padding, and a CSS plus/minus marker. Hover makes the summary mint; opening rotates the vertical marker to horizontal. Answers use readable paragraph spacing and visible inline links.
-
-### Navigation
-
-Text links and the small primary action form a simple header row; there is no drawer. The wordmark links home with an accessible label. Footer source and back-to-top links keep generous target heights. Section links use native anchors and smooth scrolling unless reduced motion is requested.
-
-### Mascot and horizon
-
-The sole character authority is `../docs/OHMI_MASCOT.md` and `../assets/mascot/ohmi-pixel-front.png`. `dist/assets/ohmi.png` is byte-identical to that approved front PNG: both SHA-256 hashes are `815AD3DFF06433ED9081EF1A73FAC2F97D7943D760E95A9AC11660D11AD39382`. The six-view sheet is reference material, not an alternate hero asset. Preserve original PNG bytes, transparency, proportions, and identity; future expressions or replacement art require owner approval.
-
-The generated horizon is separate decorative art. Its final exact prompt is in `design/horizon-final.json` and PNG metadata; source and licensing provenance is in `dist/assets/ASSETS.md`. It is not a circuit simulation. Give the mascot meaningful alt text; the horizon and stars remain decorative.
-
-Entrance motion uses a 14px upward arrival with opacity 0.6 to 1 over 0.7s for copy and 0.85s for the mascot, using `cubic-bezier(.16,1,.3,1)`. Hover transitions use 0.2s, with 0.25s transforms. Reduced motion disables all animations and transitions and changes scrolling to automatic. Forced colors adds control/panel borders and hides the horizon and stars.
-
-Motion refinement: copy children arrive with a short bounded stagger. The mascot has an independent continuous 4px idle breath over six seconds. Stars twinkle slowly out of phase; the horizon breathes over eight seconds. Source-pixel pupils use a critically damped spring within source-derived masks, including the original antialiased fringe; no head or body rotation follows the pointer. Neutral, touch and reduced-motion gaze show the original PNG. Offscreen/hidden motion sleeps, and the gaze animation frame loop stops after settling. See `design/MOTION_VERIFICATION.md` for source bounds, asset provenance and verification.
+The scene has an explicit pause/play control, pauses when hidden or offscreen, and falls back to the poster for reduced motion, data saving, unavailable WebGL or context loss. Reduced motion also removes entrances, card transforms, transitions and smooth scrolling.
 
 ## Do's and Don'ts
 
-### Do:
-
-- **Do** preserve the exact approved mascot PNG and its complete silhouette.
-- **Do** reuse the existing mint action, focus, and selected-state vocabulary.
-- **Do** keep functional surfaces quiet, with tonal separation and hairlines.
-- **Do** retain semantic headings, native disclosures, keyboard tabs, the skip link, and reduced-motion behavior.
-- **Do** label examples as scripted and illustrative, and direct setup to the existing source instructions.
-- **Do** keep this standalone website separate from extension behavior and student data.
-
-### Don't:
-
-- **Don't** regenerate, redraw, crop, or stretch the approved mascot without owner approval.
-- **Don't** make decorative raster artwork responsible for essential text or interaction.
-- **Don't** imply Autodesk affiliation, Chrome Web Store availability, electrical verification, or a live AI connection from this page.
-- **Don't** promote detector exceptions or small helper-copy defects into reusable design rules.
-
-Not canonized: the unresolved automated wordmark/helper flags and countable below-fold SVG conflict are review limitations, not house-style permissions. The existing educational schematic is documented as built, not declared a craft-floor exemption. Current helper sizes are not a recommended minimum text scale. Preview state is retained only in the URL; this website has no account or durable student-work persistence.
+- **Do** preserve the supplied countryside PNG and canonical mascot PNG originals; use documented WebP copies for delivery.
+- **Do** keep essential copy and interaction in HTML, above decorative artwork.
+- **Do** retain the phone sky fade, subtitle contrast treatment, keyboard access and still-scene fallback when adapting this page.
+- **Do** retain accurate preview labels and source setup destinations.
+- **Don't** redraw the mascot, replace the illustration or introduce generated footage without owner approval.
+- **Don't** imply live AI, electrical verification from an image, Autodesk endorsement or a deployed release through screenshots or action wording.

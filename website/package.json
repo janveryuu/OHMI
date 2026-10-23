@@ -2,5 +2,5 @@
   "name": "meetohmi-landing-page",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build.mjs" }
+  "scripts": { "build": "node build.mjs", "test": "node tests/cinematic.mjs", "test:browser": "node tests/cinematic-browser.mjs" }
 }

@@ -1,12 +1,16 @@
 *
 !dist
 !dist/**
+!src
+!src/**
 !package.json
 !build.mjs
 !vercel.json
 !website/
 !website/dist/
 !website/dist/**
+!website/src/
+!website/src/**
 !website/package.json
 !website/build.mjs
 !website/vercel.json

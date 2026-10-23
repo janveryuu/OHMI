@@ -1,55 +1,5 @@
 # OHMI motion refinement — 16 October 2026
 
-## Continuous-motion follow-up
-
-The owner supplied `OHMI SCREENRECORD.mp4` and requested more visible gaze and
-continuous ambience. The recording shows gaze responding subtly, followed by
-static ambience. Prior live JS/CSS matched local source after line-ending
-normalization; the original pupil asset also matched. The issue was not a missing
-deployment: CSS used one iteration, gaze travel was only 12×10 source pixels,
-and the fixed mask omitted the baked-in antialiased eye fringe.
-
-Current refinement: critically damped, velocity-preserving spring response;
-18×14 source-pixel travel with elliptical bounds; stronger near-face response;
-`any-pointer`/`any-hover` detection for hybrid devices. Two source pixels of
-derived fringe coverage remove stationary ghost edges. Left source bounds are
-(437,445)–(523,575); right (728,445)–(816,575). Original PNG bytes remain unchanged.
-
-Ambient motion now repeats: independent 4px mascot idle over six seconds,
-out-of-phase stars over seven to nine seconds, and horizon opacity over eight
-seconds. Button press/release and section transitions are softer. The owner's
-explicit continuous-motion request supersedes the earlier finite-animation
-decision below. Hidden/offscreen and reduced-motion handling remains in place.
-
-Local production build and both website suites pass. The motion suite uses
-installed Google Chrome, asserts infinite ambient timing, and checks pointer
-movement separately from idle motion. Latest local initial CLS: 0; longest
-application animation-frame callback: 2ms; no pending frames after gaze settles.
-Resting desktop/mobile screenshots remain pixel-identical to prior production.
-
-`tests/website-motion-record.mjs` records the same pointer sequence in an isolated,
-headed Google Chrome profile for both versions. It captures only the page,
-not the owner's desktop/profile. The small cursor marker exists only in the
-recording harness. The previous static website snapshot stays ignored locally;
-recording script requires it under `.output/motion-v2/before-site/dist`.
-The short side-by-side MP4 and filmstrip were visually inspected. The two
-independent captures have different startup timing, not frame-perfect sync.
-Videos/screenshots are ignored local proof, never Vercel uploads or Git assets.
-The owner's personal Chrome session after deployment remains unverified.
-
-Production commit `e54ab7d0ac484095ef3f9c11a15464b356fc9583` reached Vercel READY.
-Both website suites passed against https://meetohmi.vercel.app/. Deployed JS,
-CSS (after line-ending normalization) and all six eye-layer byte hashes match
-the checked source. Production initial CLS: 0; longest measured application
-animation-frame callback: 15ms; no pending gaze frames after settling. The
-head/body measurement now awaits animation pause readiness and allows 0.1px
-of compositor rounding; the first exact-equality assertion differed by 0.003px.
-This is a test-measurement correction, not a product change. The final ~13-second
-comparison records the actual deployed after-version in an isolated headed
-Google Chrome profile; no personal browser session or desktop was accessed.
-
-The sections below document the earlier implementation, not current timing.
-
 Scope: motion only on the existing standalone landing page. No HTML, copy,
 layout, colors, typography, original mascot PNG, extension, backend or Phase 5
 source changed. Work is isolated in the `ohmi-website-motion` managed worktree.
