@@ -588,7 +588,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     calculation,
     assignmentId,
     circuitAnalysisId,
-    conversationId
+    conversationId,
+    historyThroughPosition
   } = body;
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -622,6 +623,12 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
 
   if (conversationId !== undefined && !uuidRegex.test(conversationId)) {
     return errorResponse('invalid_request', 'Invalid conversationId format.', 400);
+  }
+
+  if (historyThroughPosition !== undefined) {
+    if (typeof historyThroughPosition !== 'number' || !Number.isInteger(historyThroughPosition) || historyThroughPosition < 0) {
+      return errorResponse('invalid_request', 'Invalid historyThroughPosition.', 400);
+    }
   }
 
   // 3. Optional owned file retrieval (for image / pdf / assignment-backed tutorial)
@@ -735,7 +742,91 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     arduinoValidation = validateArduinoSketch(sketchToValidate);
   }
 
-  // Canonical input hash including conversationId (P4-7)
+  // 4b. Canonical context resolution (Milestone F3)
+  let canonicalHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  let watermark: number | undefined = undefined;
+
+  if (conversationId && historyThroughPosition !== undefined) {
+    const { data: convData, error: convErr } = await userClient
+      .from('ohmi_conversations')
+      .select('id, user_id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (convErr || !convData) {
+      return errorResponse('forbidden', 'Conversation not found or access denied.', 403);
+    }
+
+    const { data: maxPosData } = await adminClient
+      .from('ohmi_messages')
+      .select('position')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
+      .order('position', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const currentHead = maxPosData?.position ?? 0;
+    if (historyThroughPosition > currentHead) {
+      return errorResponse('invalid_request', 'historyThroughPosition exceeds current conversation head.', 400);
+    }
+
+    watermark = historyThroughPosition;
+
+    if (historyThroughPosition > 0) {
+      const { data: candidateMsgs } = await adminClient
+        .from('ohmi_messages')
+        .select('role, content, position')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .lte('position', historyThroughPosition)
+        .order('position', { ascending: false })
+        .limit(12);
+
+      if (Array.isArray(candidateMsgs) && candidateMsgs.length > 0) {
+        const chronological = [...candidateMsgs].reverse();
+        let totalChars = 0;
+        const recentSubset: typeof chronological = [];
+        for (let i = chronological.length - 1; i >= 0 && recentSubset.length < 8; i--) {
+          const item = chronological[i];
+          const textLen = (item.content || '').length;
+          if (totalChars + textLen > 4000) {
+            break;
+          }
+          totalChars += textLen;
+          recentSubset.unshift(item);
+        }
+
+        if (recentSubset.length > 0 && recentSubset[0].role === 'assistant') {
+          recentSubset.shift();
+        }
+
+        for (const m of recentSubset) {
+          if (m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') {
+            canonicalHistory.push({
+              role: m.role,
+              content: m.content.slice(0, 1000)
+            });
+          }
+        }
+      }
+    }
+  } else {
+    // Legacy client context fallback
+    if (Array.isArray(context)) {
+      for (const item of context.slice(-4)) {
+        if (item && typeof item.text === 'string' && (item.role === 'user' || item.role === 'assistant')) {
+          canonicalHistory.push({
+            role: item.role,
+            content: item.text.slice(0, 1000)
+          });
+        }
+      }
+    }
+  }
+
+  // Canonical input hash including conversationId and history snapshot (P4-7 / F3)
   const inputHash = await sha256Hex(JSON.stringify({
     version: 1,
     provider,
@@ -748,8 +839,9 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     assignmentId: assignmentId ?? '',
     circuitAnalysisId: circuitAnalysisId ?? '',
     conversationId: conversationId ?? '',
+    historyThroughPosition: historyThroughPosition ?? null,
     fileHash,
-    context: Array.isArray(context) ? context.slice(-4) : []
+    context: canonicalHistory
   }));
 
   // 5. Atomic Quota and In-flight Reservation
@@ -836,7 +928,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
         operation,
         language,
         result: replayedResult,
-        model: reservation.model || activeModel
+        model: reservation.model || activeModel,
+        ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
       });
     }
     if (reservation.status === 'pending') {
@@ -850,18 +943,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     ? buildTutorialSystemInstruction(language)
     : buildAskSystemInstruction(language, operation);
 
-  // Bounded context history (up to 4 pairs)
-  const historyList: Array<{ role: 'user' | 'assistant'; content: string }> = [];
-  if (Array.isArray(context)) {
-    for (const item of context.slice(-4)) {
-      if (item && typeof item.text === 'string' && (item.role === 'user' || item.role === 'assistant')) {
-        historyList.push({
-          role: item.role,
-          content: item.text.slice(0, 1000)
-        });
-      }
-    }
-  }
+  const historyList = canonicalHistory;
 
   let promptText = message;
   if (code) {
@@ -1107,7 +1189,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     operation,
     language,
     result: resultPayload,
-    model: activeModel
+    model: activeModel,
+    ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
   });
 }
 

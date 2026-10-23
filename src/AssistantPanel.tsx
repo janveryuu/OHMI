@@ -9,7 +9,7 @@ import type { useAccount } from './useAccount';
 import type { Assignment, ConversationHeader } from './backend/contracts';
 
 type SampleState = 'empty' | 'loading' | 'ready';
-type Message = { id: number; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; mode?: 'live' | 'sample'; isAi?: boolean };
+type Message = { id: number; dbId?: string; role: 'user' | 'ohmi'; text: string; attachment?: boolean; language?: Preferences['language']; mode?: 'live' | 'sample'; isAi?: boolean; position?: number; structured_result?: any };
 
 interface TutorialStepData {
   step: number;
@@ -102,6 +102,14 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
   const [completed, setCompleted] = useState<number[]>([]);
   const [savedAssignment, setSavedAssignment] = useState<Assignment | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [earliestPosition, setEarliestPosition] = useState<number | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [conversationWatermark, setConversationWatermark] = useState<number>(0);
+  const activeConversationIdRef = useRef<string | null>(null);
+  const conversationWatermarkRef = useRef<number>(0);
+  activeConversationIdRef.current = currentConversationId;
+  conversationWatermarkRef.current = conversationWatermark;
   const [activeTutorial, setActiveTutorial] = useState<ActiveTutorial | null>(null);
   const [activeAssignmentForTutorial, setActiveAssignmentForTutorial] = useState<Assignment | null>(null);
   const [clarificationDraft, setClarificationDraft] = useState('');
@@ -422,7 +430,13 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
     const currentUserId = account.state.user?.id;
     if (!currentUserId) return;
     try {
-      const res = await request<{ conversation: ConversationHeader; messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; structured_result?: any }> }>('conversations.open', {
+      const res = await request<{
+        conversation: ConversationHeader;
+        messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; position?: number; structured_result?: any }>;
+        hasOlder?: boolean;
+        earliestPosition?: number;
+        latestPosition?: number;
+      }>('conversations.open', {
         id: conv.id,
         accountId: currentUserId
       });
@@ -430,16 +444,82 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         justSent.current = true;
         setMessages(res.messages.map((m) => ({
           id: ++messageId.current,
+          dbId: m.id,
           role: m.role === 'user' ? 'user' : 'ohmi',
           text: m.content,
+          language: m.structured_result?.language,
           mode: 'live',
-          isAi: true
+          isAi: true,
+          position: m.position,
+          structured_result: m.structured_result
         })));
         setCurrentConversationId(conv.id);
+        activeConversationIdRef.current = conv.id;
+        setHasOlderMessages(!!res.hasOlder);
+        setEarliestPosition(res.earliestPosition ?? (res.messages[0]?.position ?? null));
+        const lastMsg = res.messages.length > 0 ? res.messages[res.messages.length - 1] : undefined;
+        const watermark = res.latestPosition ?? (lastMsg?.position ?? 0);
+        setConversationWatermark(watermark);
+        conversationWatermarkRef.current = watermark;
         setShowHistory(false);
       }
     } catch {
       setNotice('Could not open conversation.');
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    const currentUserId = account.state.user?.id;
+    const convId = currentConversationId;
+    if (!currentUserId || !convId || earliestPosition === null || loadingOlder) return;
+
+    setLoadingOlder(true);
+    const chatLogEl = chatLogRef.current;
+    const prevScrollHeight = chatLogEl ? chatLogEl.scrollHeight : 0;
+    const prevScrollTop = chatLogEl ? chatLogEl.scrollTop : 0;
+
+    try {
+      const res = await request<{
+        conversation: ConversationHeader;
+        messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; position?: number; structured_result?: any }>;
+        hasOlder?: boolean;
+        earliestPosition?: number;
+      }>('conversations.open', {
+        id: convId,
+        accountId: currentUserId,
+        beforePosition: earliestPosition
+      });
+
+      if (res?.messages && res.messages.length > 0) {
+        const olderItems = res.messages.map((m) => ({
+          id: ++messageId.current,
+          dbId: m.id,
+          role: (m.role === 'user' ? 'user' : 'ohmi') as 'user' | 'ohmi',
+          text: m.content,
+          language: m.structured_result?.language,
+          mode: 'live' as const,
+          isAi: true,
+          position: m.position,
+          structured_result: m.structured_result
+        }));
+
+        setMessages((current) => [...olderItems, ...current]);
+        setHasOlderMessages(!!res.hasOlder);
+        setEarliestPosition(res.earliestPosition ?? (olderItems[0]?.position ?? null));
+
+        requestAnimationFrame(() => {
+          if (chatLogEl) {
+            const newScrollHeight = chatLogEl.scrollHeight;
+            chatLogEl.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+          }
+        });
+      } else {
+        setHasOlderMessages(false);
+      }
+    } catch {
+      setNotice('Could not load older messages.');
+    } finally {
+      setLoadingOlder(false);
     }
   };
 
@@ -494,16 +574,24 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           text: m.text
         }));
 
+      const watermarkToSend = conversationWatermarkRef.current;
+
       const res = await request('ai.chat', {
         accountId: currentUserId,
         requestId: crypto.randomUUID(),
         message: text,
         language: preferences.language,
         context: chatContext,
-        ...(convId ? { conversationId: convId } : {})
-      }) as { ok?: boolean; result?: { answer?: string } } | null;
+        ...(convId ? { conversationId: convId, historyThroughPosition: watermarkToSend } : {})
+      }) as { ok?: boolean; historyWatermark?: number; result?: { answer?: string } } | null;
 
       if (account.state.user?.id !== currentUserId) return;
+      if (activeConversationIdRef.current !== convId) return;
+
+      if (typeof res?.historyWatermark === 'number') {
+        setConversationWatermark(res.historyWatermark);
+        conversationWatermarkRef.current = res.historyWatermark;
+      }
 
       const answer = res?.result?.answer;
       if (answer) {
@@ -730,7 +818,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
                 type="button"
                 className="ohmi-text-button"
                 style={{ fontSize: '11px' }}
-                onClick={() => { setMessages([]); setCurrentConversationId(null); setShowHistory(false); }}
+                onClick={() => { setMessages([]); setCurrentConversationId(null); activeConversationIdRef.current = null; setHasOlderMessages(false); setEarliestPosition(null); setConversationWatermark(0); conversationWatermarkRef.current = 0; setShowHistory(false); }}
               >
                 New conversation
               </button>
@@ -769,6 +857,17 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           </div>
         )}
         <div ref={chatLogRef} className="ohmi-chat-log" role="log" aria-label={account.state.user && !attached ? "OHMI conversation" : "Local demo conversation"} aria-live="polite" tabIndex={0}>
+          {hasOlderMessages && (
+            <button
+              type="button"
+              className="ohmi-button ohmi-secondary ohmi-full-width"
+              style={{ margin: '4px 0 8px', fontSize: '12px' }}
+              onClick={loadOlderMessages}
+              disabled={loadingOlder}
+            >
+              {loadingOlder ? 'Loading older messages…' : 'Load older messages'}
+            </button>
+          )}
           {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>{account.state.user ? 'Ask OHMI anything about components, circuits, or Arduino code.' : 'What’s puzzling you? Try a question about the sample LED circuit.'}</p></div>}
           {messages.map((message) => <div key={message.id} data-message-id={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
             <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.mode === 'live' || message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>

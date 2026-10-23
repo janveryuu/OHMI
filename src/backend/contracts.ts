@@ -46,6 +46,7 @@ export interface AiRequestPayload {
   assignmentId?: string;
   circuitAnalysisId?: string;
   conversationId?: string;
+  historyThroughPosition?: number;
   accountId: string;
 }
 
@@ -55,6 +56,8 @@ export interface AiResponseData {
   accountId: string;
   operation: AiOperation;
   language: AiLanguage;
+  conversationId?: string;
+  historyWatermark?: number;
   result: {
     status: 'answer' | 'needs_clarification' | 'unsupported';
     answer: string;

@@ -229,7 +229,8 @@ export async function handleRequest(request: Request): Promise<unknown> {
       const rawMessages = (msgRes.data || []) as any[];
       const messages = [...rawMessages].reverse();
       const hasOlder = rawMessages.length === 50 && messages[0]?.position > 1;
-      return { conversation: convRes.data, messages, hasOlder, earliestPosition: messages[0]?.position };
+      const latestPosition = messages.length > 0 ? messages[messages.length - 1].position : 0;
+      return { conversation: convRes.data, messages, hasOlder, earliestPosition: messages[0]?.position, latestPosition };
     }
     if (action === 'conversations.create') {
       const title = typeof payload.title === 'string' && payload.title.trim()
@@ -341,7 +342,8 @@ export async function handleRequest(request: Request): Promise<unknown> {
           calculation: payload.calculation,
           assignmentId: payload.assignmentId,
           circuitAnalysisId: payload.circuitAnalysisId,
-          conversationId: payload.conversationId
+          conversationId: payload.conversationId,
+          historyThroughPosition: payload.historyThroughPosition
         }),
         signal: controller.signal
       });

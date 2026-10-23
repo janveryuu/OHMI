@@ -1439,4 +1439,194 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(failCall[1].p_error_message).toContain('[REDACTED');
     });
   });
+  describe('Milestone F3: Secure Conversational Memory & History Paging', () => {
+    it('rejects invalid historyThroughPosition format', async () => {
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000091',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello',
+        conversationId: '55555555-5555-5555-5555-555555555555',
+        historyThroughPosition: -1
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain('historyThroughPosition');
+    });
+
+    it('rejects historyThroughPosition when conversation is not owned by user', async () => {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'ohmi_conversations') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        };
+      });
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000092',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello',
+        conversationId: '55555555-5555-5555-5555-555555555555',
+        historyThroughPosition: 2
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.code).toBe('forbidden');
+    });
+
+    it('rejects historyThroughPosition exceeding conversation current head', async () => {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'ohmi_conversations') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: '55555555-5555-5555-5555-555555555555', user_id: '00000000-0000-0000-0000-000000000001' },
+              error: null
+            })
+          };
+        }
+        if (table === 'ohmi_messages') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { position: 4 },
+              error: null
+            })
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        };
+      });
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000093',
+        operation: 'chat',
+        language: 'english',
+        message: 'Hello',
+        conversationId: '55555555-5555-5555-5555-555555555555',
+        historyThroughPosition: 10
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain('exceeds current conversation head');
+    });
+
+    it('loads canonical server history through watermark and returns updated historyWatermark', async () => {
+      const storedMsgs = [
+        { role: 'assistant', content: 'You can use Ohm law.', position: 2 },
+        { role: 'user', content: 'How do I calculate resistance?', position: 1 }
+      ];
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'ohmi_conversations') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: '55555555-5555-5555-5555-555555555555', user_id: '00000000-0000-0000-0000-000000000001' },
+              error: null
+            })
+          };
+        }
+        if (table === 'ohmi_messages') {
+          const chain: any = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            lte: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { position: 2 }, error: null }),
+            then: (resolve: any) => resolve({ data: storedMsgs, error: null })
+          };
+          return chain;
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        };
+      });
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: 'Use V = I * R to find the voltage drop.' }] }
+              }
+            ],
+            usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 30 }
+          }),
+          { status: 200 }
+        )
+      );
+
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000094',
+        operation: 'chat',
+        language: 'english',
+        message: 'What about the voltage drop?',
+        conversationId: '55555555-5555-5555-5555-555555555555',
+        historyThroughPosition: 2
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.conversationId).toBe('55555555-5555-5555-5555-555555555555');
+      expect(data.historyWatermark).toBe(4); // 2 + 2 = 4
+      expect(data.result.answer).toContain('voltage drop');
+    });
+  });
 });

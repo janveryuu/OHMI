@@ -69,6 +69,11 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (action === 'profile.language' && !['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
   if (action === 'profile.name' && (typeof payload.name !== 'string' || payload.name.length > 80 || /[\x00-\x1f]/.test(payload.name))) throw new Error('Use a name of at most 80 characters.');
   if (['files.finish', 'files.open', 'files.delete', 'steps.update', 'steps.delete', 'conversations.open', 'conversations.delete', 'analyses.get', 'analyses.delete'].includes(action)) uuid(payload.id);
+  if (action === 'conversations.open' && payload.beforePosition !== undefined) {
+    if (typeof payload.beforePosition !== 'number' || !Number.isInteger(payload.beforePosition) || payload.beforePosition < 1) {
+      throw new Error('Invalid beforePosition.');
+    }
+  }
   if (action === 'ai.request.get') uuid(payload.requestId);
   if (['steps.list', 'steps.add'].includes(action)) uuid(payload.assignmentId);
   if (action === 'analyses.list' && payload.assignmentId !== undefined) uuid(payload.assignmentId);
@@ -89,6 +94,11 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
     if (payload.assignmentId !== undefined) uuid(payload.assignmentId);
     if (payload.circuitAnalysisId !== undefined) uuid(payload.circuitAnalysisId);
     if (payload.conversationId !== undefined) uuid(payload.conversationId);
+    if (payload.historyThroughPosition !== undefined) {
+      if (typeof payload.historyThroughPosition !== 'number' || !Number.isInteger(payload.historyThroughPosition) || payload.historyThroughPosition < 0) {
+        throw new Error('Invalid historyThroughPosition.');
+      }
+    }
     if (payload.context !== undefined && (!Array.isArray(payload.context) || payload.context.length > 4)) throw new Error('Invalid context.');
     if (payload.calculation !== undefined) {
       if (typeof payload.calculation !== 'object' || payload.calculation === null) throw new Error('Invalid calculation payload.');

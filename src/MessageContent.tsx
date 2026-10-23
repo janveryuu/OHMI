@@ -23,7 +23,7 @@ function normalizeMathDelimiters(text: string): string {
 }
 
 const ALLOWED_ELEMENTS = [
-  'p', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'a', 'span'
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'a', 'span'
 ];
 
 class MathErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -89,7 +89,7 @@ export const MessageContent = memo(function MessageContent({ content }: MessageC
                 {children}
               </pre>
             ),
-            code: ({ className, children, ...props }) => {
+            code: ({ className, children, node, ...props }: any) => {
               const isInline = !className && typeof children === 'string' && !children.includes('\n');
               if (isInline) {
                 return (

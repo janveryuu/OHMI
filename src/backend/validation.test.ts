@@ -75,6 +75,10 @@ describe('ai.chat request validation', () => {
     expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, message: 'Hi' }), content, id)).toThrow();
     expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'x'.repeat(2001), language: 'english' }), content, id)).toThrow();
     expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'spanish' }), content, id)).toThrow();
+    expect(validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: 0 }), content, id).action).toBe('ai.chat');
+    expect(validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: 10 }), content, id).action).toBe('ai.chat');
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: -1 }), content, id)).toThrow();
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: 2.5 }), content, id)).toThrow();
   });
 
   it('validates optional calculation payload in ai.chat', () => {
@@ -146,6 +150,10 @@ describe('durable history actions validation', () => {
   it('validates conversations actions', () => {
     expect(validateRequest(message('conversations.list', { accountId: dummyAcc }), content, id).action).toBe('conversations.list');
     expect(validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.open');
+    expect(validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId, beforePosition: 15 }), content, id).action).toBe('conversations.open');
+    expect(() => validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId, beforePosition: 0 }), content, id)).toThrow();
+    expect(() => validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId, beforePosition: -5 }), content, id)).toThrow();
+    expect(() => validateRequest(message('conversations.open', { accountId: dummyAcc, id: dummyId, beforePosition: 3.5 }), content, id)).toThrow();
     expect(validateRequest(message('conversations.create', { accountId: dummyAcc, title: 'Test Title' }), content, id).action).toBe('conversations.create');
     expect(validateRequest(message('conversations.create', { accountId: dummyAcc }), content, id).action).toBe('conversations.create');
     expect(validateRequest(message('conversations.delete', { accountId: dummyAcc, id: dummyId }), content, id).action).toBe('conversations.delete');

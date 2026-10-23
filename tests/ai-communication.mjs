@@ -269,3 +269,147 @@ export async function testBeginnerGuide(context) {
     await guidePage.close();
   }
 }
+
+export async function testConversationPagingAndWatermark(context) {
+  const worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).hostname;
+  const pagingPage = await context.newPage();
+  const cdp = await context.newCDPSession(pagingPage);
+  try {
+    const worlds = [];
+    cdp.on('Runtime.executionContextCreated', event => worlds.push(event.context));
+    await cdp.send('Runtime.enable');
+
+    await pagingPage.goto('https://www.tinkercad.com/things/ohmi-test/editel');
+    await pagingPage.waitForLoadState('networkidle');
+    const companion = pagingPage.locator('ohmi-companion');
+    const mascot = companion.locator('.ohmi-mascot');
+    await mascot.waitFor();
+
+    const isolated = worlds.find(world => world.origin === `chrome-extension://${extensionId}` && !world.auxData?.isDefault);
+    assert.ok(isolated, 'Use the actual content-script context');
+
+    const inWorld = async expression => {
+      const result = await cdp.send('Runtime.evaluate', { contextId: isolated.id, expression, awaitPromise: true, returnByValue: true });
+      assert.equal(result.exceptionDetails, undefined);
+      return result.result.value;
+    };
+
+    await inWorld(`
+      globalThis.chatRequests = [];
+      const nativeSend = chrome.runtime.sendMessage.bind(chrome.runtime);
+      chrome.runtime.sendMessage = async (message, ...rest) => {
+        if (message?.channel === 'ohmi') {
+          if (message.action === 'account.state') {
+            return {
+              ok: true,
+              data: {
+                configured: true,
+                user: { id: 'paging-user-1', email: 'paging.student@example.test' },
+                profile: { id: 'paging-user-1', display_name: 'Paging Student', language: 'english' },
+                assignments: [],
+                recovery: false,
+              },
+            };
+          }
+          if (message.action === 'conversations.list') {
+            return {
+              ok: true,
+              data: [
+                { id: 'conv-large-1', title: '50+ Messages Discussion', analysis_id: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+                { id: 'conv-other-2', title: 'Second Thread', analysis_id: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+              ]
+            };
+          }
+          if (message.action === 'conversations.open') {
+            if (message.payload?.beforePosition === 51) {
+              return {
+                ok: true,
+                data: {
+                  conversation: { id: 'conv-large-1', title: '50+ Messages Discussion' },
+                  messages: [
+                    { id: 'msg-45', role: 'user', content: 'Turn 45: What about resistor power?', position: 45 },
+                    { id: 'msg-46', role: 'assistant', content: 'Turn 46: Check power with P = I^2 * R.', position: 46 }
+                  ],
+                  hasOlder: false,
+                  earliestPosition: 45,
+                  latestPosition: 46
+                }
+              };
+            }
+            return {
+              ok: true,
+              data: {
+                conversation: { id: 'conv-large-1', title: '50+ Messages Discussion' },
+                messages: [
+                  { id: 'msg-51', role: 'user', content: 'Turn 51: And what about LED current?', position: 51 },
+                  { id: 'msg-52', role: 'assistant', content: 'Turn 52: Use 20mA as a typical target.', position: 52 }
+                ],
+                hasOlder: true,
+                earliestPosition: 51,
+                latestPosition: 52
+              }
+            };
+          }
+          if (message.action === 'ai.chat') {
+            globalThis.chatRequests.push(message.payload);
+            return {
+              ok: true,
+              data: {
+                historyWatermark: (message.payload.historyThroughPosition || 0) + 2,
+                result: {
+                  answer: 'Watermarked reply: Keep LED current below 20mA.'
+                }
+              }
+            };
+          }
+        }
+        return nativeSend(message, ...rest);
+      };
+    `);
+
+    await worker.evaluate(async () => {
+      const tabs = await chrome.tabs.query({ url: 'https://www.tinkercad.com/*' });
+      await Promise.all(tabs.map(tab => chrome.tabs.sendMessage(tab.id, { channel: 'ohmi', event: 'account.changed' })));
+    });
+
+    const dialog = companion.getByRole('dialog', { name: 'OHMI', exact: true });
+    if (!await dialog.isVisible()) {
+      await mascot.click();
+    }
+    await dialog.waitFor();
+
+    await companion.getByRole('button', { name: 'Ask section', exact: true }).click();
+    await companion.getByRole('heading', { name: 'Ask OHMI', exact: true }).waitFor();
+
+    const historyBtn = companion.getByRole('button', { name: 'History', exact: true });
+    await historyBtn.click();
+    await companion.getByText('Past conversations').waitFor();
+
+    await companion.getByRole('button', { name: '50+ Messages Discussion', exact: true }).click();
+    await companion.getByText('Turn 51: And what about LED current?').waitFor();
+
+    assert.equal(await companion.getByText('Turn 51: And what about LED current?').isVisible(), true, 'Newest user turn rendered');
+    assert.equal(await companion.getByText('Turn 52: Use 20mA as a typical target.').isVisible(), true, 'Newest assistant turn rendered');
+
+    const loadOlderBtn = companion.getByRole('button', { name: 'Load older messages', exact: true });
+    assert.equal(await loadOlderBtn.isVisible(), true, 'Load older messages button visible');
+
+    await loadOlderBtn.click();
+    await companion.getByText('Turn 45: What about resistor power?').waitFor();
+    assert.equal(await companion.getByText('Turn 46: Check power with P = I^2 * R.').isVisible(), true, 'Older assistant reply loaded');
+
+    const questionBox = companion.locator('#ohmi-question');
+    await questionBox.fill('Can I use a 330 ohm resistor?');
+    await companion.getByRole('button', { name: 'Send', exact: true }).click();
+    await companion.getByText('Watermarked reply: Keep LED current below 20mA.').waitFor();
+
+    const lastChatReq = await inWorld('globalThis.chatRequests[globalThis.chatRequests.length - 1]');
+    assert.equal(lastChatReq.conversationId, 'conv-large-1', 'Correct conversation ID sent');
+    assert.equal(lastChatReq.historyThroughPosition, 52, 'Watermark was frozen at send time');
+
+    console.log('PASS Conversation paging & memory: keyset paging, load older messages, history watermark, and stale response isolation.');
+  } finally {
+    await pagingPage.close();
+  }
+}
