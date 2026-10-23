@@ -1,312 +1,201 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T03:15:13.769194+00:00",
-  "title": "Design System: OHMI website",
+  "generatedAt": "2026-10-24T00:00:00+08:00",
+  "title": "Design System: OHMI sunny countryside",
   "extensions": {
     "colorMeta": {
-      "bg": {
-        "role": "neutral",
-        "displayName": "Green Black",
-        "tonalRamp": [
-          "oklch(15.00% 0.02215 178.34)",
-          "oklch(26.43% 0.02215 178.34)",
-          "oklch(37.86% 0.02215 178.34)",
-          "oklch(49.29% 0.02215 178.34)",
-          "oklch(60.71% 0.02215 178.34)",
-          "oklch(72.14% 0.02215 178.34)",
-          "oklch(83.57% 0.02215 178.34)",
-          "oklch(95.00% 0.02215 178.34)"
-        ]
-      },
-      "surface": {
-        "role": "neutral",
-        "displayName": "Deep Forest Surface",
-        "tonalRamp": [
-          "oklch(15.00% 0.02975 172.75)",
-          "oklch(26.43% 0.02975 172.75)",
-          "oklch(37.86% 0.02975 172.75)",
-          "oklch(49.29% 0.02975 172.75)",
-          "oklch(60.71% 0.02975 172.75)",
-          "oklch(72.14% 0.02975 172.75)",
-          "oklch(83.57% 0.02975 172.75)",
-          "oklch(95.00% 0.02975 172.75)"
-        ]
-      },
       "ink": {
         "role": "neutral",
-        "displayName": "Ivory Ink",
-        "tonalRamp": [
-          "oklch(15.00% 0.00843 145.51)",
-          "oklch(26.43% 0.00843 145.51)",
-          "oklch(37.86% 0.00843 145.51)",
-          "oklch(49.29% 0.00843 145.51)",
-          "oklch(60.71% 0.00843 145.51)",
-          "oklch(72.14% 0.00843 145.51)",
-          "oklch(83.57% 0.00843 145.51)",
-          "oklch(95.00% 0.00843 145.51)"
-        ]
+        "displayName": "Forest ink"
       },
       "muted": {
         "role": "neutral",
-        "displayName": "Soft Sage",
-        "tonalRamp": [
-          "oklch(15.00% 0.02284 171.64)",
-          "oklch(26.43% 0.02284 171.64)",
-          "oklch(37.86% 0.02284 171.64)",
-          "oklch(49.29% 0.02284 171.64)",
-          "oklch(60.71% 0.02284 171.64)",
-          "oklch(72.14% 0.02284 171.64)",
-          "oklch(83.57% 0.02284 171.64)",
-          "oklch(95.00% 0.02284 171.64)"
-        ]
+        "displayName": "Soft forest"
       },
-      "mint": {
-        "role": "primary",
-        "displayName": "Mint",
-        "tonalRamp": [
-          "oklch(15.00% 0.08473 174.37)",
-          "oklch(26.43% 0.08473 174.37)",
-          "oklch(37.86% 0.08473 174.37)",
-          "oklch(49.29% 0.08473 174.37)",
-          "oklch(60.71% 0.08473 174.37)",
-          "oklch(72.14% 0.08473 174.37)",
-          "oklch(83.57% 0.08473 174.37)",
-          "oklch(95.00% 0.08473 174.37)"
-        ]
-      },
-      "line": {
+      "paper": {
         "role": "neutral",
-        "displayName": "Forest Hairline",
-        "tonalRamp": [
-          "oklch(15.00% 0.04170 169.55)",
-          "oklch(26.43% 0.04170 169.55)",
-          "oklch(37.86% 0.04170 169.55)",
-          "oklch(49.29% 0.04170 169.55)",
-          "oklch(60.71% 0.04170 169.55)",
-          "oklch(72.14% 0.04170 169.55)",
-          "oklch(83.57% 0.04170 169.55)",
-          "oklch(95.00% 0.04170 169.55)"
-        ]
+        "displayName": "Pale meadow paper"
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Deep forest"
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Warm sky white"
+      },
+      "glass": {
+        "role": "neutral",
+        "displayName": "Frosted meadow"
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Hero display",
-        "purpose": "Two-line desktop hero; responsive sizes in DESIGN.md."
+        "displayName": "Playful introduction",
+        "purpose": "White two-line MEET/OHMI in Grandstander 900."
       },
       "headline": {
-        "displayName": "Section headline",
-        "purpose": "Major section headings."
-      },
-      "title": {
-        "displayName": "Article and question title",
-        "purpose": "Small titles in Manrope."
+        "displayName": "Friendly section heading",
+        "purpose": "Grandstander 900 section headings."
       },
       "body": {
-        "displayName": "Body",
-        "purpose": "Default prose."
+        "displayName": "Plain-language explanation",
+        "purpose": "Inter reading copy and scripted answers."
       },
       "label": {
         "displayName": "Navigation label",
-        "purpose": "Primary text navigation."
-      },
-      "brand": {
-        "displayName": "OHMI wordmark",
-        "purpose": "Pixel lettering reserved for the brand."
+        "purpose": "Inter controls and navigation."
       }
     },
     "shadows": [
       {
-        "name": "mascot-object",
-        "value": "drop-shadow(0 18px 25px #0006)",
-        "purpose": "Object shadow on the approved mascot, not a surface elevation scale."
+        "name": "card",
+        "value": "0 12px 32px rgb(24 64 44 / .17)",
+        "purpose": "Feature cards and mobile navigation."
       },
       {
-        "name": "pixel-star-glow",
-        "value": "drop-shadow(0 0 5px #73f9d8)",
-        "purpose": "Sparse decorative pixel stars."
+        "name": "card-hover",
+        "value": "0 20px 35px rgb(22 58 30 / .25)",
+        "purpose": "Raised feature card on hover or keyboard focus."
+      },
+      {
+        "name": "action",
+        "value": "0 5px 18px rgb(25 75 70 / .1)",
+        "purpose": "Pill action at rest."
+      },
+      {
+        "name": "hero-copy",
+        "value": "0 1px 2px #153e59,0 2px 9px #153e59",
+        "purpose": "Subtitle readability, combined with 1px dark stroke painted behind the fill."
       }
     ],
     "motion": [
       {
         "name": "ease",
         "value": "cubic-bezier(.16,1,.3,1)",
-        "purpose": "Existing --ease custom property for entrance and action transforms."
+        "purpose": "WAAPI entrances and CSS interaction transforms."
       },
       {
-        "name": "state-transition",
-        "value": ".2s",
-        "purpose": "Control color and disclosure state changes."
+        "name": "headline-stagger",
+        "value": "160ms",
+        "purpose": "Between the MEET and OHMI entrances; each lasts 1050ms."
       },
       {
-        "name": "action-transform",
-        "value": ".25s",
-        "purpose": "2px hover rise, reset on active."
+        "name": "card-hover",
+        "value": "translateY(-8px); image scale(1.05)",
+        "purpose": "Feature hover and focus; removed for reduced motion."
       },
       {
-        "name": "copy-arrival",
-        "value": ".7s",
-        "purpose": "TranslateY 14px to 0 and opacity .6 to 1."
+        "name": "environment",
+        "value": "24s period; 30fps draw cap",
+        "purpose": "Localized native WebGL displacement of the supplied single-image plate; not generated video."
       },
       {
-        "name": "mascot-arrival",
-        "value": ".85s",
-        "purpose": "Same entrance on the approved mascot."
+        "name": "scene-suspension",
+        "value": "pause/play; hidden; offscreen",
+        "purpose": "Stop rendering while paused, hidden or offscreen."
       },
       {
-        "name": "reduced-motion",
-        "value": "prefers-reduced-motion: reduce",
-        "purpose": "Disable all animation/transitions; automatic scrolling."
+        "name": "still-fallback",
+        "value": "reduced motion; saveData; WebGL unavailable or lost",
+        "purpose": "Display the original scene poster with no environmental animation."
       }
     ],
     "breakpoints": [
       {
         "name": "wide-min",
-        "value": "1600px"
+        "value": "1700px"
       },
       {
-        "name": "desktop-max",
-        "value": "1250px"
+        "name": "laptop-range",
+        "value": "821px–1100px"
       },
       {
-        "name": "tablet-max",
-        "value": "1000px"
+        "name": "mobile-nav-max",
+        "value": "820px"
       },
       {
-        "name": "mobile-max",
-        "value": "760px"
+        "name": "tablet-range",
+        "value": "560px–820px"
       },
       {
         "name": "narrow-max",
-        "value": "420px"
+        "value": "370px"
       }
     ],
-    "review": {
-      "date": "2026-10-16",
-      "interfaceFixesResolved": 7,
-      "recaptures": [
-        "review/hero-repro.png",
-        "review/desktop.png",
-        "review/mobile.png",
-        "review/laptop.png"
-      ],
-      "visibleRegressionReported": false,
-      "automaticHeroGatePassed": false,
-      "numericMatchPercent": 80.3,
-      "remainingFlags": [
-        "wordmark/helper algorithm flags",
-        "Below-fold countable SVG rule conflicts with the craft floor"
-      ],
-      "persistence": "Review pipeline metadata persistence remains partial; build/state.json retains hero.status=open and gate.ok=false. This is not user-data persistence.",
-      "verificationRecord": "../design/VERIFICATION.md",
-      "notCanonized": "Algorithm flags and small helper sizes are not reusable design permissions; the educational SVG is documented as built, without a craft-floor exemption."
+    "accessibility": {
+      "focus": "3px solid #f8d254; outline-offset:5px",
+      "reducedTransparency": "Solid pale-green navigation and secondary controls; remove backdrop blur.",
+      "colorScheme": "Light in both OS schemes.",
+      "mobileSceneJoin": "100px mask fade at the scene's upper edge."
     },
     "assetAuthority": {
       "mascot": "../docs/OHMI_MASCOT.md",
-      "canonicalFront": "../assets/mascot/ohmi-pixel-front.png",
-      "websiteCopy": "dist/assets/ohmi.png",
-      "sha256": "815AD3DFF06433ED9081EF1A73FAC2F97D7943D760E95A9AC11660D11AD39382",
-      "preservation": "Byte-identical copy verified; retain original pixels, proportions, transparency and complete silhouette.",
-      "horizonPrompt": "design/horizon-final.json",
-      "provenance": "dist/assets/ASSETS.md"
+      "canonicalMascot": "../assets/mascot/ohmi-pixel-front.png",
+      "direction": "design/cinematic/PLAN.md",
+      "preservation": "Keep the owner-supplied countryside PNG and approved pixel mascot originals. Responsive WebP files are delivery copies. Feature art is actual local PWA frontend screenshots."
+    },
+    "review": {
+      "status": "Owner review only; no deployment",
+      "corrections": [
+        "Mobile scene seam softened with a 100px mask fade.",
+        "Hero subtitle contrast strengthened with a 1px dark text stroke."
+      ],
+      "scope": "Website source and documentation; no live AI or hosted-system capability added."
     }
   },
   "components": [
     {
-      "name": "Primary action",
+      "name": "Primary pill",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Mint pill for the page action; actual link behavior.",
-      "html": "<a class=\"ds-button\" href=\"#explore\">Explore OHMI <svg class=\"ds-arrow\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></a>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:64px;padding:17px 30px;border:1px solid transparent;border-radius:100px;background:var(--mint,#a6f6df);color:var(--bg,#020e0b);font:750 18px/1.35 Manrope,sans-serif;text-decoration:none;white-space:nowrap;transition:background .2s,color .2s,transform .25s cubic-bezier(.16,1,.3,1)}.ds-button:hover{background:#c4ffdf;transform:translateY(-2px)}.ds-button:active{transform:translateY(0)}.ds-button:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}.ds-arrow{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}"
+      "description": "White hero action with a diagonal arrow.",
+      "html": "<a class=\"action\" href=\"#explore\">Meet OHMI <span aria-hidden=\"true\">↗</span></a>",
+      "css": ".action{display:inline-flex;align-items:center;justify-content:center;gap:13px;min-height:56px;padding:14px 25px;border-radius:999px;background:#f9fcf7;color:#315f46;font:500 16px/1.6 Inter,sans-serif;text-decoration:none;box-shadow:0 5px 18px rgb(25 75 70 / .1);transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s cubic-bezier(.16,1,.3,1)}.action:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgb(25 75 70 / .2)}.action:active{transform:scale(.98)}.action:focus-visible{outline:3px solid #f8d254;outline-offset:5px}@media(prefers-reduced-motion:reduce){.action{transition:none}}"
     },
     {
-      "name": "Outlined action",
-      "kind": "button",
-      "refersTo": "button-outline",
-      "description": "Transparent companion to the main action.",
-      "html": "<a class=\"ds-button ds-outline\" href=\"#how-it-works\">See how it works</a>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:64px;padding:17px 30px;border:1px solid transparent;border-radius:100px;background:var(--mint,#a6f6df);color:var(--bg,#020e0b);font:750 18px/1.35 Manrope,sans-serif;text-decoration:none;white-space:nowrap;transition:background .2s,color .2s,transform .25s cubic-bezier(.16,1,.3,1)}.ds-button:hover{background:#c4ffdf;transform:translateY(-2px)}.ds-button:active{transform:translateY(0)}.ds-button:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}.ds-arrow{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-outline{border-color:#91d6c4;background:transparent;color:var(--ink,#f5faf5)}.ds-outline:hover{background:#a0f0cd12;color:var(--mint,#a6f6df)}"
-    },
-    {
-      "name": "Small header action",
-      "kind": "button",
-      "refersTo": "button-small",
-      "description": "Compact desktop header action; responsive sizes are in DESIGN.md.",
-      "html": "<a class=\"ds-button ds-small\" href=\"#get-started\">Meet your buddy <svg class=\"ds-arrow\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></a>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:64px;padding:17px 30px;border:1px solid transparent;border-radius:100px;background:var(--mint,#a6f6df);color:var(--bg,#020e0b);font:750 18px/1.35 Manrope,sans-serif;text-decoration:none;white-space:nowrap;transition:background .2s,color .2s,transform .25s cubic-bezier(.16,1,.3,1)}.ds-button:hover{background:#c4ffdf;transform:translateY(-2px)}.ds-button:active{transform:translateY(0)}.ds-button:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}.ds-arrow{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-small{min-height:58px;font-size:17px;padding:15px 25px;gap:20px}"
-    },
-    {
-      "name": "Preview tabs",
-      "kind": "chip",
-      "refersTo": "preview-tab",
-      "description": "Selected and unselected scripted-preview topics. The website supplies roving-tab keyboard behavior in app.js; this snippet shows visual states.",
-      "html": "<div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Explore a learning example\"><button class=\"ds-tab\" role=\"tab\" aria-selected=\"true\">Components</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Arduino</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Build steps</button></div>",
-      "css": ".ds-tabs{display:flex;flex-wrap:wrap;gap:10px}.ds-tab{cursor:pointer;border:1px solid #577d6d;border-radius:100px;background:transparent;color:var(--ink,#f5faf5);padding:12px 18px;min-height:48px;font:650 14px/1.3 Manrope,sans-serif;transition:background .2s,color .2s,border-color .2s}.ds-tab:hover{background:#a0f0cd12;border-color:var(--mint,#a6f6df)}.ds-tab[aria-selected=\"true\"]{background:var(--mint,#a6f6df);color:var(--bg,#020e0b);border-color:var(--mint,#a6f6df)}.ds-tab:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}@media(prefers-reduced-motion:reduce){.ds-tab{transition:none}}"
-    },
-    {
-      "name": "Learning panel",
-      "kind": "card",
-      "refersTo": "learning-panel",
-      "description": "Tonal question-and-answer container, with no card shadow. Mascot imagery is omitted from the isolated snippet; use the approved PNG on the actual surface.",
-      "html": "<section class=\"ds-panel\" tabindex=\"0\" aria-label=\"Scripted learning example\"><span class=\"ds-question-label\">You ask</span><h3>Why does an LED need a resistor?</h3><div class=\"ds-answer\"><strong>OHMI</strong><p>A resistor limits current and helps protect the LED. Let’s follow the numbers.</p></div><p class=\"ds-panel-footer\">Understand the why behind the wire.</p></section>",
-      "css": ".ds-panel{padding:32px;border:1px solid var(--line,#2c4b40);border-radius:16px;background:var(--surface,#0c211b);color:var(--ink,#f5faf5);font:400 17px/1.65 Manrope,sans-serif}.ds-question-label{display:block;margin-bottom:8px;font-size:12px;font-weight:600;color:var(--muted,#b5c8c1)}.ds-panel h3{margin:0;font-size:22px;font-weight:750;line-height:1.35;letter-spacing:-.025em}.ds-answer{margin-top:24px}.ds-answer strong{display:block;margin-bottom:10px;font-size:13px;color:var(--mint,#a6f6df)}.ds-answer p{margin:0}.ds-panel-footer{margin:26px 0 0;padding-top:18px;border-top:1px solid var(--line,#2c4b40);font-size:13px;color:var(--muted,#b5c8c1)}.ds-panel:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}"
-    },
-    {
-      "name": "Text navigation",
+      "name": "Frosted navigation",
       "kind": "nav",
-      "description": "Quiet header links, hidden on the actual mobile header when the setup action remains.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#how-it-works\">How it works</a><a href=\"#faq\">FAQ</a></nav>",
-      "css": ".ds-nav{display:flex;align-items:center;gap:38px}.ds-nav a{color:var(--ink,#f5faf5);text-decoration:none;font:600 17px/1.65 Manrope,sans-serif;transition:color .2s}.ds-nav a:hover{color:var(--mint,#a6f6df)}.ds-nav a:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}@media(prefers-reduced-motion:reduce){.ds-nav a{transition:none}}"
+      "refersTo": "navigation",
+      "description": "Centered desktop glass pill; mobile uses the native menu button and separate panel.",
+      "html": "<nav class=\"nav\" aria-label=\"Main navigation\"><a href=\"#home\">Home</a><a href=\"#features\">Features</a><a href=\"#how-it-works\">How It Works</a></nav>",
+      "css": ".nav{display:flex;align-items:center;justify-content:center;gap:34px;padding:0 30px;height:50px;border-radius:999px;background:rgb(207 228 209 / .42);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 rgb(255 255 255 / .22)}.nav a{font:500 15px/1.6 Inter,sans-serif;color:#173f36;text-decoration:none;padding:10px 0}.nav a:hover{text-decoration:underline;text-underline-offset:7px}.nav a:focus-visible{outline:3px solid #f8d254;outline-offset:5px}@media(prefers-reduced-transparency:reduce){.nav{background:#dcead9;backdrop-filter:none}}"
     },
     {
-      "name": "Native FAQ disclosure",
-      "kind": "custom",
-      "description": "Native keyboard-accessible details/summary with a CSS plus/minus.",
-      "html": "<details class=\"ds-faq\"><summary>Is OHMI made by Autodesk?<span class=\"ds-disclosure\" aria-hidden=\"true\"></span></summary><p>OHMI is an independent student project. It is not affiliated with or endorsed by Autodesk. Tinkercad is a separate product.</p></details>",
-      "css": ".ds-faq{border-bottom:1px solid var(--line,#2c4b40);font:400 17px/1.65 Manrope,sans-serif;color:var(--ink,#f5faf5)}.ds-faq summary{display:flex;align-items:center;justify-content:space-between;gap:22px;list-style:none;cursor:pointer;min-height:85px;padding-block:22px;font-size:18px;font-weight:650;line-height:1.5}.ds-faq summary::-webkit-details-marker{display:none}.ds-faq summary:hover{color:var(--mint,#a6f6df)}.ds-faq summary:focus-visible{outline:3px solid var(--mint,#a6f6df);outline-offset:6px}.ds-disclosure{width:14px;height:14px;position:relative;flex-shrink:0;margin-right:4px;color:var(--mint,#a6f6df)}.ds-disclosure::before,.ds-disclosure::after{content:\"\";position:absolute;background:currentColor;inset:6px 0 auto;height:2px}.ds-disclosure::after{transform:rotate(90deg);transition:transform .2s}.ds-faq[open] .ds-disclosure::after{transform:rotate(0deg)}.ds-faq>p{margin:0;font-size:15px;line-height:1.8;padding:0 36px 25px 0;max-width:65ch;color:var(--muted,#b5c8c1)}@media(prefers-reduced-motion:reduce){.ds-disclosure::after{transition:none}}"
+      "name": "Question selection",
+      "kind": "chip",
+      "description": "Local scripted-preview question states; actual behavior is supplied by app.js.",
+      "html": "<div class=\"options\" role=\"group\" aria-label=\"Sample questions\"><button aria-pressed=\"true\">Why does an LED need a resistor?</button><button aria-pressed=\"false\">Where do I start?</button></div>",
+      "css": ".options{display:flex;gap:10px;flex-wrap:wrap}.options button{border:1px solid #9db696;background:transparent;color:#173f36;border-radius:999px;padding:11px 17px;min-height:44px;font:400 13px/1.6 Inter,sans-serif;cursor:pointer}.options button[aria-pressed=true]{background:#245c48;border-color:#245c48;color:#f9fcf7}.options button:focus-visible{outline:3px solid #f8d254;outline-offset:5px}"
     }
   ],
   "narrative": {
-    "northStar": "Bold type and horizon",
-    "overview": "Large, tightly set sans headings make electronics feel approachable. The approved pixel-art companion brings warmth to a green-black field, with mint actions and a luminous pixel horizon. Quiet lower sections give explanations and setup instructions room to read.\n\nThis system describes the standalone marketing website, not the extension interface. It follows owner-approved Concept C in `design/concept-c-spark.png` and the direction contract in `design/SURFACE.md`; built ground truth is `dist/index.html`, `dist/styles.css`, and `dist/app.js`. Native controls and self-hosted fonts keep the surface direct and lightweight.",
+    "northStar": "A circuit buddy in the countryside",
+    "overview": "The owner's exact sunny countryside illustration establishes the world. White Grandstander display type, frosted navigation and pill controls follow the owner-selected MotionSites composition. Pale-green reading sections continue its warmth below the scene. This documents the review build, not deployment or live AI availability.",
     "keyCharacteristics": [
-      "Green-black canvas, ivory hierarchy, mint actions and explanations.",
-      "Oversized compact headings beside the unchanged pixel mascot.",
-      "Pill controls, quiet hairlines, generous vertical space.",
-      "Scripted educational examples with visible limitations.",
-      "Brief entrance motion with a complete reduced-motion fallback."
+      "Exact supplied scene and unchanged approved pixel mascot.",
+      "Grandstander 900 with Inter.",
+      "White and frosted pills, soft shadows, light surfaces.",
+      "Localized environmental motion with a still fallback."
     ],
     "rules": [
       {
-        "name": "The Mint Means Action Rule.",
-        "body": "Use mint for actionable or explanatory emphasis; keep long supporting paragraphs in Soft Sage.",
+        "name": "The Sunny Scene Rule",
+        "body": "Keep the light palette in both operating-system color schemes.",
         "section": "colors"
-      },
-      {
-        "name": "The Pixel Accent Rule.",
-        "body": "Keep pixel lettering to the wordmark and pixel texture to the approved artwork and sparse decoration; explanatory prose stays in Manrope.",
-        "section": "typography"
-      },
-      {
-        "name": "The Quiet Surface Rule.",
-        "body": "Separate functional containers with surface tone and a single hairline; leave cinematic glow to the decorative horizon and stars.",
-        "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** preserve the exact approved mascot PNG and its complete silhouette.",
-      "**Do** reuse the existing mint action, focus, and selected-state vocabulary.",
-      "**Do** keep functional surfaces quiet, with tonal separation and hairlines.",
-      "**Do** retain semantic headings, native disclosures, keyboard tabs, the skip link, and reduced-motion behavior.",
-      "**Do** label examples as scripted and illustrative, and direct setup to the existing source instructions.",
-      "**Do** keep this standalone website separate from extension behavior and student data."
+      "Do preserve original PNG artwork and use documented responsive delivery copies.",
+      "Do keep essential text and interactions in HTML.",
+      "Do retain phone sky fading, subtitle contrast and keyboard access.",
+      "Do retain accurate scripted-preview labels and source setup links.",
+      "Do preserve native FAQ disclosures, existing source setup and anchor destinations, and skip-link focus behavior."
     ],
     "donts": [
-      "**Don't** regenerate, redraw, crop, or stretch the approved mascot without owner approval.",
-      "**Don't** make decorative raster artwork responsible for essential text or interaction.",
-      "**Don't** imply Autodesk affiliation, Chrome Web Store availability, electrical verification, or a live AI connection from this page.",
-      "**Don't** promote detector exceptions or small helper-copy defects into reusable design rules."
+      "Don't replace the approved illustration or mascot without owner approval.",
+      "Don't describe shader displacement as generated video.",
+      "Don't imply live AI, electrical verification from images, Autodesk endorsement or deployment."
     ]
   }
 }

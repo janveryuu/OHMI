@@ -1,0 +1,60 @@
+{
+  "note": "External provenance preserves the exact original PNG bytes; no metadata has been embedded into approved originals.",
+  "assets": [
+    {
+      "file": "ask-preview.webp",
+      "sha256": "795b2e21628f8d11c4f12108c16774fbf90607c8db3e4120440522bcf08171ec",
+      "origin": "Actual existing OHMI PWA local frontend at http://127.0.0.1:3101/ask. Captured in Chromium at1180x820, light/reduced-motion. Crop(230,50,1150,700), resize960x640, WebPquality90. No live data, AI request or upload."
+    },
+    {
+      "file": "build-preview.webp",
+      "sha256": "e70d468c2b66034baf0e7e24356d060170baff7f49b91dc34e0d55c7b0b97ad1",
+      "origin": "Actual existing OHMI PWA local frontend at http://127.0.0.1:3101/guide. Captured in Chromium at1180x820, light/reduced-motion. Crop(230,50,1150,700), resize960x640, WebPquality90. No live data, AI request or upload."
+    },
+    {
+      "file": "check-preview.webp",
+      "sha256": "c76dab77af3ad352431da49039f066d48fce4ae78ba4e818e81f71f7cf13d069",
+      "origin": "Actual existing OHMI PWA local frontend at http://127.0.0.1:3101/checker. Captured in Chromium at1180x820, light/reduced-motion. Crop(230,50,1150,700), resize960x640, WebPquality90. No live data, AI request or upload."
+    },
+    {
+      "file": "countryside-1000.webp",
+      "sha256": "4aad9da0e8395064a4a95577ca83cf56daf842c8be8bae71d517ab136c831866",
+      "origin": "Owner supplied OHMI.png (1672x941). Original PNG retained byte-identical. WebP copies: quality92, Lanczos resize only for 1000px; no generated or repainted content."
+    },
+    {
+      "file": "countryside-1672.webp",
+      "sha256": "9e59d4f97565f2ea6a0ccb423c4dc5c72af293fb4673b47b6d1562aa3aca178a",
+      "origin": "Owner supplied OHMI.png (1672x941). Original PNG retained byte-identical. WebP copies: quality92, Lanczos resize only for 1000px; no generated or repainted content."
+    },
+    {
+      "file": "countryside.png",
+      "sha256": "a6256949d83c1be1b3ff8be602be88b5dca387bb1f37775ee656cadc9f0932e7",
+      "origin": "Owner supplied OHMI.png (1672x941). Original PNG retained byte-identical. WebP copies: quality92, Lanczos resize only for 1000px; no generated or repainted content."
+    },
+    {
+      "file": "grandstander-900.woff2",
+      "sha256": "47bdcf1c15989722ccbdabd3126c6ec9ac58157de111921582bfa93653d0ca6c",
+      "origin": "Google Fonts official CSS delivery, latin WOFF2. Grandstander900 or Inter variable. SIL OFL texts included alongside fonts."
+    },
+    {
+      "file": "inter-latin.woff2",
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+      "origin": "Google Fonts official CSS delivery, latin WOFF2. Grandstander900 or Inter variable. SIL OFL texts included alongside fonts."
+    },
+    {
+      "file": "ohmi-480.webp",
+      "sha256": "2ede4caa223fc740c1d0464ff9816439c0286a08f20163b8320a10808f71701a",
+      "origin": "Approved assets/mascot/ohmi-pixel-front.png. Original PNG retained byte-identical. WebP derivatives use nearest-neighbor resizing and lossless compression."
+    },
+    {
+      "file": "ohmi-64.webp",
+      "sha256": "78f1ec0c40ff6f3838e925f0ea844dd7a4cb5725e13f37a9c5b9afd0cd4ac61a",
+      "origin": "Approved assets/mascot/ohmi-pixel-front.png. Original PNG retained byte-identical. WebP derivatives use nearest-neighbor resizing and lossless compression."
+    },
+    {
+      "file": "ohmi.png",
+      "sha256": "815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382",
+      "origin": "Approved assets/mascot/ohmi-pixel-front.png. Original PNG retained byte-identical. WebP derivatives use nearest-neighbor resizing and lossless compression."
+    }
+  ]
+}

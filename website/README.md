@@ -1,23 +1,29 @@
-# OHMI website
+# OHMI cinematic landing page
 
-Owner-approved Concept C: bold type and mint horizon. This is a separate static marketing site. The browser extension and backend are unchanged.
+Local review build of the owner's MotionSites-inspired countryside redesign. **Not deployed or approved for production.** Production remains https://meetohmi.vercel.app/ on `codex/ohmi-website`.
 
-Production: [OHMI — Your Circuit Buddy](https://meetohmi.vercel.app/). Vercel project `meetohmi`, Hobby plan; automatic production deployments use `codex/ohmi-website` with root `website`. See [deployment settings and verification](VERCEL_DEPLOYMENT.md).
+Canonical source is `src/`. `dist/` is now generated and ignored. Native HTML/CSS/JavaScript; no application dependencies, environment variables, trackers, backend or AI requests.
 
-Earlier owner-private preview: [Sites preview](https://ohmi-circuit-buddy.purple-reed-2208.chatgpt.site).
-
-`dist/` contains the **hand-authored, deployable source** (HTML, CSS, JavaScript and assets). `npm run build --prefix website` validates this output; no compiler or app dependencies are required. `.openai/hosting.json` identifies the earlier private Sites deployment. Design source, approval and prompts live in `design/`.
-
-Preview from the repository root:
+From repository root:
 
 ```powershell
-python -m http.server 4173 --bind 127.0.0.1 --directory website/dist
+npm run build --prefix website
+npm test --prefix website
+python -m http.server 4177 --bind 127.0.0.1 --directory website/dist
 ```
 
-Open http://127.0.0.1:4173. Run `node tests/website.mjs` with that server running. The test uses the repository's existing Playwright installation and writes screenshots to ignored `website/.impeccable/review/`.
+Review http://127.0.0.1:4177. In a second terminal:
 
-Motion checks: `$env:OHMI_WEBSITE_URL='http://127.0.0.1:4173'; node tests/website-motion.mjs`. The motion suite defaults to port 4174 when that environment variable is unset. Eye-layer provenance and motion verification are recorded in [MOTION_VERIFICATION.md](design/MOTION_VERIFICATION.md).
+```powershell
+npm run test:browser --prefix website
+```
 
-The learning preview is scripted and makes no AI request. Setup links point to the OHMI repository; this page does not claim Chrome Web Store availability. This website collects no student information and makes no external runtime requests.
+The browser script uses the repository's existing Playwright dev dependency and writes screenshots/recordings to ignored `website/.impeccable/review/cinematic/`. `OHMI_WEBSITE_URL` overrides the local URL. The historical root `tests/website*.mjs` suites describe the previous production design and are retained for that branch; this redesign uses `website/tests/`.
 
-Assets: `dist/assets/ohmi.png` is an exact copy of the approved original mascot, SHA-256 `815AD3DFF06433ED9081EF1A73FAC2F97D7943D760E95A9AC11660D11AD39382`. It must remain byte-identical. Special Gothic, Manrope and Silkscreen are self-hosted under their included SIL Open Font Licenses. Generated horizon provenance is recorded in `design/` and in the asset metadata.
+The supplied countryside PNG and canonical mascot PNG remain unchanged in `src/assets`. The browser receives smaller WebP copies of the same artwork. Grandstander 900 and Inter are self-hosted with SIL OFL texts. Feature images are actual screenshots from the existing local PWA, not generated app mockups. See `design/cinematic/ASSETS.json`.
+
+Environmental animation uses a small native WebGL source-image wind field with separate grass, hair, cloth, sky and antenna regions. It is **not** an image-to-video generation. OHMI's face/body stay fixed. A 24-second periodic field renders at a capped 30 fps. Pause control, hidden/offscreen pause, reduced motion, data-saving mode, unavailable WebGL and context loss retain still content. Entrance uses WAAPI with a 160 ms headline stagger.
+
+Existing public `#top`, `#explore`, `#how-it-works`, `#get-started` and `#faq` anchors remain available. Existing FAQ/legal answers are preserved. Launch OHMI opens the clearly labeled local scripted preview; there is no fake download or live AI.
+
+Verification and limits: [cinematic report](design/cinematic/VERIFICATION.md). Original master prompt and reference comparison decisions: [implementation contract](design/cinematic/PLAN.md). Build output and screenshots/recordings are excluded from Git. No production deployment is authorized until owner review.
