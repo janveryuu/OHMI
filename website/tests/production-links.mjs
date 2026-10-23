@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const landing=process.env.OHMI_WEBSITE_URL||'https://meetohmi.vercel.app';
@@ -40,9 +41,10 @@ try{
   for(const name of ['styles.css','app.js','scene.js']){
     const response=await page.request.get(landing+'/'+name);
     assert.equal(response.status(),200);
-    assert.deepEqual(await response.body(),await readFile(new URL('../src/'+name,import.meta.url)));
+    const digest=text=>createHash('sha256').update(text.replace(/\r\n/g,'\n')).digest('hex');
+    assert.equal(digest(await response.text()),digest(await readFile(new URL('../src/'+name,import.meta.url),'utf8')),`${name} must match the approved source`);
   }
-  checks.push('Live CSS, app interaction code and cinematic scene bytes match approved source');
+  checks.push('Live CSS, interaction code and cinematic scene match approved source after Git line-ending normalization');
   await page.setViewportSize({width:1440,height:900});
   await page.goto(landing);await page.waitForTimeout(2500);
   await page.screenshot({path:output+'/landing-desktop.png',fullPage:true});

@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "motionRegions": {
+        "grass": {
+          "changed": 65741,
+          "total": 106001,
+          "ratio": 0.6201922623371477
+        },
+        "hair": {
+          "changed": 6700,
+          "total": 13356,
+          "ratio": 0.5016471997604073
+        },
+        "clouds": {
+          "changed": 18681,
+          "total": 79339,
+          "ratio": 0.23545797148943143
+        },
+        "antennae": {
+          "changed": 1306,
+          "total": 4945,
+          "ratio": 0.2641051567239636
+        },
+        "face": {
+          "changed": 0,
+          "total": 666,
+          "ratio": 0
+        }
+      }
+    },
+    "Pause/resume, hover, local sample switching and offscreen pause pass",
+    "Layout and real scene landmarks pass at 1440x900",
+    "Layout and real scene landmarks pass at 1024x768",
+    "Layout and real scene landmarks pass at 768x1024",
+    "Layout and real scene landmarks pass at 390x844",
+    "Layout and real scene landmarks pass at 320x740",
+    "Reduced motion, dark OS consistency, keyboard skip link and all anchor targets pass",
+    "No WebGL and no JavaScript retain original scene and readable content",
+    "No console errors, failed responses or third-party runtime requests"
+  ],
+  "errors": []
+}

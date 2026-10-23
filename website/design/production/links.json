@@ -1,0 +1,12 @@
+{
+  "landing": "https://meetohmi.vercel.app",
+  "app": "https://ohmi-workspace.vercel.app",
+  "checks": [
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 1440px",
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 768px",
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 390px",
+    "All /app entry points return correct 307 redirects",
+    "Live CSS, interaction code and cinematic scene match approved source after Git line-ending normalization"
+  ],
+  "errors": []
+}
