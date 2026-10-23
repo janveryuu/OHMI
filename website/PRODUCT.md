@@ -1,13 +1,13 @@
 # OHMI website
 
-OHMI is an independent educational Chrome extension for students learning electronics alongside Tinkercad Circuits. This new marketing website introduces the companion and explains how to try the source build. The existing extension remains a separate product.
+OHMI is an independent educational circuit-learning companion. This marketing website introduces the companion and opens its standalone Web App + PWA. The existing Chrome extension remains separate.
 
-Audience: college electronics and Computer Engineering students, initially the owner's classmates. Their task is to understand what OHMI does and reach setup instructions.
+Audience: college electronics and Computer Engineering students, initially the owner's classmates. Their task is to understand what OHMI does and open the public web app or the separate extension setup instructions.
 
-Owner brief: a beautiful, modern website inspired by the attached Nimbus screenshot and short recording. Preserve the approved mint pixel-art OHMI PNG exactly. Dark cinematic composition, clear oversized sans typography, mint accents, ample space, and restrained accessible motion.
+Owner-approved identity: the MotionSites-inspired countryside cinematic landing page, supplied countryside artwork and canonical mint pixel-art OHMI PNG. Preserve its existing typography, composition, environmental motion and responsive behavior. The current deployment task does not authorize a redesign.
 
 Truth: accounts, private assignments, student-written steps, floating assistant and tutoring code exist in the current repository. Older planning documents lag behind source; live AI availability is not established by this website work. Any learning interaction on the website is a labeled scripted preview. Do not promise Chrome Web Store availability, verified circuits, endorsements, outcomes, prices, or customer counts.
 
-Scope: landing page, local interactive preview, FAQ and source setup links. No student data collection, credentials, provider calls, extension changes or next-phase implementation. First deployment stays owner-private.
+Scope: public landing page, local interactive preview, FAQ, source setup links and working PWA links through `/app` redirects. The owner authorized public Vercel hosting on 24 October 2026. No student data collection, credentials, provider calls, extension changes or next-phase implementation. See DEPLOYMENT.md.
 
-Platform: buildless HTML/CSS/JavaScript; reuse the exact mascot asset. Native web controls, keyboard access, reduced motion and responsive layouts are required. Use a self-hosted licensed font.
+Platform: static HTML/CSS/JavaScript in `src`, copied into ignored `dist` by the Node build script. Reuse the approved artwork, self-hosted licensed fonts and native controls. Keyboard access, reduced motion and responsive layouts remain required.
