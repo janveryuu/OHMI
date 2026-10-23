@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Your personal workspace for learning circuits. Frontend demonstration.",
   applicationName: "OHMI",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "OHMI" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  icons: { icon: "/app/icons/icon-192.png", apple: "/app/icons/apple-touch-icon.png" },
 };
 export const viewport: Viewport = {
   width: "device-width",

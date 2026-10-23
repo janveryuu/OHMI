@@ -163,7 +163,7 @@ export function Chat() {
             <span className="chat-avatar">
               <Image
                 className="mascot"
-                src="/mascot.png"
+                src="/app/mascot.png"
                 alt=""
                 width="31"
                 height="36"

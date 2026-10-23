@@ -65,7 +65,7 @@ export function Dashboard() {
             <Zap size={23} />
           </span>
           <MotionImage
-            src="/mascot.png"
+            src="/app/mascot.png"
             sizes="(max-width: 767px) 178px, 220px"
             priority
             fetchPriority="high"

@@ -45,7 +45,7 @@ const icons = {
   Settings2,
 };
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname(),
+  const pathname = usePathname().replace(/\/$/, "") || "/",
     app = useApp(),
     systemReduced = useReducedMotion();
   const reduced = systemReduced || app.reduceMotion;
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PwaControls statusOnly />
       <aside className="sidebar">
         <Link href="/" className="brand" aria-label="OHMI dashboard">
-          <Image src="/mascot.png" alt="" width="37" height="44" />
+          <Image src="/app/mascot.png" alt="" width="37" height="44" />
           <span>
             OHMI<span className="brand-dot">.</span>
             <small>Your circuit buddy</small>

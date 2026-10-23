@@ -99,7 +99,7 @@ export function Companion({
       <div className="between">
         <span className="row">
           <Image
-            src="/mascot.png"
+            src="/app/mascot.png"
             width="28"
             height="32"
             alt=""
@@ -129,7 +129,7 @@ export function Companion({
       {!small && (
         <>
           <Image
-            src="/mascot.png"
+            src="/app/mascot.png"
             width="110"
             height="126"
             alt="OHMI, your mint pixel-art circuit buddy"

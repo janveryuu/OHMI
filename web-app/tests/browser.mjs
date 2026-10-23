@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3100";
+const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3100/app";
 const browser = await chromium.launch({ headless: true });
 const out = new URL("../test-results/", import.meta.url);
 await mkdir(out, { recursive: true });
@@ -17,6 +17,9 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 page.on("pageerror", (error) => errors.push(error.message));
+context.on("response", response => {
+  if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
+});
 context.on("request", (request) => {
   if (
     !request.url().startsWith(base) &&
@@ -26,9 +29,12 @@ context.on("request", (request) => {
     errors.push(`Unexpected remote request: ${request.url()}`);
 });
 async function navigate(path) {
-  await page.goto(base + path);
+  const response = await page.goto(base + path);
+  assert.equal(response.status(), 200, path);
   await page.locator("h1").waitFor();
   await page.waitForTimeout(400);
+  const href = await page.locator('.nav-item[aria-current="page"]').first().getAttribute("href");
+  assert.equal(href, "/app" + (path === "/" ? "/" : path + "/"));
 }
 async function shot(name) {
   await page.screenshot({
@@ -337,8 +343,13 @@ try {
   ).json();
   assert.equal(manifest.display, "standalone");
   assert.equal(manifest.icons.length, 3);
+  assert.equal(manifest.start_url, "/app/");
+  assert.equal(manifest.scope, "/app/");
+  assert.ok(manifest.icons.every(icon => icon.src.startsWith("/app/icons/")));
+  assert.ok(manifest.shortcuts.every(shortcut => shortcut.url.startsWith("/app/")));
   await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.ready;
+    if (new URL(registration.scope).pathname !== "/app/") throw new Error("Worker escaped /app/");
   });
   const cacheUrls = await page.evaluate(async () => {
     const names = await caches.keys();
@@ -352,21 +363,21 @@ try {
       )
     ).flat();
   });
-  assert.ok(cacheUrls.includes("/offline.html"));
+  assert.ok(cacheUrls.includes("/app/offline.html"));
   assert.ok(
     cacheUrls.every((url) =>
       [
-        "/offline.html",
-        "/mascot.png",
-        "/icons/icon-192.png",
-        "/icons/icon-512.png",
-        "/icons/icon-maskable-512.png",
-        "/icons/apple-touch-icon.png",
+        "/app/offline.html",
+        "/app/mascot.png",
+        "/app/icons/icon-192.png",
+        "/app/icons/icon-512.png",
+        "/app/icons/icon-maskable-512.png",
+        "/app/icons/apple-touch-icon.png",
       ].includes(url),
     ),
   );
   await context.setOffline(true);
-  await page.goto(base + "/ask");
+  await page.goto(base + "/");
   await page
     .getByRole("heading", { name: "A little pause in the connection." })
     .waitFor();

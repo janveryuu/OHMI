@@ -155,7 +155,7 @@ export function Settings() {
           <section className="panel stack">
             <div className="row">
               <Image
-                src="/mascot.png"
+                src="/app/mascot.png"
                 width="40"
                 height="46"
                 alt=""

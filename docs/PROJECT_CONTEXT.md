@@ -10,7 +10,7 @@
 
 # OHMI — Project Context and Development Guidelines
 
-> 24 October 2026: The owner approved and authorized production hosting of both existing frontend designs. The cinematic `website/` deploys from `codex/ohmi-website` to https://meetohmi.vercel.app/. The independent `web-app/` deploys from `codex/ohmi-web-app-pwa` to https://ohmi-workspace.vercel.app/. Landing `/app` paths redirect to the PWA host. These are frontend-only deployments; no Supabase, authentication, AI, or extension milestone integration is authorized by this release. See `web-app/docs/PRODUCTION.md`.
+> 24 October 2026: The owner approved and authorized production hosting of both existing frontend designs. The cinematic `website/` deploys from `codex/ohmi-website` to https://meetohmi.vercel.app/. The independent `web-app/` deploys from `codex/ohmi-web-app-pwa` behind https://meetohmi.vercel.app/app/. Landing `/app` paths proxy the independent PWA project, with its Next base path and worker scope set to `/app/`. These are frontend-only deployments; no Supabase, authentication, AI, or extension milestone integration is authorized by this release. See `web-app/docs/PRODUCTION.md`.
 
 Act as an experienced senior full-stack developer, Chrome extension engineer, AI integration specialist, and UI/UX designer.
 

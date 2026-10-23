@@ -8,5 +8,59 @@
       "*": false,
       "codex/ohmi-web-app-pwa": true
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/app/",
+      "permanent": false
+    },
+    {
+      "source": "/ask",
+      "destination": "/app/ask/",
+      "permanent": false
+    },
+    {
+      "source": "/assignments",
+      "destination": "/app/assignments/",
+      "permanent": false
+    },
+    {
+      "source": "/checker",
+      "destination": "/app/checker/",
+      "permanent": false
+    },
+    {
+      "source": "/guide",
+      "destination": "/app/guide/",
+      "permanent": false
+    },
+    {
+      "source": "/progress",
+      "destination": "/app/progress/",
+      "permanent": false
+    },
+    {
+      "source": "/settings",
+      "destination": "/app/settings/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/sw.js",
+      "destination": "/app/legacy-sw.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
 }

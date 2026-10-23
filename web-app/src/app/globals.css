@@ -2107,17 +2107,17 @@ progress::-moz-progress-bar {
     max-width: 100%;
     white-space: nowrap;
   }
-  .bottom-nav .nav-item[href="/checker"] span:not(.nav-pill) {
+  .bottom-nav .nav-item[href="/app/checker/"] span:not(.nav-pill) {
     font-size: 0;
   }
-  .bottom-nav .nav-item[href="/checker"] span:not(.nav-pill)::after {
+  .bottom-nav .nav-item[href="/app/checker/"] span:not(.nav-pill)::after {
     content: "Checker";
     font-size: 9px;
   }
-  .bottom-nav .nav-item[href="/"] span:not(.nav-pill) {
+  .bottom-nav .nav-item[href="/app/"] span:not(.nav-pill) {
     font-size: 0;
   }
-  .bottom-nav .nav-item[href="/"] span:not(.nav-pill)::after {
+  .bottom-nav .nav-item[href="/app/"] span:not(.nav-pill)::after {
     content: "Home";
     font-size: 9px;
   }

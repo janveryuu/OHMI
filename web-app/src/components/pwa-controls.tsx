@@ -36,7 +36,7 @@ export function PwaControls({ statusOnly = false }: { statusOnly?: boolean }) {
     window.addEventListener("appinstalled", done);
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production")
       navigator.serviceWorker
-        .register("/sw.js", { scope: "/" })
+        .register("/app/sw.js", { scope: "/app/" })
         .then((reg) => {
           if (disposed) return;
           if (reg.waiting) setWaiting(reg.waiting);

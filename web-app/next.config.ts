@@ -4,6 +4,8 @@ import path from "node:path";
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(process.cwd()),
   poweredByHeader: false,
+  basePath: "/app",
+  trailingSlash: true,
   async headers() {
     return [
       {

@@ -2,7 +2,7 @@
 
 Standalone frontend demonstration. This folder has its own dependency lockfile, Next.js build and local server. The WXT extension, Supabase and production landing page are separate.
 
-Live app: [ohmi-workspace.vercel.app](https://ohmi-workspace.vercel.app/). Landing page: [meetohmi.vercel.app](https://meetohmi.vercel.app/). See [production setup and update instructions](docs/PRODUCTION.md).
+Live app: [meetohmi.vercel.app/app/](https://meetohmi.vercel.app/app/). Landing page: [meetohmi.vercel.app](https://meetohmi.vercel.app/). See [production setup and update instructions](docs/PRODUCTION.md).
 
 ## Preview
 
@@ -13,14 +13,14 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:3100. For production-mode PWA behavior:
+Open http://127.0.0.1:3100/app/. For production-mode PWA behavior:
 
 ```powershell
 npm run build
 npm run start
 ```
 
-The service worker is intentionally disabled during development. Production uses the separate Vercel project `ohmi-workspace`, with `web-app` as its root and `codex/ohmi-web-app-pwa` as its tracked production branch. The landing page's `/app` routes redirect to this PWA's public HTTPS origin. Its worker remains isolated from the landing page.
+The service worker is intentionally disabled during development. Production uses the separate Vercel project `ohmi-workspace`, with `web-app` as its root and `codex/ohmi-web-app-pwa` as its tracked production branch. The landing project proxies `/app/` to this independent build. Browser URLs remain on the official domain, and its worker controls only `/app/`.
 
 ## Included
 
