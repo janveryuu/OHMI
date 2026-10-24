@@ -1,5 +1,5 @@
 {
-  "status": "sample-review-pending",
+  "status": "owner-approved-official-visual-direction",
   "generatedOn": "2026-10-24",
   "mode": "built-in image_gen",
   "commonPrompt": "Use case: scientific-educational / stylized-concept. Create ONE standalone 4:3 landscape sample illustration for OHMI's Circuit Library. All three supplied images are references, NOT edit targets: combine resistor's clear simple silhouette and material colors, breadboard's disciplined isometric depth and pixel-inspired small details, Arduino's technically recognizable component placement. Unified SOFT VOXEL ART: carefully authored small beveled blocks and subtly stepped contours, crisp clean planar facets, matte toy-like materials, no outlines, no noisy texture, no photorealism, no glossy clay blobs. Consistent orthographic isometric camera: elevation 30 degrees, verticals vertical, horizontal board axes at +30 and -30 degrees; long subject axis projects from lower-left toward upper-right. Soft large upper-left key light, gentle ambient fill, short diffuse mint-gray contact shadow down-right. Flat very pale warm cream background #F7F6ED with faint mint cast, no horizon or vignette. Center single isolated object, generous 14% safety margins, approximately 70-76% of image width; consistent small bevel size relative to hardware. Muted turquoise, warm cream, graphite, brushed silver and sensible component accent colors. Cute through proportion and clean craft, never faces or anthropomorphism. No unrelated objects, wires, plants, decoration, particles, labels, watermarks or textual headings. No fake text or invented electronic details. This is a collection asset, not an infographic or collage. ",
@@ -34,7 +34,7 @@
     "camera": "orthographic isometric, 30 degree elevation",
     "light": "upper left, short diffuse mint-gray shadow",
     "mascot": "unchanged; palette compatibility only",
-    "rollout": "requires user review of all three samples",
+    "rollout": "Owner approved all three samples and authorized remaining illustrations plus local Library integration; release approval remains pending.",
     "accuracy": "recognition illustrations; never use as pinout, rail connectivity or electrical verification"
   },
   "assets": [

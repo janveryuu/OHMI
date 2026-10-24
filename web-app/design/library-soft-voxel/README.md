@@ -1,6 +1,8 @@
-# OHMI Circuit Library: Soft Voxel sample review
+# OHMI Circuit Library: official Soft Voxel collection
 
-Status: three-sample review; owner approval pending. Generated 24 October 2026 with built-in image_gen. This package does not implement the larger attached Library brief or authorize a production release.
+Status: all three samples are owner-approved as the official visual direction. The collection now contains 20 illustrations integrated into a local Circuit Library. Generated 24 October 2026 with built-in image_gen. Production release still requires owner approval.
+
+See [integration scope](INTEGRATION.md), [collection prompts and per-image provenance](collection.json), and [verification and screenshots](VERIFICATION.md). The original three approved PNGs below remain unchanged.
 
 ## Shared illustration system
 
@@ -39,10 +41,10 @@ The three candidates share the same prompt contract and all three reference inpu
 
 Original PNG masters preserve generation provenance. WebP review copies are 1200 x 900; PNG masters are 1448 x 1086. Full generation prompts and refinement prompts are in [manifest.json](manifest.json). References are owner-supplied; no third-party asset was downloaded or copied from a reference site.
 
-No runtime source, navigation, stylesheet, PWA cache or production configuration changed. App/browser regression tests are not applicable to this unintegrated artwork package. Web Interface Guidelines review is deferred until UI integration; there are no changed UI files to review.
+The initial sample checkpoint changed no runtime source. The subsequent authorized rollout adds only the Library, its navigation entry, content, diagrams and artwork. Backend, mascot, other feature source, worker cache policy and production configuration remain unchanged. Verification now includes image checks, typecheck, build and local browser tests.
 
 ## Approval boundary and handoff
 
-Review all three together for unified camera, light, palette, proportions and detail density. Apply requested changes to the shared contract before producing more components. Approval of the Soft Voxel direction is recorded; approval of these specific samples is still pending. Remaining Library illustrations, production asset integration and the full interactive Library are not completed by this sample package.
+The owner approved all three specific samples and authorized remaining illustrations plus Library integration. All 20 starter entries now have artwork, sourced recognition guidance, reference links and direct detail URLs. This is a starter collection, not verified coverage of the entire current Tinkercad catalog.
 
-After sample approval, reuse the shared contract and approved renders as style references for each remaining component. Review subject-specific terminals, polarity and geometry separately. Supply deterministic technical diagrams where learners need exact connectivity or pinouts. Preserve the existing PWA design and behavior. Do not deploy without explicit owner approval.
+The rollout reuses all three approved renders as references for every new illustration. Local electrical diagrams show only reviewed schematic/topology relationships; exact wiring and package-specific pinouts link to separate trusted references. Future additions must keep the same contract, reference masters and per-image checks. Do not deploy without explicit owner approval.

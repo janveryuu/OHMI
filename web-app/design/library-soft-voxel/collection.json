@@ -1,0 +1,310 @@
+{
+  "status": "reviewed-local-integration-awaiting-owner-release-approval",
+  "date": "2026-10-24",
+  "approvedStyle": "Owner approved all three Soft Voxel samples in this chat.",
+  "tool": "built-in image_gen",
+  "stylePrompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. ",
+  "referenceMasters": [
+    "samples/resistor.png",
+    "samples/breadboard.png",
+    "samples/arduino-uno.png"
+  ],
+  "batches": [
+    [
+      "led",
+      "rgb-led",
+      "pushbutton",
+      "switch"
+    ],
+    [
+      "battery",
+      "capacitor",
+      "diode",
+      "wires"
+    ],
+    [
+      "potentiometer",
+      "piezo",
+      "dc-motor",
+      "servo"
+    ],
+    [
+      "ultrasonic",
+      "temperature",
+      "photoresistor",
+      "npn-transistor"
+    ],
+    [
+      "multimeter"
+    ]
+  ],
+  "items": [
+    {
+      "id": "breadboard",
+      "master": "samples/breadboard.png",
+      "web": "../../public/library/breadboard.webp",
+      "prompt": "Original approved sample; see manifest.json.",
+      "source": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+      "wiringReference": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+      "review": "Original owner-approved sample retained byte-for-byte; stylized details are not a pinout.",
+      "electricallyVerified": false,
+      "webBytes": 105692,
+      "webSha256": "74edbec2782dcf5df0f5ab3abcf17be61f23d3639be0ff77192824261690760b",
+      "masterSha256": "a3ab4f183c90db00d6d5db8027e323ee367d3082fe0805ae6f0e3dcd83c30e17"
+    },
+    {
+      "id": "resistor",
+      "master": "samples/resistor.png",
+      "web": "../../public/library/resistor.webp",
+      "prompt": "Original approved sample; see manifest.json.",
+      "source": "https://learn.sparkfun.com/tutorials/resistors/all",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/resistors",
+      "review": "Original owner-approved sample retained byte-for-byte; stylized details are not a pinout.",
+      "electricallyVerified": false,
+      "webBytes": 22054,
+      "webSha256": "72acdeba0201973397f00ebdac39f0203738650164af937f9e047e2fdbbd3d35",
+      "masterSha256": "4cccc89d4bcd81ace293ab9f34fc961e3c2f5df57d9b48807ea9b29a862c230f"
+    },
+    {
+      "id": "arduino-uno",
+      "master": "samples/arduino-uno.png",
+      "web": "../../public/library/arduino-uno.webp",
+      "prompt": "Original approved sample; see manifest.json.",
+      "source": "https://docs.arduino.cc/hardware/uno-rev3",
+      "wiringReference": "https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf",
+      "review": "Original owner-approved sample retained byte-for-byte; stylized details are not a pinout.",
+      "electricallyVerified": false,
+      "webBytes": 75278,
+      "webSha256": "022a79a7563641fa78b6382f34e55d9a10f20272bf7cea4942e4315e21ca3123",
+      "masterSha256": "692ab8597a7e081c2672e5467554d567aad29f1fa63ee8220b8b060499cf7e25"
+    },
+    {
+      "id": "battery",
+      "master": "masters/battery.png",
+      "web": "../../public/library/battery.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One rectangular 9-volt PP3 battery, upright: brushed silver top with exactly TWO DIFFERENT snap terminals, small round male stud and larger hexagonal female socket, recognizable proportions, muted turquoise sleeve and graphite lower band. No clip, wires, text or branding. Show both top snaps clearly.",
+      "source": "https://data.energizer.com/pdfs/522.pdf",
+      "wiringReference": "https://data.energizer.com/pdfs/522.pdf",
+      "review": "Two different snap shapes on a rectangular 9 V battery body; no polarity labels invented.",
+      "electricallyVerified": false,
+      "webBytes": 15722,
+      "webSha256": "b8c98475da319fd840bf9f639ab707dab70afee9b422d476c746818634ac93f0",
+      "masterSha256": "6874d7fdaf7e8ce1658c0ff8791996805356fad5c71013b2bc10bc06893e24d8"
+    },
+    {
+      "id": "led",
+      "master": "masters/led.png",
+      "web": "../../public/library/led.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One red diffused through-hole 5 mm LED: softly faceted domed red epoxy lens, small rim with subtle flat cathode side, exactly TWO thin silver leads with one slightly longer. No wires or base board. Show a crisp recognizable LED, not a light bulb.",
+      "source": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/leds",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/breadboard-layout",
+      "review": "Two leads and a recognizable red lens; detailed polarity is taught separately.",
+      "electricallyVerified": false,
+      "webBytes": 22402,
+      "webSha256": "ef521fad1dedd211d2b510597c5faccd74bd62234c664aee671895654f6455e7",
+      "masterSha256": "6bc84992133e77d690e826dded433df37444e5107651d38e80d863a6e8a4de55"
+    },
+    {
+      "id": "pushbutton",
+      "master": "masters/pushbutton.png",
+      "web": "../../public/library/pushbutton.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One momentary tactile pushbutton: small square graphite base, brushed silver square top plate with four tiny corner dimples, one short round graphite central plunger, exactly FOUR metal bent legs, two on each opposite side. Legs not fused. No wires or board.",
+      "source": "https://learn.adafruit.com/adafruit-arduino-lesson-6-digital-inputs/push-switches",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-6-digital-inputs/breadboard-layout",
+      "review": "Square tactile housing and central plunger; three legs visible, far fourth leg occluded by body.",
+      "electricallyVerified": false,
+      "webBytes": 17246,
+      "webSha256": "ab8aa7e0afb8b49e92d45c59ea70a429e09fbe5f539af2ae4b9372359043fb3c",
+      "masterSha256": "62424e8dc3e8e000e91a31fcd5669426f5c863750f9a80a84fc63d5d805021c6"
+    },
+    {
+      "id": "switch",
+      "master": "masters/switch.png",
+      "web": "../../public/library/switch.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One breadboard SPDT slide switch: compact graphite rectangular body, brushed silver metal top frame, short black ridged sliding actuator in narrow slot. Exactly THREE thin silver electrical pins in one straight row beneath body. No toggling lever, no extra power terminals.",
+      "source": "https://www.adafruit.com/product/805",
+      "wiringReference": "https://www.adafruit.com/product/805",
+      "review": "Sliding actuator and three terminals; electrical common/throw relation shown in a separate topology diagram.",
+      "electricallyVerified": false,
+      "webBytes": 17342,
+      "webSha256": "d7860a4bb0dfafb746fd3ee4cf961af52b717c2c1f7d933988502ab74d65180a",
+      "masterSha256": "d6a786c1cba2d495d2d502207bd1e4e7cfc1a3b18a5c1f0181eecfa8da1defb1"
+    },
+    {
+      "id": "potentiometer",
+      "master": "masters/potentiometer.png",
+      "web": "../../public/library/potentiometer.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One rotary potentiometer: compact squat brushed-metal round body with graphite phenolic base, single short knurled silver shaft projecting upward, exactly THREE separate silver terminals along one side, no extra terminals. Slight faceting on circular surfaces. No decorative knob hiding the shaft, wires, board, text, printed scale or arrows.",
+      "source": "https://learn.sparkfun.com/tutorials/resistors/all",
+      "wiringReference": "https://www.adafruit.com/product/562",
+      "review": "Rotary shaft, round housing and three lugs; wiper relation shown separately.",
+      "electricallyVerified": false,
+      "webBytes": 21602,
+      "webSha256": "40fc635c2fd5cebf682624f96b522d61c177f284a4fc7b28ee4a959d276577f1",
+      "masterSha256": "015f516e214782153643e0bc480c9ae712ce2c5ecbbd1ce2a4ad733c2710dee4"
+    },
+    {
+      "id": "piezo",
+      "master": "masters/piezo.png",
+      "web": "../../public/library/piezo.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One passive piezo buzzer: short graphite cylindrical housing with faceted sides, flat top with ONE small round central sound aperture, exactly TWO thin silver leads from bottom, both visible. No speaker cone, no grille pattern, no wires or board, no printed text.",
+      "source": "https://www.adafruit.com/product/160",
+      "wiringReference": "https://www.adafruit.com/product/160",
+      "review": "Single sound opening and two leads; no speaker cone or extra terminal.",
+      "electricallyVerified": false,
+      "webBytes": 10350,
+      "webSha256": "c88a84958f4952553c6124eb96144a55b80f5fab021d34fbc2604db724dc8ae5",
+      "masterSha256": "6c5020518a4f2af0f2f903ef09cb64ef4a46c64c83af8f16f2f52e445cd5dc91"
+    },
+    {
+      "id": "dc-motor",
+      "master": "masters/dc-motor.png",
+      "web": "../../public/library/dc-motor.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One small brushed DC toy motor, silver softly faceted cylindrical metal can with two subtle ventilation slots, graphite rear end cap, ONE short steel output shaft emerging from center of front circular cap, exactly TWO small copper electrical solder tabs at rear, one each side. Motor lies with axis lower-left toward upper-right. No wires, propeller, gear or board.",
+      "source": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+      "review": "Single shaft, metal motor can, ventilation slots and two rear tabs.",
+      "electricallyVerified": false,
+      "webBytes": 21206,
+      "webSha256": "3c9c345b8d9da954c56e393817704f1249d693af6a3d4995d178610fbc2cdd55",
+      "masterSha256": "85240557e3a7934852ea95d61a6f4acc98732ceb879a0627d7a22c38a99bf295"
+    },
+    {
+      "id": "servo",
+      "master": "masters/servo.png",
+      "web": "../../public/library/servo.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One compact hobby positional micro servo: muted blue-teal rectangular plastic housing with shallow raised gearbox cap, two small mounting ears, single white two-arm output horn screwed on top, small sensible holes in horn. A short attached THREE-conductor brown/red/orange ribbon cable ends at ONE three-socket graphite plug laid beside it. Show all three conductors, no extra wires. No text, no gears outside case, no separate shaft, no board.",
+      "source": "https://learn.adafruit.com/adafruit-arduino-lesson-14-servo-motors/servo-motors",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-14-servo-motors/the-breadboard-layout-for-sweep",
+      "review": "Mounting ears, horn and three-conductor cable; exact socket cavities are stylized.",
+      "electricallyVerified": false,
+      "webBytes": 32474,
+      "webSha256": "5fde9872c8645dda7ba7ca5b5172adbcbbaa3cc57dde3f952c35e1921ba21987",
+      "masterSha256": "4a6dfdb009563a5a1167e92acde3eb890b19a7ca2e1d1235b3f321047d2dfd4a"
+    },
+    {
+      "id": "ultrasonic",
+      "master": "masters/ultrasonic.png",
+      "web": "../../public/library/ultrasonic.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One HC-SR04-style ultrasonic distance module: small blue-teal rectangular PCB with exactly TWO matching silver cylindrical ultrasonic transducers mounted side-by-side on same front face, dark fine mesh circular openings, small mounting holes near ends, one tiny silver crystal and sparse small graphite support components behind. Exactly FOUR separate thin silver header pins in one straight row on lower edge. Slightly faceted metal cylinders, crisp parallel geometry. No lettering or labels. No three-pin variant, wires or unrelated objects.",
+      "source": "https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/pinouts",
+      "wiringReference": "https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/pinouts",
+      "review": "Two matching transducers and a four-pin header; source distinguishes four-pin and other module variants.",
+      "electricallyVerified": false,
+      "webBytes": 46580,
+      "webSha256": "7bc9cd9549abe4c25a7c56296e12ae1e5eef5178f8d0de8cd04e8984442d14bc",
+      "masterSha256": "d4a233b2e28f7ecc7ab9315cf4ce3ac4422351705f8e4efd305298c1e487c52d"
+    },
+    {
+      "id": "temperature",
+      "master": "masters/temperature.png",
+      "web": "../../public/library/temperature.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One TMP36 TO-92 analog temperature sensor. Small upright graphite semi-cylindrical plastic package with flat front and faceted curved back, exactly THREE parallel thin silver legs emerging from bottom in one row. Classic small electronic TO-92 proportions, no large housing, no display, no thermometer shape, no wires, no text. Clearly a small three-lead sensor package.",
+      "source": "https://www.analog.com/media/en/technical-documentation/data-sheets/TMP35_36_37.pdf",
+      "wiringReference": "https://www.analog.com/media/en/technical-documentation/data-sheets/TMP35_36_37.pdf",
+      "review": "Flat-front TO-92 package with three leads; not distinguishable from a transistor by silhouette alone.",
+      "electricallyVerified": false,
+      "webBytes": 9422,
+      "webSha256": "e41047655372295906940fc6fea53db1f3f9af4acb51a056f29e9a8566a5a1b8",
+      "masterSha256": "ca82d123e8294197b787483653bb7006346987ca726bf8cb06eb805c8419f77d"
+    },
+    {
+      "id": "photoresistor",
+      "master": "masters/photoresistor.png",
+      "web": "../../public/library/photoresistor.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One CdS photoresistor: small tan-orange circular flat sensing disk with softly faceted rim, visible single dark serpentine zigzag resistive trace across the flat face, exactly TWO thin silver radial leads from lower edge, separated. The sensing face should be clearly visible at the collection's isometric angle. No third pin, no eye, no lens, no wires, board or printed text.",
+      "source": "https://learn.adafruit.com/photocells",
+      "wiringReference": "https://learn.adafruit.com/photocells/using-a-photocell",
+      "review": "Two leads, flat disk and visible serpentine sensing pattern.",
+      "electricallyVerified": false,
+      "webBytes": 22086,
+      "webSha256": "b3f02f282d43b9c160043f580d8e6be9aed5f3e965ec54c15b7fdc902bf4ee93",
+      "masterSha256": "7ca95b322a06747f597b8b930f8a79eed91b7abf38721b71b9bd5bdf3b16c7f8"
+    },
+    {
+      "id": "rgb-led",
+      "master": "masters/rgb-led.png",
+      "web": "../../public/library/rgb-led.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One UNLIT diffused RGB through-hole LED: ivory milky softly faceted domed epoxy lens, flange, exactly FOUR separate thin silver legs in one row, one common lead slightly longer. Do not divide lens into colored stripes. No glow, no colored balls, no base board.",
+      "source": "https://learn.adafruit.com/adafruit-arduino-lesson-3-rgb-leds/arduino-sketch",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-3-rgb-leds/breadboard-layout",
+      "review": "Four leads and one diffused package; common-anode/cathode order is deliberately not inferred from the render.",
+      "electricallyVerified": false,
+      "webBytes": 21558,
+      "webSha256": "29be41875c3dbc4664215582ab5141561fb8eeca8229205e506259d8850d6768",
+      "masterSha256": "5df4d8322b83b127a6914079f9461ad9eb2470d4cf8c94289f44b03bdfc93af8"
+    },
+    {
+      "id": "wires",
+      "master": "masters/wires.png",
+      "web": "../../public/library/wires.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One single insulated male-to-male breadboard jumper wire, arranged as a gentle U, muted turquoise insulation, small graphite rectangular connector housing at BOTH ends, exactly ONE exposed slim silver male pin per end. Ends separated and visible. No extra wires, coils, plugs, components or text.",
+      "source": "https://learn.sparkfun.com/tutorials/connector-basics/all",
+      "wiringReference": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+      "review": "One continuous insulated male-to-male jumper with one exposed pin per end.",
+      "electricallyVerified": false,
+      "webBytes": 16454,
+      "webSha256": "0e8ff35ad9544cc16514052d4edccce95495ec220156b2742099f3e04fe066a7",
+      "masterSha256": "7fcf75a8af0733aa21edbe5377e20ddc430b561e9f4c9643a976d1b585ed7fc8"
+    },
+    {
+      "id": "multimeter",
+      "master": "masters/multimeter.png",
+      "web": "../../public/library/multimeter.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One handheld digital multimeter: chunky muted turquoise protective rubber case, cream face panel, blank pale gray-green recessed rectangular LCD near top, ONE graphite rotary selector dial centered below it with a small molded pointer. Exactly THREE recessed circular banana input sockets along lower edge. Two tidy test leads, one red and one graphite, emerge from two sockets and end in matching slim probe handles with exposed short silver metal tips laid beside instrument. Third socket unused. No numerals, letters, fake display readings, extra buttons, labels, arrows or unrelated objects. Keep all cables simple and physically continuous.",
+      "source": "https://learn.sparkfun.com/tutorials/how-to-use-a-multimeter/all",
+      "wiringReference": "https://learn.sparkfun.com/tutorials/how-to-use-a-multimeter/all",
+      "review": "LCD, rotary selector, three sockets and two continuous probe leads; not a mode/lead-placement diagram.",
+      "electricallyVerified": false,
+      "webBytes": 50070,
+      "webSha256": "4bab94cc2eec2588e2023f2557592b7c4bd50423474773f1db76d17ca5fd8d0b",
+      "masterSha256": "ebf1fe3d2c1ee19618b1a27be1c5c72238ce0cf3ea325af53b554950f1f9328e"
+    },
+    {
+      "id": "capacitor",
+      "master": "masters/capacitor.png",
+      "web": "../../public/library/capacitor.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One radial aluminum electrolytic capacitor: upright short graphite sleeve cylinder subtly faceted, silver top with simple scored X vent, narrow pale vertical polarity stripe on sleeve, exactly TWO thin silver leads exiting bottom, slightly different lengths. No text, no screw terminals, no wires. Clearly a small breadboard electrolytic component.",
+      "source": "https://learn.sparkfun.com/tutorials/capacitors/all",
+      "wiringReference": "https://learn.sparkfun.com/tutorials/capacitors/all",
+      "review": "Radial two-lead can, top vent and sleeve stripe; exact ratings and polarity must come from actual markings.",
+      "electricallyVerified": false,
+      "webBytes": 13982,
+      "webSha256": "5caf027c4541eb5628fab57b655a703563cc926970ff60f10c9880b907eaa7c7",
+      "masterSha256": "5cecb4e1f5a659a1be811b227b3d98db46b0195c98498a813fa15549a37b36dd"
+    },
+    {
+      "id": "diode",
+      "master": "masters/diode.png",
+      "web": "../../public/library/diode.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. Subject: one familiar classroom electronics diode, small dark cylindrical component with a pale identification ring near one end and two slim silver connection leads, one on either end. Show the simple, recognizable axial diode form, similar dimensions to the resistor style reference. No additional objects.",
+      "source": "https://www.vishay.com/docs/88503/1n4001.pdf",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+      "review": "Axial two-lead body with one cathode band.",
+      "electricallyVerified": false,
+      "webBytes": 16026,
+      "webSha256": "e5f4bf09ff92ead77d8f20345af5d74c9c15518c61849d1ddeb6cfcade2aac56",
+      "masterSha256": "9bbd5964f77fd5dc6f4ec0dbcf12fc6953781f1e21266dbfcd5ca556a7450e3b"
+    },
+    {
+      "id": "npn-transistor",
+      "master": "masters/npn-transistor.png",
+      "web": "../../public/library/npn-transistor.webp",
+      "prompt": "Create ONE 4:3 landscape OHMI Circuit Library illustration, matching ALL THREE attached APPROVED style references as one coherent collection. The references are style references, not edit targets. Match their exact cream-mint background, orthographic isometric camera at about 30-degree elevation, soft upper-left light, short diffuse mint-gray contact shadow to lower-right, matte faceted surfaces, subtle stepped voxel contours, small bevels, clean polished edges, no outlines. Muted turquoise, ivory, graphite, silver, meaningful restrained hardware colors. Center one recognizable object, 14% safety margins, subject fills about 70% width, long axis lower-left to upper-right when relevant. Friendly and cute through clean chunky-but-plausible geometry; not photorealistic, not smooth clay blobs. No faces, scenic props, added electronic parts, text, numbers, logos, watermarks, labels, particles, glow or decoration. Consistency with the three references outranks visual novelty. One general-purpose NPN BJT in a small graphite TO-92 package: short semi-cylindrical plastic body with clearly flat front, faceted rounded back, exactly THREE separate thin silver leads emerging from bottom in a single row, gently splayed. No TO-220 tab, no heatsink, no wires, no board, no letters or numbers. Consistent scale, camera, lighting and materials with the approved collection.",
+      "source": "https://learn.sparkfun.com/tutorials/transistors/all",
+      "wiringReference": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+      "review": "TO-92 body and three leads; no universal pin order claimed.",
+      "electricallyVerified": false,
+      "webBytes": 19110,
+      "webSha256": "3aaba7587bb46ac8dce3bcfc2b777007ec2a714d7800e4290ffc13a08d591a90",
+      "masterSha256": "a2e8bf28dec8d86708eaaff6c9259cf940979551d93f376603654d952e7acab5"
+    }
+  ],
+  "limits": [
+    "Recognition artwork only; no certification of exact pin/socket geometry.",
+    "No live Tinkercad catalog audit or claims of full coverage.",
+    "Separate original schematic/topology diagrams are checked against cited sources; detailed pinouts and wiring drawings stay at source URLs.",
+    "Some source references retrieved through Agent Reach's Jina reader when direct SparkFun requests returned 403.",
+    "No production deployment; no backend or mascot changes."
+  ]
+}

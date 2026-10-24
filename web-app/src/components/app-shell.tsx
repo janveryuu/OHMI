@@ -10,6 +10,7 @@ import {
   FolderOpen,
   ScanLine,
   BookOpen,
+  LibraryBig,
   ChartNoAxesCombined,
   Settings2,
   PanelLeftClose,
@@ -41,6 +42,7 @@ const icons = {
   FolderOpen,
   ScanLine,
   BookOpen,
+  LibraryBig,
   ChartNoAxesCombined,
   Settings2,
 };
@@ -72,13 +74,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       delete document.documentElement.dataset.keyboard;
     };
   }, []);
-  const label = navigation.find((n) => n.href === pathname)?.label || "OHMI";
+  const label = pathname.startsWith("/library/")
+    ? "Library"
+    : navigation.find((n) => n.href === pathname)?.label || "OHMI";
   const nav = (mobile = false) =>
     navigation
       .filter((_, i) => !mobile || i < 4)
       .map((item) => {
         const Icon = icons[item.icon];
-        const active = pathname === item.href;
+        const active =
+          pathname === item.href ||
+          (item.href === "/library" && pathname.startsWith("/library/"));
         return (
           <Link
             key={item.href}

@@ -1,0 +1,16 @@
+{
+  "results": [
+    "1440px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "1440px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "768px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "768px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "390px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "390px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "320px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "320px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+    "All 20 detail routes and illustration decodes pass; multiword search and invalid-category fallback pass; keyboard flow passes",
+    "Image failure keeps the full guide usable"
+  ],
+  "errors": [],
+  "violations": []
+}

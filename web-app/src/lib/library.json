@@ -1,0 +1,541 @@
+[
+  {
+    "id": "breadboard",
+    "name": "Breadboard",
+    "category": "Prototyping",
+    "keywords": [
+      "solderless",
+      "rows",
+      "rails"
+    ],
+    "description": "A reusable board for building circuits without solder.",
+    "purpose": "Metal contacts join small groups of holes under the plastic.",
+    "useCase": "Use it to prototype an LED circuit before soldering.",
+    "usage": "Check connected rows with continuity mode while power is off. Rails can be split; confirm your own board.",
+    "mistake": "Putting both LED legs into one connected group bypasses the LED.",
+    "activity": "Trace one group of five holes with an unpowered continuity test.",
+    "source": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+    "wiringSource": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+    "referenceLabel": "Breadboard contacts and rail layout",
+    "diagram": "breadboard",
+    "related": [
+      "wires",
+      "led"
+    ],
+    "illustration": "/app/library/breadboard.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "resistor",
+    "name": "Resistor",
+    "category": "Basic components",
+    "keywords": [
+      "resistance",
+      "ohm",
+      "220",
+      "current"
+    ],
+    "description": "A component that limits current and creates voltage drops.",
+    "purpose": "Its resistance opposes current; it also turns electrical energy into heat.",
+    "useCase": "Use a suitable resistor in series with an LED.",
+    "usage": "Read the value and power rating before use. An ordinary fixed resistor works in either direction.",
+    "mistake": "Choosing too little resistance can overheat the resistor or overload the LED.",
+    "activity": "Decode the sample: red, red, brown, gold means 220 ohms with 5% tolerance.",
+    "source": "https://learn.sparkfun.com/tutorials/resistors/all",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/resistors",
+    "referenceLabel": "Resistor values and LED current limiting",
+    "diagram": "led",
+    "related": [
+      "led",
+      "potentiometer"
+    ],
+    "illustration": "/app/library/resistor.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "arduino-uno",
+    "name": "Arduino Uno",
+    "category": "Microcontrollers",
+    "keywords": [
+      "uno r3",
+      "microcontroller",
+      "code",
+      "pins"
+    ],
+    "description": "A programmable board that reads inputs and controls outputs.",
+    "purpose": "The Uno R3 runs your sketch and communicates through its input and output pins.",
+    "useCase": "Use it for a button-controlled LED or sensor project.",
+    "usage": "Check the official Uno R3 pinout. Respect voltage and current limits; use a driver for motors.",
+    "mistake": "An output pin cannot supply a motor directly.",
+    "activity": "Run the built-in Blink example using the onboard LED.",
+    "source": "https://docs.arduino.cc/hardware/uno-rev3",
+    "wiringSource": "https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf",
+    "referenceLabel": "Official Uno R3 pinout",
+    "diagram": "source",
+    "related": [
+      "led",
+      "pushbutton"
+    ],
+    "illustration": "/app/library/arduino-uno.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "battery",
+    "name": "9 V battery",
+    "category": "Power",
+    "keywords": [
+      "power",
+      "supply",
+      "pp3",
+      "voltage"
+    ],
+    "description": "A portable DC power source with two snap terminals.",
+    "purpose": "Chemical energy supplies a voltage between positive and negative terminals.",
+    "useCase": "Use it for low-power projects designed for its voltage.",
+    "usage": "Confirm polarity and the circuit voltage before connecting. A 9 V battery must not feed a 5 V pin directly.",
+    "mistake": "Shorting the terminals can heat the battery and wires.",
+    "activity": "Find the two different snap shapes and identify polarity from the actual battery.",
+    "source": "https://data.energizer.com/pdfs/522.pdf",
+    "wiringSource": "https://data.energizer.com/pdfs/522.pdf",
+    "referenceLabel": "Manufacturer dimensions and terminal reference",
+    "diagram": "source",
+    "related": [
+      "switch",
+      "multimeter"
+    ],
+    "illustration": "/app/library/battery.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "led",
+    "name": "LED",
+    "category": "Outputs",
+    "keywords": [
+      "light",
+      "diode",
+      "anode",
+      "cathode"
+    ],
+    "description": "A light-emitting diode that glows when current flows in the forward direction.",
+    "purpose": "It turns electrical energy into light.",
+    "useCase": "Use it as a status indicator or beginner circuit output.",
+    "usage": "Use a series resistor. On many new LEDs, the longer leg is the anode and the flat edge marks the cathode; confirm the datasheet.",
+    "mistake": "Connecting an LED straight across a supply can destroy it.",
+    "activity": "Build the separate example schematic with a suitable red LED.",
+    "source": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/leds",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-2-leds/breadboard-layout",
+    "referenceLabel": "LED polarity and separate breadboard wiring reference",
+    "diagram": "led",
+    "related": [
+      "resistor",
+      "breadboard"
+    ],
+    "illustration": "/app/library/led.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "pushbutton",
+    "name": "Pushbutton",
+    "category": "Inputs",
+    "keywords": [
+      "button",
+      "momentary",
+      "tactile",
+      "switch"
+    ],
+    "description": "A momentary switch that changes contact state while pressed.",
+    "purpose": "A typical normally open tactile button joins two contact groups when pressed.",
+    "useCase": "Use it to start an action or make a digital input.",
+    "usage": "Four legs do not mean four independent contacts. Identify the internally joined pairs and use a pull-up or pull-down.",
+    "mistake": "Wiring two already-connected legs makes the input appear permanently pressed.",
+    "activity": "Test which pairs connect before and during a press, with power disconnected.",
+    "source": "https://learn.adafruit.com/adafruit-arduino-lesson-6-digital-inputs/push-switches",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-6-digital-inputs/breadboard-layout",
+    "referenceLabel": "Button contact groups and wiring diagram",
+    "diagram": "source",
+    "related": [
+      "switch",
+      "arduino-uno"
+    ],
+    "illustration": "/app/library/pushbutton.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "switch",
+    "name": "Slide switch",
+    "category": "Inputs",
+    "keywords": [
+      "spdt",
+      "on off",
+      "selector"
+    ],
+    "description": "A switch that stays in the position you choose.",
+    "purpose": "An SPDT switch connects its common contact to either of two other contacts.",
+    "useCase": "Use it to select a mode or disconnect a small load within its rating.",
+    "usage": "For the referenced switch, the middle pin is common. Verify your actual part before wiring.",
+    "mistake": "Treating every three-pin switch as having the same pinout can connect the wrong contacts.",
+    "activity": "Use an unpowered continuity test to identify the common pin.",
+    "source": "https://www.adafruit.com/product/805",
+    "wiringSource": "https://www.adafruit.com/product/805",
+    "referenceLabel": "Referenced SPDT switch contact behavior",
+    "diagram": "switch",
+    "related": [
+      "battery",
+      "pushbutton"
+    ],
+    "illustration": "/app/library/switch.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "potentiometer",
+    "name": "Potentiometer",
+    "category": "Inputs",
+    "keywords": [
+      "dial",
+      "knob",
+      "variable resistor",
+      "wiper"
+    ],
+    "description": "An adjustable resistor with a moving contact called a wiper.",
+    "purpose": "Turning the shaft changes resistance between the wiper and each end.",
+    "useCase": "Use it as an adjustable voltage divider for a control input.",
+    "usage": "Identify the two ends and wiper. Keep the resulting voltage within the input rating.",
+    "mistake": "Using it as a high-power motor control can damage a small potentiometer.",
+    "activity": "Measure end-to-end resistance, then measure from the wiper while turning.",
+    "source": "https://learn.sparkfun.com/tutorials/resistors/all",
+    "wiringSource": "https://www.adafruit.com/product/562",
+    "referenceLabel": "Potentiometer construction and terminal reference",
+    "diagram": "potentiometer",
+    "related": [
+      "resistor",
+      "arduino-uno"
+    ],
+    "illustration": "/app/library/potentiometer.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "piezo",
+    "name": "Piezo buzzer",
+    "category": "Outputs",
+    "keywords": [
+      "sound",
+      "tone",
+      "beep",
+      "buzzer"
+    ],
+    "description": "A small sound transducer that bends a piezoelectric element.",
+    "purpose": "A changing drive signal makes it vibrate and produce sound.",
+    "useCase": "Use it for short tones or an alert.",
+    "usage": "A passive piezo needs a changing waveform. Follow the chosen part's drive limits; active buzzers differ.",
+    "mistake": "A steady DC level will not make a passive piezo play a sustained tone.",
+    "activity": "Try two short tones at different frequencies.",
+    "source": "https://www.adafruit.com/product/160",
+    "wiringSource": "https://www.adafruit.com/product/160",
+    "referenceLabel": "Passive piezo drive reference",
+    "diagram": "source",
+    "related": [
+      "arduino-uno",
+      "pushbutton"
+    ],
+    "illustration": "/app/library/piezo.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "dc-motor",
+    "name": "DC motor",
+    "category": "Motors",
+    "keywords": [
+      "spin",
+      "actuator",
+      "shaft"
+    ],
+    "description": "A motor that converts DC electrical energy into rotation.",
+    "purpose": "Current through the motor produces torque at its shaft.",
+    "useCase": "Use it to spin a fan or drive a small mechanism.",
+    "usage": "Use a rated transistor or motor driver and protection for inductive switching. Keep fingers clear of the shaft.",
+    "mistake": "Driving a motor from a microcontroller pin can damage the board.",
+    "activity": "Study the separate transistor and flyback-diode motor circuit.",
+    "source": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+    "referenceLabel": "Motor driver and flyback diode wiring",
+    "diagram": "source",
+    "related": [
+      "npn-transistor",
+      "diode"
+    ],
+    "illustration": "/app/library/dc-motor.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "servo",
+    "name": "Servo motor",
+    "category": "Motors",
+    "keywords": [
+      "position",
+      "angle",
+      "actuator",
+      "horn"
+    ],
+    "description": "A hobby servo combines a motor, gearbox and control electronics.",
+    "purpose": "A positional servo moves its output horn toward a requested position.",
+    "useCase": "Use it for a small pointer or controlled mechanical movement.",
+    "usage": "Its cable carries power, ground and a control signal. Verify wire colors and supply requirements for the exact model.",
+    "mistake": "An undersized supply causes resets or jitter. Do not force the horn.",
+    "activity": "Explore the Sweep example with the referenced wiring.",
+    "source": "https://learn.adafruit.com/adafruit-arduino-lesson-14-servo-motors/servo-motors",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-14-servo-motors/the-breadboard-layout-for-sweep",
+    "referenceLabel": "Servo Sweep wiring diagram",
+    "diagram": "source",
+    "related": [
+      "potentiometer",
+      "arduino-uno"
+    ],
+    "illustration": "/app/library/servo.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "ultrasonic",
+    "name": "Ultrasonic sensor",
+    "category": "Sensors",
+    "keywords": [
+      "distance",
+      "sonar",
+      "hc sr04",
+      "echo"
+    ],
+    "description": "A sensor that estimates distance from an ultrasonic echo.",
+    "purpose": "It sends a sound pulse and measures the time until an echo returns.",
+    "useCase": "Use it for an obstacle detector or distance display.",
+    "usage": "The illustrated four-pin module has supply, trigger, echo and ground. Voltage limits and pin order depend on the model.",
+    "mistake": "A three-pin PING-style sensor is not wired like a four-pin HC-SR04-style module.",
+    "activity": "Compare readings for a flat target at several distances.",
+    "source": "https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/pinouts",
+    "wiringSource": "https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/pinouts",
+    "referenceLabel": "Separate module pinouts; select your exact variant",
+    "diagram": "source",
+    "related": [
+      "arduino-uno",
+      "piezo"
+    ],
+    "illustration": "/app/library/ultrasonic.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "temperature",
+    "name": "Temperature sensor",
+    "category": "Sensors",
+    "keywords": [
+      "tmp36",
+      "analog",
+      "heat",
+      "to92"
+    ],
+    "description": "An analog sensor whose output voltage changes with temperature.",
+    "purpose": "The TMP36 reports temperature as a voltage, with a built-in offset.",
+    "useCase": "Use it for a room-temperature display.",
+    "usage": "The TMP36 and similar-looking transistors have different functions. Use the manufacturer's package drawing to identify each lead.",
+    "mistake": "Reversing supply and ground can damage the sensor.",
+    "activity": "Read the output and convert it using the TMP36 datasheet equation.",
+    "source": "https://www.analog.com/media/en/technical-documentation/data-sheets/TMP35_36_37.pdf",
+    "wiringSource": "https://www.analog.com/media/en/technical-documentation/data-sheets/TMP35_36_37.pdf",
+    "referenceLabel": "TMP36 package-specific manufacturer pin diagram",
+    "diagram": "source",
+    "related": [
+      "arduino-uno",
+      "npn-transistor"
+    ],
+    "illustration": "/app/library/temperature.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "photoresistor",
+    "name": "Photoresistor",
+    "category": "Sensors",
+    "keywords": [
+      "ldr",
+      "photocell",
+      "light",
+      "resistance"
+    ],
+    "description": "A light-dependent resistor with two leads.",
+    "purpose": "Its resistance usually falls as more light reaches its sensing surface.",
+    "useCase": "Use it for a simple light-or-dark detector.",
+    "usage": "Read it using a suitable voltage divider. It is not a calibrated light meter.",
+    "mistake": "Connecting it alone to an analog input does not create a useful divider.",
+    "activity": "Cover and uncover the sensor while observing the divider voltage.",
+    "source": "https://learn.adafruit.com/photocells",
+    "wiringSource": "https://learn.adafruit.com/photocells/using-a-photocell",
+    "referenceLabel": "Photocell voltage-divider wiring",
+    "diagram": "source",
+    "related": [
+      "resistor",
+      "arduino-uno"
+    ],
+    "illustration": "/app/library/photoresistor.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "rgb-led",
+    "name": "RGB LED",
+    "category": "Outputs",
+    "keywords": [
+      "red green blue",
+      "color",
+      "common anode",
+      "common cathode"
+    ],
+    "description": "One package containing red, green and blue LED elements.",
+    "purpose": "Combining their brightness levels produces different colors.",
+    "useCase": "Use it for a multicolor indicator.",
+    "usage": "Use a current-limiting resistor for each color channel. Confirm common-anode or common-cathode type and lead order.",
+    "mistake": "One resistor on the shared lead does not control each channel independently.",
+    "activity": "Compare red-only, green-only and mixed-color output.",
+    "source": "https://learn.adafruit.com/adafruit-arduino-lesson-3-rgb-leds/arduino-sketch",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-3-rgb-leds/breadboard-layout",
+    "referenceLabel": "RGB LED breadboard layout; confirm your common terminal",
+    "diagram": "source",
+    "related": [
+      "led",
+      "resistor"
+    ],
+    "illustration": "/app/library/rgb-led.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "wires",
+    "name": "Jumper wires",
+    "category": "Prototyping",
+    "keywords": [
+      "connection",
+      "jumper",
+      "male",
+      "breadboard"
+    ],
+    "description": "Insulated conductors that link circuit connection points.",
+    "purpose": "They provide a low-resistance path between their ends.",
+    "useCase": "Use male pins with breadboard sockets or female ends with header pins.",
+    "usage": "Match connector type and keep exposed ends from touching unintended contacts. Color is a convention, not proof of voltage.",
+    "mistake": "A loose or misplaced jumper can leave the circuit open or short two nodes.",
+    "activity": "With power off, trace one connection from source to destination.",
+    "source": "https://learn.sparkfun.com/tutorials/connector-basics/all",
+    "wiringSource": "https://learn.sparkfun.com/tutorials/how-to-use-a-breadboard/all",
+    "referenceLabel": "Breadboard wiring and connector reference",
+    "diagram": "source",
+    "related": [
+      "breadboard",
+      "multimeter"
+    ],
+    "illustration": "/app/library/wires.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "multimeter",
+    "name": "Multimeter",
+    "category": "Measurement",
+    "keywords": [
+      "meter",
+      "voltage",
+      "current",
+      "resistance",
+      "continuity"
+    ],
+    "description": "An instrument for measuring electrical quantities.",
+    "purpose": "Different modes measure voltage, current, resistance and often continuity.",
+    "useCase": "Use it to investigate a circuit instead of guessing.",
+    "usage": "Choose the correct mode and lead sockets. Measure voltage across two points; current measurement requires the appropriate series connection.",
+    "mistake": "Putting a meter in current mode across a supply can create a short.",
+    "activity": "Practise an unpowered continuity test first.",
+    "source": "https://learn.sparkfun.com/tutorials/how-to-use-a-multimeter/all",
+    "wiringSource": "https://learn.sparkfun.com/tutorials/how-to-use-a-multimeter/all",
+    "referenceLabel": "Separate voltage, current and resistance measurement diagrams",
+    "diagram": "source",
+    "related": [
+      "battery",
+      "resistor"
+    ],
+    "illustration": "/app/library/multimeter.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "capacitor",
+    "name": "Capacitor",
+    "category": "Basic components",
+    "keywords": [
+      "electrolytic",
+      "charge",
+      "filter",
+      "polarity"
+    ],
+    "description": "A component that stores energy in an electric field.",
+    "purpose": "It can smooth voltage changes and take part in timing circuits.",
+    "useCase": "Use a suitable capacitor to reduce supply noise.",
+    "usage": "This illustration shows a polarized electrolytic type. Check its negative stripe, voltage rating and discharge state.",
+    "mistake": "Reverse polarity or excessive voltage can damage an electrolytic capacitor.",
+    "activity": "Identify its marked negative lead on an unpowered, discharged part.",
+    "source": "https://learn.sparkfun.com/tutorials/capacitors/all",
+    "wiringSource": "https://learn.sparkfun.com/tutorials/capacitors/all",
+    "referenceLabel": "Capacitor types, polarity and schematic reference",
+    "diagram": "source",
+    "related": [
+      "battery",
+      "resistor"
+    ],
+    "illustration": "/app/library/capacitor.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "diode",
+    "name": "Diode",
+    "category": "Basic components",
+    "keywords": [
+      "rectifier",
+      "cathode",
+      "anode",
+      "flyback"
+    ],
+    "description": "A component that conducts much more readily in one direction.",
+    "purpose": "A rectifier diode passes forward current and blocks reverse current within its ratings.",
+    "useCase": "Use an appropriate diode for rectification or inductive-load protection.",
+    "usage": "The band marks the cathode on the illustrated axial rectifier. Confirm the exact part's ratings.",
+    "mistake": "A flyback diode installed the wrong way can short the supply when the driver turns on.",
+    "activity": "Locate the band and compare it with the schematic cathode bar.",
+    "source": "https://www.vishay.com/docs/88503/1n4001.pdf",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+    "referenceLabel": "Manufacturer polarity and separate motor flyback circuit",
+    "diagram": "diode",
+    "related": [
+      "dc-motor",
+      "npn-transistor"
+    ],
+    "illustration": "/app/library/diode.webp",
+    "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "npn-transistor",
+    "name": "NPN transistor",
+    "category": "Basic components",
+    "keywords": [
+      "bjt",
+      "base",
+      "collector",
+      "emitter",
+      "switch"
+    ],
+    "description": "A three-terminal semiconductor used for switching or amplification.",
+    "purpose": "A small base current controls a larger collector current within its operating limits.",
+    "useCase": "Use a suitable NPN transistor to switch a small load.",
+    "usage": "Identify base, collector and emitter from the exact datasheet. Use a base resistor and stay within device ratings.",
+    "mistake": "TO-92 package shape does not guarantee the same pin order. A TMP36 sensor can look very similar.",
+    "activity": "Compare the package drawing with a verified transistor driver circuit.",
+    "source": "https://learn.sparkfun.com/tutorials/transistors/all",
+    "wiringSource": "https://learn.adafruit.com/adafruit-arduino-lesson-13-dc-motors/breadboard-layout",
+    "referenceLabel": "Transistor driver diagram; match the specified transistor",
+    "diagram": "source",
+    "related": [
+      "dc-motor",
+      "temperature"
+    ],
+    "illustration": "/app/library/npn-transistor.webp",
+    "verifiedOn": "2026-10-24"
+  }
+]
