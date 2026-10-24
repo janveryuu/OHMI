@@ -2639,6 +2639,9 @@ progress::-moz-progress-bar {
 }
 
 @media (max-width: 359px) {
+  .topbar .auth-status-detail {
+    display: none;
+  }
   .topbar {
     padding-inline: 14px;
     gap: 8px;
@@ -2650,3 +2653,14 @@ progress::-moz-progress-bar {
     padding-inline: 8px;
   }
 }
+
+.login-opening {
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.login-opening img { image-rendering: pixelated; }

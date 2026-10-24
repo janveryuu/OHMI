@@ -8,10 +8,10 @@ export function AuthStatus() {
   if (app.loading)
     return (
       <span className="small muted" role="status">
-        Loading account…
+        Loading<span className="auth-status-detail"> account</span>…
       </span>
     );
-  if (app.user) return <span className="badge">Private workspace</span>;
+  if (app.user) return <span className="badge">Private<span className="auth-status-detail"> workspace</span></span>;
   return (
     <Button
       variant="outline"

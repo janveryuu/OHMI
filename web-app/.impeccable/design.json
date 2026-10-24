@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T15:50:38.462540+00:00",
+  "generatedAt": "2026-10-24T19:44:24.610395+00:00",
   "title": "Design System: OHMI Web App",
   "extensions": {
     "colorMeta": {
@@ -411,6 +411,21 @@
         "name": "press",
         "value": "scale(0.98), 0.15s",
         "purpose": "Button acknowledgment."
+      },
+      {
+        "name": "login-entry",
+        "value": "spring(stiffness: 230, damping: 28)",
+        "purpose": "Finite login arrival; reduced motion removes spatial entry."
+      },
+      {
+        "name": "login-greeting",
+        "value": "y: [0, -5, 0]; duration: 3.8s; delay: 0.35s; easeInOut",
+        "purpose": "One original-mascot greeting, then rest; disabled with reduced motion."
+      },
+      {
+        "name": "login-press",
+        "value": "scale(0.98); spring(stiffness: 420, damping: 28)",
+        "purpose": "Google action press acknowledgment; disabled with reduced motion."
       }
     ],
     "breakpoints": [
@@ -425,6 +440,22 @@
       {
         "name": "desktop-min",
         "value": "1200px"
+      },
+      {
+        "name": "login-desktop-min",
+        "value": "900px"
+      },
+      {
+        "name": "login-short-desktop",
+        "value": "min-width: 900px and max-height: 720px"
+      },
+      {
+        "name": "login-short-portrait",
+        "value": "max-width: 899px and max-height: 740px"
+      },
+      {
+        "name": "login-compact-landscape",
+        "value": "min-width: 640px and max-width: 899px and max-height: 540px"
       }
     ]
   },
@@ -478,10 +509,10 @@
     }
   ],
   "narrative": {
-    "northStar": "Calm teal study workspace",
+    "northStar": "Calm mint study workspace",
     "overview": "Operate mode. A personal electronics workspace with iOS-adjacent adaptive navigation, inset groups, restrained translucent chrome and spring feedback. The explicit user brief fixes the mint/pixel identity; this app extends it without replacing the landing page or redesigning the mascot. No approved visual comp exists: this document records the implemented code.",
     "keyCharacteristics": [
-      "Teal actions and pale mint selection on cool green neutrals.",
+      "Teal actions and pale mint selection in light mode; restrained mint highlights on neutral charcoal in dark mode.",
       "Self-hosted Geist, compact labels and comfortable body leading.",
       "Rounded task surfaces, adaptive navigation and finite companion greetings."
     ],
