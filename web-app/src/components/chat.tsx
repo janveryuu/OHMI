@@ -320,7 +320,7 @@ export function Chat() {
           </Button>
         )}
         <div className="chat-compose">
-          <form onSubmit={send}>
+          <form onSubmit={send} aria-busy={pending}>
             <label htmlFor="message" className="sr-only">
               Your question
             </label>
@@ -370,13 +370,31 @@ export function Chat() {
                 >
                   <Paperclip size={19} />
                 </Button>
-                <span className="small muted">
-                  {app.language}{" "}
-                  <ChevronDown size={12} className="inline-icon" />
-                </span>
+                <label className="chat-language">
+                  <span className="sr-only">Reply language</span>
+                  <select
+                    name="reply-language"
+                    value={app.language}
+                    onChange={(event) =>
+                      app.setLanguage(event.currentTarget.value)
+                    }
+                  >
+                    {["English", "Filipino", "Taglish"].map((language) => (
+                      <option key={language} value={language}>
+                        {language}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} aria-hidden="true" />
+                </label>
               </div>
               {pending ? (
-                <Button type="button" variant="outline" onClick={stop}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-label="Stop waiting for OHMI"
+                  onClick={stop}
+                >
                   Stop waiting
                 </Button>
               ) : (
@@ -384,16 +402,35 @@ export function Chat() {
                   type="submit"
                   size="icon"
                   aria-label="Send message"
+                  aria-describedby="send-message-description"
+                  title={
+                    !draft.trim()
+                      ? "Enter a question first."
+                      : !app.user
+                        ? "Sign in to ask OHMI."
+                        : conversation.id && !conversation.loaded
+                          ? "Wait for the saved conversation to finish loading."
+                          : undefined
+                  }
                   disabled={
                     !draft.trim() ||
                     !app.user ||
                     Boolean(conversation.id && !conversation.loaded)
                   }
                 >
-                  <ArrowUp size={20} />
+                  <ArrowUp size={20} aria-hidden="true" />
                 </Button>
               )}
             </div>
+            <span id="send-message-description" className="sr-only">
+              {!draft.trim()
+                ? "Enter a question to enable sending."
+                : !app.user
+                  ? "Sign in to ask OHMI."
+                  : conversation.id && !conversation.loaded
+                    ? "Wait for the saved conversation to finish loading."
+                    : "Send your question to OHMI."}
+            </span>
             <input
               ref={fileRef}
               type="file"

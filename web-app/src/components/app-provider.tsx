@@ -297,9 +297,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (epoch.current.current(generation)) await refresh();
   }
   function setLanguage(value: string) {
-    void saveProfile({ language: value }).catch((cause) =>
-      setError(cause.message),
-    );
+    const previous = language;
+    updateLanguage(value);
+    if (!currentUser.current) return;
+    void saveProfile({ language: value }).catch((cause) => {
+      updateLanguage((current) => (current === value ? previous : current));
+      setError(cause.message);
+    });
   }
   async function uploadFile(file: File) {
     const { client, generation } = await requireAccount();
@@ -478,8 +482,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!ready) return;
     const media = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      document.documentElement.dataset.theme =
+      const selected =
         theme === "system" ? (media.matches ? "dark" : "light") : theme;
+      document.documentElement.dataset.theme = selected;
+      const background = getComputedStyle(document.documentElement)
+        .getPropertyValue("--background")
+        .trim();
+      document
+        .querySelectorAll('meta[name="theme-color"]')
+        .forEach((meta) => meta.setAttribute("content", background));
     };
     apply();
     media.addEventListener("change", apply);
