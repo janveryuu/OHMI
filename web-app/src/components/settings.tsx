@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   Accessibility,
@@ -10,7 +10,6 @@ import {
   Laptop,
   Moon,
   ShieldCheck,
-  Sparkles,
   Sun,
   UserRound,
   X,
@@ -30,7 +29,23 @@ export function Settings() {
   const app = useApp(),
     [edit, setEdit] = useState(false),
     [name, setName] = useState(app.name),
-    [reset, setReset] = useState(false);
+    [reset, setReset] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [aiEnabled, setAiEnabled] = useState(false);
+  useEffect(() => {
+    void fetch("/app/api/ai/", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => setAiEnabled(data.enabled === true))
+      .catch(() => setAiEnabled(false));
+    if (new URLSearchParams(location.search).get("auth") === "failed")
+      setError("Google sign-in did not finish. Try again in the same browser.");
+  }, []);
+  useEffect(() => {
+    setEdit(false);
+    setName("");
+    setError("");
+  }, [app.user?.id]);
   return (
     <div className="settings-page stack">
       <div className="page-heading">
@@ -42,11 +57,15 @@ export function Settings() {
           {app.name.slice(0, 1) || "A"}
         </span>
         <div>
-          <h2>{app.name || "Alex"} Rivera</h2>
+          <h2>{app.name || "Your account"}</h2>
           <p className="muted">Curious mind. Circuit builder.</p>
-          <span className="badge">Demo profile</span>
+          <span className="badge">
+            {app.user ? "Private account" : "Not signed in"}
+          </span>
+          {app.user && <p className="small muted">{app.user.email}</p>}
         </div>
         <Button
+          disabled={!app.user || busy}
           variant="outline"
           onClick={() => {
             setName(app.name);
@@ -56,6 +75,35 @@ export function Settings() {
           Edit profile
         </Button>
       </section>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row">
+        <Button
+          disabled={busy || !app.configured}
+          variant={app.user ? "outline" : "default"}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              if (app.user) await app.signOut();
+              else await app.signIn();
+            } catch (error) {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Account action failed.",
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {app.user ? "Sign out" : "Sign in with Google"}
+        </Button>
+      </div>
       <div className="settings-columns">
         <div className="stack">
           <section className="panel stack">
@@ -146,8 +194,8 @@ export function Settings() {
               </select>
             </label>
             <p className="small muted">
-              Preference preview only. Interface and preset replies remain in
-              English until language services are connected.
+              Saved to your profile when signed in. OHMI uses this language for
+              answers; interface labels remain in English.
             </p>
           </section>
         </div>
@@ -182,22 +230,29 @@ export function Settings() {
             </div>
             <div className="integration-row">
               <span>Account & sign-in</span>
-              <span className="badge neutral-badge">Not connected</span>
+              <span className="badge neutral-badge">
+                {app.user ? "Connected" : "Sign in required"}
+              </span>
             </div>
             <div className="integration-row">
               <span>AI tutoring</span>
-              <span className="badge neutral-badge">Preset demo</span>
+              <span className="badge neutral-badge">
+                {aiEnabled ? "Available" : "Paused"}
+              </span>
             </div>
             <div className="integration-row">
               <span>Cloud storage</span>
-              <span className="badge neutral-badge">Not connected</span>
+              <span className="badge neutral-badge">
+                {app.user ? "Connected" : "Sign in required"}
+              </span>
             </div>
             <p className="small muted">
-              Your questions, files and progress stay in this session.
-              Refreshing clears them. No student data is sent to a server.
+              Signed-in materials, conversations and tutorial progress are
+              private to your account. Only public fallback assets are stored
+              for offline use.
             </p>
             <Button variant="outline" onClick={() => setReset(true)}>
-              Reset demo workspace
+              Reload workspace
             </Button>
           </section>
         </div>
@@ -206,29 +261,43 @@ export function Settings() {
         <DialogContent>
           <DialogTitle>A name for your workspace.</DialogTitle>
           <DialogDescription>
-            Demo profile only. No account is created. Your name stays in memory.
+            This updates the display name on your private account.
           </DialogDescription>
           <form
             className="stack"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              app.setName(name.trim() || "Alex");
-              setEdit(false);
-              app.toast("Demo profile updated for this session.");
+              setBusy(true);
+              setError("");
+              try {
+                await app.saveProfile({ name });
+                setEdit(false);
+                app.toast("Profile saved.");
+              } catch (error) {
+                setError(
+                  error instanceof Error
+                    ? error.message
+                    : "Profile could not be saved.",
+                );
+              } finally {
+                setBusy(false);
+              }
             }}
           >
             <label className="field">
-              First name
+              Display name
               <input
                 className="input"
                 name="given-name"
                 autoComplete="given-name"
-                maxLength={40}
+                maxLength={80}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
-            <Button type="submit">Save demo profile</Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : "Save profile"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -236,16 +305,15 @@ export function Settings() {
         <DialogContent>
           <DialogTitle>Start fresh?</DialogTitle>
           <DialogDescription>
-            This clears local demo conversations, materials and guide progress
-            by reloading the app. Original files and appearance preferences stay
-            unchanged.
+            Reload the latest saved data. Your private records and device
+            preferences are preserved.
           </DialogDescription>
           <div className="row">
             <Button variant="outline" onClick={() => setReset(false)}>
               Keep workspace
             </Button>
             <Button variant="destructive" onClick={() => location.reload()}>
-              Reset workspace
+              Reload workspace
             </Button>
           </div>
         </DialogContent>

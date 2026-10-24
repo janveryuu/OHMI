@@ -108,7 +108,8 @@ export function PwaControls({ statusOnly = false }: { statusOnly?: boolean }) {
       {waiting && (
         <div className="notice">
           <p>
-            An update is ready. Applying it clears this session’s demo content.
+            An update is ready. Save any draft before applying it. Your account
+            data stays saved.
           </p>
           <Button
             variant="outline"

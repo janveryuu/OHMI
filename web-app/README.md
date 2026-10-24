@@ -1,6 +1,10 @@
 # OHMI Web App + PWA
 
-Standalone frontend demonstration. This folder has its own dependency lockfile, Next.js build and local server. The WXT extension, Supabase and production landing page are separate.
+Current integration connects Google PKCE authentication, private files, profiles, conversations and saved tutorial progress to the existing Supabase backend. AI routes use the thin `ohmi-web` entry; Gemini generation is enabled after owner confirmation of free-only billing protection. See [configuration, verification and rollback](docs/BACKEND_INTEGRATION.md).
+
+Copy `.env.example` to ignored `.env.local` for public configuration. Never add provider or service-role keys here. Run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:browser`. The authorized integration test origin uses port 3115. Lists show the latest 100 files, 50 conversations and 50 analyses; older messages paginate in batches of 50.
+
+The remaining text records the original frontend-only stage and is historical. This folder retains its independent dependency lockfile, build and server. The extension and cinematic landing retain separate deployments.
 
 Live app: [meetohmi.vercel.app/app/](https://meetohmi.vercel.app/app/). Landing page: [meetohmi.vercel.app](https://meetohmi.vercel.app/). See [production setup and update instructions](docs/PRODUCTION.md).
 

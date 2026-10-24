@@ -17,10 +17,13 @@ import { steps } from "@/lib/content";
 import { lessonProgress } from "@/lib/demo.mjs";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
+import { SavedGuides } from "./saved-guides";
 import { CircuitDiagram } from "./circuit-diagram";
 export function Guide() {
   const app = useApp(),
     [step, setStep] = useState(0),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
     [touch, setTouch] = useState<number | null>(null),
     reduced = useReducedMotion();
   const current = steps[step],
@@ -40,6 +43,7 @@ export function Guide() {
           About 10 minutes
         </span>
       </div>
+      <SavedGuides />
       <div className="guide-layout">
         <aside className="guide-sidebar panel">
           <div className="between">
@@ -135,18 +139,40 @@ export function Guide() {
                 <input
                   type="checkbox"
                   checked={app.completed[step]}
-                  onChange={(e) =>
-                    app.setCompleted((prev) =>
-                      prev.map((value, index) =>
-                        index === step ? e.target.checked : value,
-                      ),
-                    )
-                  }
+                  disabled={busy || !app.user}
+                  onChange={async (e) => {
+                    const done = e.target.checked;
+                    setBusy(true);
+                    setError("");
+                    try {
+                      await app.saveGuideStep(step, done);
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Progress could not be saved.",
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
                 />
                 <span>{current.task}</span>
               </label>
             </motion.div>
           </AnimatePresence>
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          <p className="small muted">
+            {busy
+              ? "Saving progress…"
+              : app.user
+                ? "Progress is saved to your account after confirmation."
+                : "Sign in to save progress. You can browse the guide without an account."}
+          </p>
           <div className="guide-controls between">
             <Button
               variant="outline"

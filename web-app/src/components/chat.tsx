@@ -13,7 +13,6 @@ import {
   Minimize2,
   Paperclip,
   Plus,
-  Sparkles,
   X,
 } from "lucide-react";
 import { useApp, type Conversation } from "./app-provider";
@@ -25,7 +24,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { RichText } from "./rich-text";
-import { demoReply, starterMessages } from "@/lib/content";
+import { askBackend } from "@/lib/backend/ai";
 import { validateFile } from "@/lib/demo.mjs";
 
 export function Chat() {
@@ -36,15 +35,17 @@ export function Chat() {
     [history, setHistory] = useState(false),
     [attachment, setAttachment] = useState<File | null>(null),
     [error, setError] = useState("");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+  const request = useRef<AbortController | null>(null),
+    sequence = useRef(0),
+    retry = useRef<{ key: string; requestId: string } | null>(null),
+    uploaded = useRef<{ file: File; id: string } | null>(null),
     fileRef = useRef<HTMLInputElement>(null),
     messagesRef = useRef<HTMLDivElement>(null);
-  const conversation =
-    app.conversations.find((c) => c.id === app.activeChat) ||
-    app.conversations[0];
+  const conversation = app.conversations.find((c) => c.id === app.activeChat) ||
+    app.conversations[0] || { id: "", title: "New conversation", messages: [] };
   useEffect(
     () => () => {
-      if (timer.current) clearTimeout(timer.current);
+      request.current?.abort();
     },
     [],
   );
@@ -52,77 +53,126 @@ export function Chat() {
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [conversation.messages.length, pending]);
-  function stop() {
-    if (timer.current) clearTimeout(timer.current);
+  useEffect(() => {
+    sequence.current++;
+    request.current?.abort();
     setPending(false);
-  }
-  function newChat() {
-    stop();
-    const id = crypto.randomUUID();
-    const chat: Conversation = {
-      id,
-      title: "New conversation",
-      messages: starterMessages,
-    };
-    app.setConversations((prev) => [chat, ...prev]);
-    app.setActiveChat(id);
     setDraft("");
     setAttachment(null);
-    setHistory(false);
+    setError("");
+    uploaded.current = null;
+    retry.current = null;
+  }, [app.user?.id]);
+  function stop() {
+    sequence.current++;
+    request.current?.abort();
+    setPending(false);
+    setError(
+      "Stopped waiting. The request may still finish on the server; reopen history before retrying.",
+    );
   }
-  function send(event?: FormEvent, text = draft) {
+  async function newChat() {
+    request.current?.abort();
+    sequence.current++;
+    setPending(false);
+    setError("");
+    try {
+      await app.newConversation();
+      setDraft("");
+      setAttachment(null);
+      setHistory(false);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Chat could not be created.",
+      );
+    }
+  }
+  async function send(event?: FormEvent, text = draft) {
     event?.preventDefault();
     const value = text.trim();
     if (!value || pending) return;
-    const id = conversation.id;
-    const attachmentName = attachment?.name;
-    app.setConversations((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              title: c.messages.length === 1 ? value.slice(0, 48) : c.title,
-              messages: [
-                ...c.messages,
-                {
-                  id: crypto.randomUUID(),
-                  role: "user",
-                  text: value,
-                  attachment: attachmentName,
-                },
-              ],
-            }
-          : c,
-      ),
-    );
-    setDraft("");
-    setAttachment(null);
+    if (!app.user) {
+      setError("Sign in to ask OHMI and save your conversation.");
+      return;
+    }
+    if (conversation.id && !conversation.loaded) {
+      setError(
+        "Your saved conversation is loading. Wait or reload the conversation before sending.",
+      );
+      return;
+    }
+    const current = ++sequence.current,
+      controller = new AbortController();
+    request.current = controller;
     setPending(true);
     setError("");
-    timer.current = setTimeout(() => {
-      app.setConversations((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                messages: [
-                  ...c.messages,
-                  {
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    text:
-                      demoReply(value, app.language) +
-                      (attachmentName
-                        ? "\n\nYour attachment was selected locally. This demo has not read or analyzed it."
-                        : ""),
-                  },
-                ],
-              }
-            : c,
-        ),
-      );
-      setPending(false);
-    }, 950);
+    try {
+      const availability = await fetch("/app/api/ai/", {
+        cache: "no-store",
+        signal: controller.signal,
+      }).then((r) => r.json());
+      if (!availability.enabled)
+        throw new Error(
+          "AI tutoring is paused until free-only provider access is verified.",
+        );
+      const id = conversation.id || (await app.newConversation(value));
+      if (current !== sequence.current) return;
+      let assignmentId: string | undefined;
+      if (attachment) {
+        if (uploaded.current?.file === attachment)
+          assignmentId = uploaded.current.id;
+        else {
+          assignmentId = await app.uploadFile(attachment);
+          uploaded.current = { file: attachment, id: assignmentId };
+        }
+      }
+      if (current !== sequence.current) return;
+      const operation = attachment
+        ? attachment.type === "application/pdf"
+          ? "pdf"
+          : "image"
+        : "chat";
+      const payload = {
+        version: 1,
+        operation,
+        language: app.language.toLowerCase(),
+        message: value,
+        conversationId: id,
+        historyThroughPosition: conversation.messages.at(-1)?.position || 0,
+        ...(assignmentId ? { assignmentId } : {}),
+      };
+      const key = JSON.stringify(payload);
+      const requestId =
+        retry.current?.key === key
+          ? retry.current.requestId
+          : crypto.randomUUID();
+      retry.current = { key, requestId };
+      await askBackend({ ...payload, requestId }, controller.signal);
+      if (current !== sequence.current) return;
+      await app.refreshConversation(id);
+      await app.refresh();
+      if (current !== sequence.current) return;
+      setDraft("");
+      setAttachment(null);
+      uploaded.current = null;
+      retry.current = null;
+    } catch (cause) {
+      if (
+        cause &&
+        typeof cause === "object" &&
+        "terminal" in cause &&
+        cause.terminal === true
+      )
+        retry.current = null;
+      if (current === sequence.current)
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "OHMI could not answer. Your question remains below.",
+        );
+    } finally {
+      if (current === sequence.current) setPending(false);
+    }
   }
   return (
     <div className={`chat-page ${expanded ? "chat-expanded" : ""}`}>
@@ -176,7 +226,7 @@ export function Chat() {
               </p>
             </div>
           </div>
-          <span className="badge">Preset demo</span>
+          <span className="badge">Saved conversations</span>
         </div>
         <div
           className="chat-messages"
@@ -185,6 +235,18 @@ export function Chat() {
           aria-label="Conversation messages"
           aria-live="polite"
         >
+          {conversation.hasOlder && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                void app
+                  .loadOlder(conversation.id)
+                  .catch((error) => setError(error.message))
+              }
+            >
+              Load earlier messages
+            </Button>
+          )}
           <AnimatePresence initial={false}>
             {conversation.messages.map((message) => (
               <motion.article
@@ -212,15 +274,14 @@ export function Chat() {
           </AnimatePresence>
           {pending && (
             <div className="message assistant skeleton" role="status">
-              <span className="sr-only">Preparing preset response…</span>
+              <span className="sr-only">Waiting for OHMI…</span>
               <span />
               <span />
               <span />
             </div>
           )}
-          {conversation.messages.length === 1 && (
+          {conversation.messages.length === 0 && (
             <div className="chat-suggestions">
-              <Sparkles size={24} />
               <h2>Curiosity looks good on you.</h2>
               <p className="muted">
                 Start small. There’s no such thing as a silly question.
@@ -244,6 +305,20 @@ export function Chat() {
             </div>
           )}
         </div>
+        {conversation.id && !conversation.loaded && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              void app
+                .refreshConversation(conversation.id)
+                .catch(() =>
+                  app.toast("Conversation could not be loaded. Try again."),
+                )
+            }
+          >
+            Reload conversation
+          </Button>
+        )}
         <div className="chat-compose">
           <form onSubmit={send}>
             <label htmlFor="message" className="sr-only">
@@ -254,7 +329,7 @@ export function Chat() {
               name="message"
               className="input"
               rows={2}
-              maxLength={4000}
+              maxLength={2000}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="What are you curious about…"
@@ -290,7 +365,7 @@ export function Chat() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label="Attach local file"
+                  aria-label="Attach assignment"
                   onClick={() => fileRef.current?.click()}
                 >
                   <Paperclip size={19} />
@@ -302,14 +377,18 @@ export function Chat() {
               </div>
               {pending ? (
                 <Button type="button" variant="outline" onClick={stop}>
-                  Stop demo
+                  Stop waiting
                 </Button>
               ) : (
                 <Button
                   type="submit"
                   size="icon"
                   aria-label="Send message"
-                  disabled={!draft.trim()}
+                  disabled={
+                    !draft.trim() ||
+                    !app.user ||
+                    Boolean(conversation.id && !conversation.loaded)
+                  }
                 >
                   <ArrowUp size={20} />
                 </Button>
@@ -337,8 +416,8 @@ export function Chat() {
             )}
           </form>
           <p className="small muted compose-note">
-            Frontend demo. Preset replies only. Files stay local and are not
-            analyzed.
+            Answers use your saved conversation and any assignment you choose to
+            upload. Check uncertain wiring against the circuit and simulation.
           </p>
         </div>
       </section>
@@ -346,7 +425,8 @@ export function Chat() {
         <DialogContent>
           <DialogTitle>Your conversations</DialogTitle>
           <DialogDescription>
-            Kept in this session only. Refreshing clears the history.
+            Private conversations are saved to your account. Refresh history if
+            a request was interrupted.
           </DialogDescription>
           <Button onClick={newChat}>
             <Plus size={16} />
@@ -354,21 +434,44 @@ export function Chat() {
           </Button>
           <div className="history-list">
             {app.conversations.map((c) => (
-              <button
-                key={c.id}
-                className="more-link"
-                onClick={() => {
-                  stop();
-                  app.setActiveChat(c.id);
-                  setDraft("");
-                  setAttachment(null);
-                  setHistory(false);
-                }}
-              >
-                <MessageCircle size={17} />
-                <span>{c.title}</span>
-                {app.activeChat === c.id && <Check size={16} />}
-              </button>
+              <div key={c.id} className="row">
+                <button
+                  key={c.id}
+                  className="more-link"
+                  onClick={() => {
+                    request.current?.abort();
+                    sequence.current++;
+                    setPending(false);
+                    app.setActiveChat(c.id);
+                    setDraft("");
+                    setAttachment(null);
+                    setHistory(false);
+                  }}
+                >
+                  <MessageCircle size={17} />
+                  <span>{c.title}</span>
+                  {app.activeChat === c.id && <Check size={16} />}
+                </button>
+                <Button
+                  variant="ghost"
+                  aria-label={`Delete conversation ${c.title}`}
+                  onClick={async () => {
+                    if (!confirm("Delete this conversation and its messages?"))
+                      return;
+                    try {
+                      await app.deleteConversation(c.id);
+                    } catch (error) {
+                      setError(
+                        error instanceof Error
+                          ? error.message
+                          : "Deletion failed.",
+                      );
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
             ))}
           </div>
         </DialogContent>

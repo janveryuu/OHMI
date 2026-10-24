@@ -1166,11 +1166,12 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
       ...(resultPayload.objective ? { objective: resultPayload.objective } : {}),
       ...(resultPayload.components ? { components: resultPayload.components } : {}),
       ...(resultPayload.steps ? { steps: resultPayload.steps } : {}),
+      ...(resultPayload.code ? { code: resultPayload.code } : {}),
       ...(resultPayload.clarificationQuestions ? { clarificationQuestions: resultPayload.clarificationQuestions } : {}),
       ...(resultPayload.notes ? { notes: resultPayload.notes } : {}),
       ...(resultPayload.status ? { status: resultPayload.status } : {}),
       ...(calculationResult ? { calculation: calculationResult } : {}),
-      ...(arduinoValidation ? { arduinoValidation } : {}),
+      ...(resultPayload.arduinoValidation ? { arduinoValidation: resultPayload.arduinoValidation } : {}),
       ...(fileHash ? { source_hash: fileHash } : {})
     },
     p_input_tokens: inputTokens,

@@ -12,10 +12,19 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { useApp } from "./app-provider";
+import { askBackend } from "@/lib/backend/ai";
+import { RichText } from "./rich-text";
 import { Button } from "./ui/button";
 import { validateFile, cropRect } from "@/lib/demo.mjs";
 
 export function CircuitChecker() {
+  const app = useApp();
+  const [result, setResult] = useState<Record<string, unknown> | null>(null),
+    [code, setCode] = useState(""),
+    [requirements, setRequirements] = useState("");
+  const request = useRef<AbortController | null>(null),
+    retry = useRef<{ key: string; id: string } | null>(null);
   const [image, setImage] = useState(""),
     [name, setName] = useState(""),
     [crop, setCrop] = useState(100),
@@ -26,10 +35,10 @@ export function CircuitChecker() {
     source = useRef(""),
     output = useRef(""),
     generation = useRef(0),
-    timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    original = useRef<File | null>(null);
   useEffect(
     () => () => {
-      if (timer.current) clearTimeout(timer.current);
+      request.current?.abort();
       URL.revokeObjectURL(source.current);
       URL.revokeObjectURL(output.current);
     },
@@ -37,7 +46,9 @@ export function CircuitChecker() {
   );
   function clear() {
     generation.current++;
-    if (timer.current) clearTimeout(timer.current);
+    request.current?.abort();
+    setResult(null);
+    retry.current = null;
     URL.revokeObjectURL(source.current);
     URL.revokeObjectURL(output.current);
     source.current = "";
@@ -57,6 +68,7 @@ export function CircuitChecker() {
       setError(issue || "Choose a PNG or JPEG screenshot for circuit review.");
       return;
     }
+    original.current = file;
     source.current = URL.createObjectURL(file);
     setImage(source.current);
     setName(file.name);
@@ -102,10 +114,92 @@ export function CircuitChecker() {
         setError("This image could not be opened. Choose another PNG or JPEG.");
     }
   }
-  function analyze() {
+  useEffect(() => {
+    clear();
+    setCode("");
+    setRequirements("");
+  }, [app.user?.id]);
+  async function analyze() {
     if (!image || status === "checking") return;
+    if (!app.user) {
+      setError("Sign in to review a circuit and save findings.");
+      return;
+    }
+    const current = ++generation.current,
+      controller = new AbortController();
+    request.current = controller;
     setStatus("checking");
-    timer.current = setTimeout(() => setStatus("done"), 1800);
+    setError("");
+    try {
+      const availability = await fetch("/app/api/ai/", {
+        cache: "no-store",
+        signal: controller.signal,
+      }).then((r) => r.json());
+      if (!availability.enabled)
+        throw new Error(
+          "AI tutoring is paused until free-only provider access is verified.",
+        );
+      const blob = await fetch(image).then((r) => r.blob());
+      const img = new Image();
+      img.src = image;
+      await img.decode();
+      if (
+        blob.size > 3 * 1024 * 1024 ||
+        img.naturalWidth * img.naturalHeight > 4_000_000
+      )
+        throw new Error(
+          "Choose an image up to 3 MB and 4 megapixels, or apply a smaller crop.",
+        );
+      const data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Image could not be read."));
+        reader.readAsDataURL(blob);
+      });
+      if (current !== generation.current) return;
+      const payload = {
+        version: 2,
+        operation: "circuit_check",
+        language: app.language.toLowerCase(),
+        mode: "check",
+        message:
+          "Review the visible circuit. Explain uncertainty and safe next steps.",
+        images: [{ id: "overview", mimeType: blob.type, data }],
+        board: "unknown",
+        ...(code.trim() ? { code: code.trim() } : {}),
+        ...(requirements.trim()
+          ? { requirementText: requirements.trim() }
+          : {}),
+      };
+      const key = JSON.stringify(payload),
+        requestId =
+          retry.current?.key === key ? retry.current.id : crypto.randomUUID();
+      retry.current = { key, id: requestId };
+      const response = await askBackend(
+        { ...payload, requestId },
+        controller.signal,
+      );
+      if (current !== generation.current) return;
+      setResult(response.result);
+      setStatus("done");
+      await app.refresh();
+    } catch (cause) {
+      if (
+        cause &&
+        typeof cause === "object" &&
+        "terminal" in cause &&
+        cause.terminal === true
+      )
+        retry.current = null;
+      if (current === generation.current) {
+        setStatus("idle");
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Review did not finish. Check saved results before retrying.",
+        );
+      }
+    }
   }
   return (
     <div className="stack">
@@ -113,6 +207,23 @@ export function CircuitChecker() {
         <h1>Let’s look a little closer.</h1>
         <p>A dedicated space to untangle your circuit questions.</p>
       </div>
+      {app.analyses.filter((a) => a.artifact_kind === "circuit_check").length >
+        0 && (
+        <details className="panel">
+          <summary>Saved circuit reviews</summary>
+          {app.analyses
+            .filter((a) => a.artifact_kind === "circuit_check")
+            .map((a) => (
+              <details key={a.id}>
+                <summary>
+                  {a.title || "Circuit review"} ·{" "}
+                  {new Date(a.created_at).toLocaleDateString()}
+                </summary>
+                <CircuitResult result={a.payload} />
+              </details>
+            ))}
+        </details>
+      )}
       <div className="checker-layout">
         <section className="panel stack">
           <div className="between">
@@ -229,6 +340,24 @@ export function CircuitChecker() {
               {error}
             </p>
           )}
+          <label className="field">
+            Arduino code (optional)
+            <textarea
+              className="input"
+              maxLength={12000}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            Assignment requirements (optional)
+            <textarea
+              className="input"
+              maxLength={4000}
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+            />
+          </label>
           <div className="row checker-actions">
             <Button
               variant="outline"
@@ -239,15 +368,16 @@ export function CircuitChecker() {
               {image ? "Replace image" : "Choose screenshot"}
             </Button>
             <Button
-              disabled={!image || !!error || status === "checking"}
+              disabled={!image || status === "checking"}
               onClick={analyze}
             >
               <ScanLine size={16} />
-              {status === "checking" ? "Running demo…" : "Try demo review"}
+              {status === "checking" ? "Reviewing…" : "Review circuit"}
             </Button>
           </div>
           <p className="small muted">
-            Nothing is uploaded. Cropping happens on this device.
+            Cropping stays on your device. Review sends the selected image and
+            optional text to OHMI’s AI service.
           </p>
         </section>
         <section className="panel findings-panel" aria-live="polite">
@@ -262,52 +392,31 @@ export function CircuitChecker() {
               </span>
               <h3>Ready for a closer look?</h3>
               <p>
-                Add your screenshot and try the review animation. Findings are
-                illustrative and do not reflect your image.
+                Add your screenshot. OHMI reviews visible evidence and records
+                uncertainty.
               </p>
             </div>
           ) : status === "checking" ? (
             <div className="stack skeleton checking-skeleton" role="status">
-              <p>Preparing example findings…</p>
+              <p>Reviewing your evidence…</p>
               <span />
               <span />
               <span />
               <p className="small muted">
-                Simulated review. No AI call is made.
+                Waiting for a confirmed saved result.
               </p>
             </div>
           ) : (
             <div className="stack">
-              <p className="notice">
-                <strong>Illustrative findings only.</strong> These examples are
-                the same for every image. Your circuit has not been analyzed.
-              </p>
-              {[
-                "Check the LED polarity",
-                "Confirm a series resistor",
-                "Trace the return to ground",
-              ].map((title, i) => (
-                <div className="finding" key={title}>
-                  <span className="icon-tile">
-                    <Info size={18} />
-                  </span>
-                  <div>
-                    <h3>{title}</h3>
-                    <p className="muted">
-                      {
-                        [
-                          "Find the anode and cathode. Check their orientation against your component datasheet.",
-                          "An LED needs current limiting. Calculate a suitable resistance for your supply and LED.",
-                          "Look for a complete current path, including breadboard row connections.",
-                        ][i]
-                      }
-                    </p>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" onClick={() => setStatus("idle")}>
-                <RotateCcw size={15} />
-                Clear example findings
+              {result && <CircuitResult result={result} />}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setResult(null);
+                  setStatus("idle");
+                }}
+              >
+                Clear findings
               </Button>
             </div>
           )}
@@ -324,6 +433,50 @@ export function CircuitChecker() {
           </Link>
         </section>
       </div>
+    </div>
+  );
+}
+
+function CircuitResult({ result }: { result: Record<string, unknown> }) {
+  const text = (value: unknown) => (typeof value === "string" ? value : "");
+  return (
+    <div className="stack">
+      <RichText text={text(result.summary)} />
+      {Array.isArray(result.findings) &&
+        result.findings.map((f: Record<string, unknown>, i: number) => (
+          <div className="finding" key={i}>
+            <div>
+              <span className="badge">
+                {text(f.severity)} · {text(f.certainty)}
+              </span>
+              <RichText
+                text={[f.observation, f.why, f.action].map(text).join("\n\n")}
+              />
+            </div>
+          </div>
+        ))}
+      {["unknowns", "questions", "limitations"].map(
+        (key) =>
+          Array.isArray(result[key]) && (
+            <div key={key}>
+              <h3>{key}</h3>
+              <ul>
+                {(result[key] as unknown[]).map((item, i) => (
+                  <li key={i}>{text(item)}</li>
+                ))}
+              </ul>
+            </div>
+          ),
+      )}
+      {Array.isArray(result.steps) &&
+        result.steps.map((item: Record<string, unknown>, i: number) => (
+          <RichText
+            key={i}
+            text={[item.instruction, item.why, item.check]
+              .map(text)
+              .join("\n\n")}
+          />
+        ))}
     </div>
   );
 }

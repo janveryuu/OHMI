@@ -8,7 +8,6 @@ import {
   FolderOpen,
   Lightbulb,
   MessageCircle,
-  Sparkles,
   Trophy,
 } from "lucide-react";
 import { useApp } from "./app-provider";
@@ -32,7 +31,7 @@ export function LearningProgress() {
     },
     {
       title: "Curious mind",
-      description: "Ask a question in the demo chat.",
+      description: "Ask a question in your saved conversations.",
       earned: questions > 0,
       icon: Lightbulb,
     },
@@ -50,8 +49,8 @@ export function LearningProgress() {
         <p>Every small connection counts. Here’s your learning story.</p>
       </div>
       <div className="notice">
-        Session progress only. These are your interactions with this frontend
-        demo, not a measure of electrical knowledge.
+        Account progress records your completed guide steps. It does not measure
+        electrical knowledge.
       </div>
       <section className="progress-overview panel">
         <div>
@@ -93,7 +92,7 @@ export function LearningProgress() {
         <div>
           <FolderOpen size={21} />
           <strong>{app.files.length}</strong>
-          <span>Local materials</span>
+          <span>Private materials</span>
         </div>
         <div>
           <Flag size={21} />
@@ -115,7 +114,7 @@ export function LearningProgress() {
               <h3>{item.title}</h3>
               <p>{item.description}</p>
               <span className="small">
-                {item.earned ? "Earned this session" : "Ready to discover"}
+                {item.earned ? "Earned" : "Ready to discover"}
               </span>
             </div>
           ))}
@@ -124,7 +123,7 @@ export function LearningProgress() {
       <section className="panel">
         <div className="section-title between">
           <h2>Your lesson milestones</h2>
-          <span className="small muted">This session</span>
+          <span className="small muted">Saved guide</span>
         </div>
         <div className="milestone-list">
           {steps.map((step, index) => (
@@ -150,5 +149,5 @@ export function LearningProgress() {
   );
 }
 function ZapIcon() {
-  return <Sparkles size={28} strokeWidth={1.4} />;
+  return <Lightbulb size={18} aria-hidden="true" />;
 }

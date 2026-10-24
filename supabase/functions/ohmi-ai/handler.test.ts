@@ -1019,6 +1019,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         status: 'tutorial',
         title: 'Blink an LED',
         objective: 'Learn series resistors',
+        code: 'void setup() {}\nvoid loop() {}',
         steps: [
           { step: 1, instruction: 'Place LED', why: 'Visual indicator', check: 'Check orientation' }
         ]
@@ -1062,7 +1063,8 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
       const tutCompleteCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_complete_ai');
       expect(tutCompleteCall).toBeDefined();
-      expect(tutCompleteCall[1].p_output.prompt_version).toBe('ohmi-tutor-v2');
+      expect(tutCompleteCall[1].p_output.prompt_version).toBe('ohmi-tutor-v4');
+      expect(tutCompleteCall[1].p_output.code).toBe(tutorialJson.code);
       expect(tutCompleteCall[1].p_output.answer).toBe('Here is your step-by-step guide for Blink an LED with 1 steps.');
     });
   });

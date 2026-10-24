@@ -112,6 +112,7 @@ export type Database = {
           payload: Json
           model: string
           created_at: string
+          updated_at: string
           schema_version: number
           artifact_kind: 'analysis' | 'tutorial' | 'circuit_check'
           provider: string
@@ -128,6 +129,7 @@ export type Database = {
           payload: Json
           model: string
           created_at?: string
+          updated_at?: string
           schema_version?: number
           artifact_kind?: 'analysis' | 'tutorial' | 'circuit_check'
           provider?: string
@@ -144,6 +146,7 @@ export type Database = {
           payload?: Json
           model?: string
           created_at?: string
+          updated_at?: string
           schema_version?: number
           artifact_kind?: 'analysis' | 'tutorial' | 'circuit_check'
           provider?: string

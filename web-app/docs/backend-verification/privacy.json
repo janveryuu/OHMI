@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-24",
+  "origin": "http://127.0.0.1:3115/app/",
+  "identities": "two distinct owner-authorized Google accounts; no identity values stored",
+  "browser": {
+    "login_logout_refresh": true,
+    "A_file_denied_to_B": true,
+    "B_library_excludes_A": true,
+    "B_history_excludes_A": true,
+    "separate_guide_steps": true,
+    "PDF_PNG_upload_download": true,
+    "large_PNG_KiB": 5284,
+    "deletion_survives_refresh": true,
+    "PDF_page_renderer": true
+  },
+  "database_probes": {
+    "A_to_B_file_read_update_delete_rows": [
+      0,
+      0,
+      0
+    ],
+    "B_to_A_file_read_update_delete_rows": [
+      0,
+      0,
+      0
+    ],
+    "cross_account_conversation_read_delete_rows": [
+      0,
+      0
+    ],
+    "cross_account_guide_progress_read_rows": [
+      0,
+      0
+    ],
+    "cross_account_progress_RPC_rejected_both_directions": true,
+    "all_write_probes_rolled_back": true
+  }
+}

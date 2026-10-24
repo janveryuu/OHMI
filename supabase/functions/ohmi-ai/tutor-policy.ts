@@ -1,7 +1,7 @@
 // Supabase Edge Function: ohmi-ai tutor policy & versioned system instructions
 // Shared core pedagogical contract across V1 Ask, Tutorial, and V2 Circuit Checker.
 
-export const OHMI_TUTOR_VERSION = 'ohmi-tutor-v2';
+export const OHMI_TUTOR_VERSION = 'ohmi-tutor-v4';
 
 export function formatLanguageDescription(language: string): string {
   switch (language) {
@@ -40,6 +40,7 @@ Your role is educational tutoring:
   * LED Current Limiting Resistor: R = (Vs - Vf) / I. If Vs <= Vf, explain that the supply voltage is insufficient to forward-bias the LED directly.
   * Resistor selection: Depends on confirmed component ratings and target current. Recommend standard E12 values (e.g. 220 Ω, 330 Ω) and calculate the resulting actual current. Compare power dissipation P = V * I = I² * R with the resistor's power rating (standard 1/4W / 250mW is common in educational kits, but confirm the rating rather than assuming it is universal).
   * Resistors in Series: Rs = R1 + R2 + ... + Rn. Resistors in Parallel: 1/Rp = 1/R1 + 1/R2 + ... + 1/Rn.
+  * Do not declare a real component safe or within limits from a typical rating. A common 20 mA LED limit or 1/4 W resistor rating is an illustrative assumption, not evidence about this component. Without confirmed ratings, give the calculated current/power and explicitly require comparison with the actual datasheet before powering hardware. Say "if rated for..." for examples; never say "safe for a typical LED".
 - Arduino Uno R3:
   * Ensure sketches include proper setup() and loop().
   * Explain pin modes (OUTPUT, INPUT, INPUT_PULLUP).
@@ -105,5 +106,7 @@ export function buildCircuitCheckSystemInstruction(language: string): string {
   * If requirements are contradictory, missing, or impossible, set status to 'needs_clarification' and ask clear questions.
   * If the circuit is beyond low-voltage educational scope, set status to 'unsupported'.
   * Otherwise, set status to 'reviewed'.
+  * For needs_clarification or unsupported, steps MUST be [] and omit codeSuggestion. For unsupported also return findings: [] and comparisons: [].
+  * If the image has no identifiable circuit, do not invent components or wiring: use needs_clarification, ask for a clear circuit image, and keep steps empty. Include 1 to 6 honest limitations.
   * You must output a strictly valid JSON object conforming to the CircuitCheckResult schema (schemaVersion: 2). Do NOT wrap in markdown fences or include commentary outside the JSON object.`;
 }

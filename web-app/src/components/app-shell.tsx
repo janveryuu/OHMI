@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -15,8 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowUpRight,
-  MoreHorizontal,
-  Sparkles,
+  Plus,
   Search,
   Sun,
   Moon,
@@ -33,6 +32,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Companion } from "./companion";
+import { AuthStatus, AccountNotice } from "./auth-status";
 import { PwaControls } from "./pwa-controls";
 
 const icons = {
@@ -53,6 +53,25 @@ export function AppShell({ children }: { children: ReactNode }) {
     [more, setMore] = useState(false),
     [search, setSearch] = useState(false),
     [query, setQuery] = useState("");
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      document.documentElement.dataset.keyboard = String(
+        viewport.height < window.innerHeight - 150 &&
+          /INPUT|TEXTAREA/.test(document.activeElement?.tagName || ""),
+      );
+    };
+    viewport.addEventListener("resize", update);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
+      delete document.documentElement.dataset.keyboard;
+    };
+  }, []);
   const label = navigation.find((n) => n.href === pathname)?.label || "OHMI";
   const nav = (mobile = false) =>
     navigation
@@ -65,7 +84,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             key={item.href}
             href={item.href}
             className={`nav-item ${active ? "active" : ""}`}
-            aria-label={item.label}
+            aria-label={
+              mobile
+                ? item.href === "/"
+                  ? "Home"
+                  : item.href === "/checker"
+                    ? "Checker"
+                    : item.label
+                : item.label
+            }
             aria-current={active ? "page" : undefined}
             title={item.label}
             onClick={() => setMore(false)}
@@ -102,7 +129,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <div className="sidebar-bottom">
           <div className="companion-promo">
-            <Sparkles size={18} aria-hidden="true" />
             <h3>A little help, anywhere.</h3>
             <p>Keep your circuit buddy close while you build.</p>
             <Companion trigger="Launch Floating OHMI" globalLauncher />
@@ -110,14 +136,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link
             className="profile-link"
             href="/settings"
-            aria-label="Open demo profile"
+            aria-label="Open account profile"
           >
             <span className="avatar">
               {app.name.slice(0, 1).toUpperCase() || "A"}
             </span>
             <span>
-              <strong>{app.name || "Alex"} Rivera</strong>
-              <small>Demo student profile</small>
+              <strong>{app.name || "Your account"}</strong>
+              <small>{app.user?.email || "Sign in to save your work"}</small>
             </span>
             <ChevronDown size={15} aria-hidden="true" />
           </Link>
@@ -155,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Search size={19} />
             </Button>
-            <span className="demo-label">Frontend demo</span>
+            <AuthStatus />
             <Button
               variant="ghost"
               size="icon"
@@ -180,12 +206,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main id="main" className="main-content" tabIndex={-1}>
+          <AccountNotice />
           {children}
           <footer className="workspace-footer">
             <span>A little curiosity goes a long way.</span>
-            <span>
-              Made for curious minds <Sparkles size={12} aria-hidden="true" />
-            </span>
+            <span>Made for curious minds</span>
           </footer>
         </main>
       </div>
@@ -196,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => setMore(true)}
           aria-label="More navigation"
         >
-          <MoreHorizontal size={21} />
+          <Plus size={21} />
           <span>More</span>
         </button>
       </nav>

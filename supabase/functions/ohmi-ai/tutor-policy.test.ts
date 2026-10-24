@@ -12,7 +12,7 @@ import type { CircuitRequestV2, CircuitEvidence } from '../../../src/backend/con
 
 describe('OHMI Unified Versioned Tutor Policy (Milestone F2)', () => {
   it('defines the correct version constant', () => {
-    expect(OHMI_TUTOR_VERSION).toBe('ohmi-tutor-v2');
+    expect(OHMI_TUTOR_VERSION).toBe('ohmi-tutor-v4');
   });
 
   describe('formatLanguageDescription', () => {
@@ -164,4 +164,13 @@ describe('OHMI Unified Versioned Tutor Policy (Milestone F2)', () => {
       expect(prompt.userPrompt).toContain('Declared Board: Arduino UNO R3');
     });
   });
+});
+
+it('does not infer hardware safety from typical LED or resistor ratings',()=>{
+ expect(getCoreTutorPolicy('english')).toContain('Do not declare a real component safe');
+ expect(getCoreTutorPolicy('taglish')).toContain('20 mA');
+});
+
+it('circuit prompt states the same clarification invariants as result validation',()=>{
+ const policy=buildCircuitCheckSystemInstruction('english');expect(policy).toContain('steps MUST be []');expect(policy).toContain('omit codeSuggestion');
 });

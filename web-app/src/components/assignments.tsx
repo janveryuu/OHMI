@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -11,6 +11,7 @@ import {
   UploadCloud,
   ArrowUpRight,
 } from "lucide-react";
+import { PrivatePdf } from "./private-pdf";
 import { useApp, type LocalFile } from "./app-provider";
 import { validateFile } from "@/lib/demo.mjs";
 import { Button } from "./ui/button";
@@ -30,30 +31,41 @@ export function Assignments() {
     [query, setQuery] = useState(""),
     [preview, setPreview] = useState<LocalFile | null>(null),
     [remove, setRemove] = useState<LocalFile | null>(null);
-  function add(files: FileList | null) {
-    if (!files) return;
-    const valid: LocalFile[] = [];
-    const errors: string[] = [];
+  const [busy, setBusy] = useState(false);
+  const owner = useRef(app.user?.id);
+  owner.current = app.user?.id;
+  useEffect(() => {
+    setPreview(null);
+    setRemove(null);
+    setError("");
+    setQuery("");
+  }, [app.user?.id]);
+  async function add(files: FileList | null) {
+    if (!files || busy) return;
+    const account = owner.current;
+    if (!account) return;
+    setBusy(true);
+    setError("");
+    const issues: string[] = [];
     for (const file of Array.from(files)) {
-      const issue = validateFile(file);
-      if (issue) {
-        errors.push(`${file.name}: ${issue}`);
+      if (owner.current !== account) break;
+      const problem = validateFile(file);
+      if (problem) {
+        issues.push(`${file.name}: ${problem}`);
         continue;
       }
-      valid.push({
-        id: crypto.randomUUID(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: URL.createObjectURL(file),
-      });
+      try {
+        await app.uploadFile(file);
+        if (owner.current !== account) break;
+        app.toast(`${file.name} uploaded to your private library.`);
+      } catch (cause) {
+        issues.push(
+          cause instanceof Error ? cause.message : "Upload did not finish.",
+        );
+      }
     }
-    app.setFiles((prev) => [...valid, ...prev]);
-    setError(errors.join(" "));
-    if (valid.length)
-      app.toast(
-        `${valid.length} file${valid.length > 1 ? "s" : ""} added locally. Nothing uploaded.`,
-      );
+    if (owner.current === account) setError(issues.join(" "));
+    setBusy(false);
   }
   const visible = app.files.filter(
     (f) =>
@@ -70,9 +82,12 @@ export function Assignments() {
           <h1>Your next bright idea.</h1>
           <p>Bring your assignments. Keep your learning in one place.</p>
         </div>
-        <Button onClick={() => input.current?.click()}>
+        <Button
+          disabled={busy || !app.user}
+          onClick={() => input.current?.click()}
+        >
           <Plus size={17} />
-          Add material
+          {busy ? "Uploading…" : "Add material"}
         </Button>
       </div>
       <div
@@ -94,12 +109,16 @@ export function Assignments() {
         </div>
         <h2>A place for your building blocks.</h2>
         <p>Drop an assignment here, or choose a file to get started.</p>
-        <Button variant="outline" onClick={() => input.current?.click()}>
+        <Button
+          disabled={busy || !app.user}
+          variant="outline"
+          onClick={() => input.current?.click()}
+        >
           Choose files
           <Plus size={16} />
         </Button>
         <span className="small muted">
-          PDF, PNG or JPEG up to 10 MB each. Local previews only.
+          PDF, PNG or JPEG up to 10 MB. Sign in to store files privately.
         </span>
         <input
           ref={input}
@@ -150,7 +169,13 @@ export function Assignments() {
             <article className="file-card panel" key={file.id}>
               <button
                 className="file-preview"
-                onClick={() => setPreview(file)}
+                onClick={() =>
+                  file.status === "ready"
+                    ? setPreview(file)
+                    : setError(
+                        "Upload is pending. Remove this material and retry uploading.",
+                      )
+                }
                 aria-label={`Preview ${file.name}`}
               >
                 {file.type.startsWith("image/") ? (
@@ -158,7 +183,9 @@ export function Assignments() {
                 ) : (
                   <FileText size={56} strokeWidth={1.2} />
                 )}
-                <span className="badge">Local file</span>
+                <span className="badge">
+                  {file.status === "ready" ? "Private file" : "Pending upload"}
+                </span>
               </button>
               <div className="between">
                 <div className="file-info">
@@ -177,7 +204,16 @@ export function Assignments() {
                   <Trash2 size={16} />
                 </Button>
               </div>
-              <Button variant="outline" onClick={() => setPreview(file)}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  file.status === "ready"
+                    ? setPreview(file)
+                    : setError(
+                        "Upload is pending. Remove this material and retry uploading.",
+                      )
+                }
+              >
                 Open preview
                 <ArrowUpRight size={15} />
               </Button>
@@ -195,7 +231,7 @@ export function Assignments() {
           <p>
             {query || filter !== "All materials"
               ? "Try a different search or filter."
-              : "Add your first assignment above. You can preview it here without sending it anywhere."}
+              : "Sign in and add your first assignment. Files are stored privately in your account."}
           </p>
         </div>
       )}
@@ -218,8 +254,14 @@ export function Assignments() {
         <DialogContent className="preview-dialog">
           <DialogTitle>{preview?.name}</DialogTitle>
           <DialogDescription>
-            Local preview. This file is not uploaded or analyzed.
+            Private preview. This opens your stored file; AI analysis is a
+            separate action.
           </DialogDescription>
+          {preview && (
+            <a className="text-link" href={preview.url + "?download=1"}>
+              Download original
+            </a>
+          )}
           {preview?.type.startsWith("image/") ? (
             <img
               className="large-preview"
@@ -229,11 +271,7 @@ export function Assignments() {
           ) : (
             preview && (
               <>
-                <iframe
-                  className="pdf-preview"
-                  src={preview.url}
-                  title={`PDF preview: ${preview.name}`}
-                />
+                <PrivatePdf key={preview.id} file={preview} />
                 <a
                   href={preview.url}
                   target="_blank"
@@ -244,7 +282,7 @@ export function Assignments() {
                   <ArrowUpRight size={15} />
                 </a>
                 <p className="small muted">
-                  If your browser cannot embed PDFs, use the link above.
+                  Page previews render on this device. Download preserves the original PDF.
                 </p>
               </>
             )
@@ -253,26 +291,44 @@ export function Assignments() {
       </Dialog>
       <Dialog open={!!remove} onOpenChange={(open) => !open && setRemove(null)}>
         <DialogContent>
-          <DialogTitle>Remove this local material?</DialogTitle>
+          <DialogTitle>Delete this private material?</DialogTitle>
           <DialogDescription>
-            The original file stays on your device. Only this session’s preview
-            is removed.
+            This deletes the stored file and its linked analyses. The original
+            on your device stays unchanged.
           </DialogDescription>
           <p className="file-name">{remove?.name}</p>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
           <div className="row">
             <Button variant="outline" onClick={() => setRemove(null)}>
               Keep material
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                if (remove) {
-                  URL.revokeObjectURL(remove.url);
-                  app.setFiles((prev) =>
-                    prev.filter((f) => f.id !== remove.id),
-                  );
+              disabled={busy}
+              onClick={async () => {
+                if (!remove) return;
+                const account = owner.current;
+                setBusy(true);
+                setError("");
+                try {
+                  await app.removeFile(remove.id);
+                  if (owner.current !== account) return;
+                  setRemove(null);
+                  app.toast("Private material deleted.");
+                } catch (cause) {
+                  if (owner.current === account)
+                    setError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "Deletion failed.",
+                    );
+                } finally {
+                  setBusy(false);
                 }
-                setRemove(null);
               }}
             >
               Remove material

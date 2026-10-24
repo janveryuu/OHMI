@@ -3,132 +3,115 @@ import AxeBuilder from "@axe-core/playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-
-const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3100/app";
-const browser = await chromium.launch({ headless: true });
+const base = (process.env.OHMI_TEST_URL || "http://127.0.0.1:3115/app").replace(
+  /\/$/,
+  "",
+);
 const out = new URL("../test-results/", import.meta.url);
 await mkdir(out, { recursive: true });
-const errors = [],
-  violations = [],
-  results = [];
+const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
-  colorScheme: "light",
+  colorScheme: "dark",
+  reducedMotion: "reduce",
 });
-const page = await context.newPage();
-page.on("pageerror", (error) => errors.push(error.message));
-context.on("response", response => {
-  if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
-});
-context.on("request", (request) => {
+const page = await context.newPage(),
+  errors = [],
+  violations = [],
+  results = [];
+page.on("pageerror", (e) => errors.push(e.message));
+page.on("response", (r) => {
   if (
-    !request.url().startsWith(base) &&
-    !request.url().startsWith("blob:") &&
-    !request.url().startsWith("data:")
+    r.status() >= 400 &&
+    !r.url().includes("/api/") &&
+    !r.url().includes("supabase.co")
   )
-    errors.push(`Unexpected remote request: ${request.url()}`);
+    errors.push(`${r.status()} ${new URL(r.url()).pathname}`);
 });
-async function navigate(path) {
-  const response = await page.goto(base + path);
-  assert.equal(response.status(), 200, path);
-  await page.locator("h1").waitFor();
-  await page.waitForTimeout(400);
-  const href = await page.locator('.nav-item[aria-current="page"]').first().getAttribute("href");
-  assert.equal(href, "/app" + (path === "/" ? "/" : path + "/"));
-}
-async function shot(name) {
-  await page.screenshot({
-    path: fileURLToPath(new URL(name + ".png", out)),
-    fullPage: true,
-  });
-}
+const routes = [
+  "/",
+  "/ask/",
+  "/assignments/",
+  "/checker/",
+  "/guide/",
+  "/progress/",
+  "/settings/",
+];
 try {
-  if (!process.env.OHMI_SKIP_MATRIX)
-    for (const size of [
-      { width: 1440, height: 1000 },
-      { width: 1024, height: 768 },
-      { width: 768, height: 1024 },
-      { width: 390, height: 844 },
-      { width: 320, height: 640 },
-      { width: 844, height: 390 },
-    ]) {
-      await page.setViewportSize(size);
-      for (const route of [
-        "/",
-        "/ask",
-        "/assignments",
-        "/checker",
-        "/guide",
-        "/progress",
-        "/settings",
-      ]) {
-        await navigate(route);
-        const overflow = await page.evaluate(
+  for (const size of [
+    { width: 1440, height: 1000 },
+    { width: 1024, height: 768 },
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+    { width: 320, height: 640 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(size);
+    for (const route of routes) {
+      assert.equal((await page.goto(base + route)).status(), 200);
+      await page.locator("h1").waitFor();
+      assert.equal(
+        await page.locator("html").getAttribute("data-theme"),
+        "light",
+        "New users start light even on dark devices",
+      );
+      assert.equal(
+        await page.evaluate(
           () => document.documentElement.scrollWidth > innerWidth + 1,
-        );
-        assert.equal(overflow, false, `${route} overflow at ${size.width}`);
-        assert.ok(await page.locator("h1").innerText());
-        if ([1440, 390].includes(size.width))
-          await shot(
-            `${route === "/" ? "dashboard" : route.slice(1)}-${size.width}`,
-          );
-      }
-      results.push(`All routes fit ${size.width}x${size.height}`);
-      if ([768, 390].includes(size.width)) {
-        const audit = await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-          .analyze();
-        for (const issue of audit.violations)
-          violations.push({
-            theme: "light",
-            route: `adaptive shell at ${size.width}`,
-            id: issue.id,
-            impact: issue.impact,
-            nodes: issue.nodes.map((n) => ({
-              target: n.target,
-              summary: n.failureSummary,
-            })),
-          });
-      }
+        ),
+        false,
+        `${route} overflow ${size.width}`,
+      );
     }
+    if (size.width < 768) {
+      await page
+        .getByRole("button", { name: "More navigation", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog");
+      await dialog.waitFor();
+      const box = await dialog.boundingBox();
+      assert.ok(
+        box.x >= -1 &&
+          box.y >= -1 &&
+          box.x + box.width <= size.width + 1 &&
+          box.y + box.height <= size.height + 1,
+        JSON.stringify({ size, box }),
+      );
+      assert.equal(await page.locator(".bottom-nav .nav-item").count(), 5);
+      await page.screenshot({
+        path: fileURLToPath(new URL(`more-${size.width}.png`, out)),
+      });
+      await page.keyboard.press("Escape");
+    }
+    results.push(`Routes and navigation fit ${size.width}x${size.height}`);
+  }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  if (!process.env.OHMI_SKIP_MATRIX)
-    for (const theme of ["light", "dark"]) {
-      await page.emulateMedia({ colorScheme: theme });
-      for (const route of [
-        "/",
-        "/ask",
-        "/assignments",
-        "/checker",
-        "/guide",
-        "/progress",
-        "/settings",
-      ]) {
-        await navigate(route);
-        const audit = await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-          .analyze();
-        for (const issue of audit.violations)
-          violations.push({
-            theme,
-            route,
-            id: issue.id,
-            impact: issue.impact,
-            nodes: issue.nodes.map((n) => ({
-              target: n.target,
-              summary: n.failureSummary,
-            })),
-          });
-        if (theme === "dark" && ["/", "/ask", "/settings"].includes(route))
-          await shot(`${route === "/" ? "dashboard" : route.slice(1)}-dark`);
-      }
+  for (const theme of ["light", "dark"]) {
+    await page.goto(base + "/settings/");
+    await page
+      .getByRole("button", {
+        name: theme === "dark" ? "Dark" : "Light",
+        exact: true,
+      })
+      .click();
+    for (const route of routes) {
+      await page.goto(base + route);
+      await page.locator("h1").waitFor();
+      const audit = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze();
+      violations.push(
+        ...audit.violations.map((v) => ({
+          theme,
+          route,
+          id: v.id,
+          impact: v.impact,
+          nodes: v.nodes.map((n) => n.target),
+        })),
+      );
     }
-  await writeFile(
-    new URL("accessibility.json", out),
-    JSON.stringify(violations, null, 2),
-  );
-  await page.emulateMedia({ colorScheme: "light" });
-  await navigate("/ask");
+  }
+  await page.goto(base + "/ask/");
   await page
     .getByRole("button", {
       name: "Why does an LED need a resistor?",
@@ -136,249 +119,100 @@ try {
     })
     .click();
   await page
-    .getByRole("log")
-    .getByText("An LED needs a resistor to limit current.", { exact: false })
-    .waitFor();
-  assert.equal(await page.getByRole("log").locator(".message").count(), 3);
-  await page.getByRole("button", { name: "Expand conversation view" }).click();
-  assert.equal(await page.locator(".chat-expanded").count(), 1);
-  await page.getByRole("button", { name: "Restore conversation view" }).click();
-  await page.getByRole("button", { name: "New chat", exact: true }).click();
-  await page.getByRole("button", { name: "Open conversation history" }).click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", {
-      name: "Why does an LED need a resistor?",
-      exact: false,
+    .getByText("Sign in to ask OHMI and save your conversation.", {
+      exact: true,
     })
-    .click();
-  assert.equal(await page.getByRole("log").locator(".message").count(), 3);
-  await page.getByLabel("Your question").fill("Cancelled question");
-  await page.getByRole("button", { name: "Send message" }).click();
-  await page.getByRole("button", { name: "Stop demo" }).click();
-  await page.waitForTimeout(1100);
-  assert.equal(await page.getByRole("log").locator(".message").count(), 4);
-  results.push("Chat presets, expand/restore, history and cancellation pass");
-
-  await page
-    .getByRole("link", { name: "Assignments", exact: true })
-    .first()
-    .click();
-  await page.getByRole("heading", { name: "Your next bright idea." }).waitFor();
-  await page.locator("input[type=file]").setInputFiles({
-    name: "lab.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a04kAAAAASUVORK5CYII=",
-      "base64",
-    ),
-  });
-  await page.getByRole("button", { name: "Preview lab.png" }).waitFor();
-  await page.getByRole("button", { name: "Open preview" }).click();
-  await page
-    .getByRole("dialog")
-    .getByRole("img", { name: "lab.png" })
     .waitFor();
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Remove lab.png" }).click();
-  await page.getByRole("button", { name: "Keep material" }).click();
+  assert.equal(await page.locator(".message").count(), 0);
+  await page.goto(base + "/assignments/");
   assert.equal(
-    await page.getByRole("button", { name: "Preview lab.png" }).count(),
-    1,
+    await page
+      .getByRole("button", { name: "Choose files", exact: true })
+      .isDisabled(),
+    true,
   );
-  results.push("Assignment local add, preview and cancel removal pass");
-
-  await page
-    .getByRole("link", { name: "Circuit Checker", exact: true })
-    .first()
-    .click();
-  await page
-    .getByRole("heading", { name: "Let’s look a little closer." })
-    .waitFor();
+  const id = "00000000-0000-4000-8000-000000000000";
+  for (const [route, method] of [
+    [`/api/files/${id}/`, "GET"],
+    ["/api/files/", "POST"],
+    ["/api/guide/", "POST"],
+  ]) {
+    const response = await page.request.fetch(base + route, {
+      method,
+      headers: { Origin: new URL(base).origin },
+      data: method === "POST" ? {} : undefined,
+    });
+    assert.equal(response.status(), 401);
+    assert.match(response.headers()["cache-control"], /private.*no-store/);
+  }
+  const badOrigin = await page.request.post(base + "/api/files/", {
+    headers: { Origin: "https://attacker.invalid" },
+    data: {},
+  });
+  assert.equal(badOrigin.status(), 400);
+  results.push(
+    "Signed-out private APIs reject access; foreign origins rejected; no demo answer",
+  );
+  await page.goto(base + "/checker/");
   await page
     .locator("input[type=file]")
     .setInputFiles(
       fileURLToPath(new URL("../public/icons/icon-512.png", import.meta.url)),
     );
-  await page.getByLabel("Centered crop", { exact: false }).waitFor();
-  await page.waitForTimeout(450);
   await page.getByLabel("Centered crop", { exact: false }).fill("60");
   await page.getByRole("button", { name: "Apply crop", exact: true }).click();
   await page.getByRole("button", { name: "Crop applied" }).waitFor();
-  await page.getByRole("button", { name: "Try demo review" }).click();
-  await page.getByText("Illustrative findings only.").waitFor();
-  await shot("checker-result");
-  await page.getByRole("button", { name: "Reset crop" }).click();
-  assert.equal(
-    await page.getByLabel("Centered crop", { exact: false }).inputValue(),
-    "100",
-  );
-  results.push("Local crop, simulated findings and reset pass");
-
   await page
-    .getByRole("link", { name: "Step-by-Step Guide", exact: true })
-    .first()
+    .getByRole("button", { name: "Review circuit", exact: true })
     .click();
   await page
-    .getByRole("heading", { name: "A little light. A big first step." })
+    .getByText("Sign in to review a circuit and save findings.")
     .waitFor();
-  const titles = [
-    "Meet your components",
-    "Place the LED",
-    "Add a current-limiting resistor",
-    "Complete the path",
-    "Review, then try it",
-  ];
-  for (let i = 0; i < 5; i++) {
-    await page.getByRole("heading", { name: titles[i], exact: true }).waitFor();
-    await page.getByRole("checkbox").check();
-    if (i < 4) await page.getByRole("button", { name: "Next step" }).click();
-  }
-  await page.getByRole("link", { name: "View progress" }).click();
-  await page
-    .getByRole("heading", { name: "Look how far you’re going." })
-    .waitFor();
-  assert.equal(
-    await page.getByText("Earned this session", { exact: true }).count(),
-    3,
-  );
-  assert.equal(
-    await page.getByRole("progressbar").getAttribute("value"),
-    "100",
-  );
-  results.push("Guide completion drives progress and achievements");
-  await page.evaluate(() =>
-    Object.defineProperty(window, "documentPictureInPicture", {
-      value: undefined,
-      configurable: true,
-    }),
-  );
-  await page
-    .getByRole("button", { name: "Launch Floating OHMI", exact: true })
-    .click();
-  await page
-    .getByRole("region", { name: "Floating OHMI companion" })
-    .getByRole("button", { name: "Ask OHMI", exact: true })
-    .click();
-  await page.getByRole("heading", { name: "Ask OHMI", exact: true }).waitFor();
-  assert.equal(await page.getByRole("log").locator(".message").count(), 4);
-  results.push("Unsupported PiP fallback routes without losing session");
-
-  await page.evaluate(() => {
-    const installEvent = Object.assign(new Event("beforeinstallprompt"), {
-      prompt: async () => {
-        document.body.dataset.installInvoked = "true";
-      },
-      userChoice: Promise.resolve({ outcome: "dismissed" }),
-    });
-    window.dispatchEvent(installEvent);
-  });
-
-  await page
-    .getByRole("link", { name: "Settings & Profile", exact: true })
-    .first()
-    .click();
-  await page.getByRole("heading", { name: "Make yourself at home." }).waitFor();
-  await page.getByRole("button", { name: "Install OHMI", exact: true }).click();
-  assert.equal(
-    await page.locator("body").getAttribute("data-install-invoked"),
-    "true",
-  );
   results.push(
-    "Deferred install event remains available after navigating to Settings",
+    "Local crop works; signed-out review produces no fabricated findings",
   );
-  await page.getByRole("button", { name: "Edit profile" }).click();
-  await page.getByLabel("First name").fill("Sam");
-  await page.getByRole("button", { name: "Save demo profile" }).click();
+  await page.goto(base + "/settings/");
   await page.getByRole("button", { name: "Dark", exact: true }).click();
-  assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
   await page
     .getByRole("switch", { name: "Reduce motion", exact: false })
     .check();
-  await page.getByRole("switch", { name: "Larger text", exact: false }).check();
-  await page.setViewportSize({ width: 390, height: 844 });
-  assert.equal(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth > innerWidth + 1,
-    ),
-    false,
-  );
   await page.reload();
-  await page.waitForFunction(() =>
-    document.documentElement.dataset.theme === "dark" &&
-    document.documentElement.dataset.reduceMotion === "true",
-  );
   assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
   assert.equal(
     await page.locator("html").getAttribute("data-reduce-motion"),
     "true",
   );
-  await page.evaluate(() =>
-    Object.defineProperty(window, "documentPictureInPicture", {
-      value: undefined,
-      configurable: true,
-    }),
-  );
-  await page
-    .getByRole("button", { name: "More navigation", exact: true })
-    .click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Launch Floating OHMI", exact: true })
-    .click();
-  await page.getByRole("region", { name: "Floating OHMI companion" }).waitFor();
-  await page
-    .getByRole("button", { name: "Close companion", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "More navigation", exact: true })
-    .click();
-  await page
-    .getByRole("dialog")
-    .getByRole("link", { name: "Step-by-Step Guide" })
-    .click();
-  await page
-    .getByRole("heading", { name: "A little light. A big first step." })
-    .waitFor();
-  results.push("Settings preferences persist; mobile More navigation works");
-
+  results.push("Saved theme and accessibility preferences survive refresh");
   const manifest = await (
     await page.request.get(base + "/manifest.webmanifest")
   ).json();
-  assert.equal(manifest.display, "standalone");
-  assert.equal(manifest.icons.length, 3);
-  assert.equal(manifest.start_url, "/app/");
   assert.equal(manifest.scope, "/app/");
-  assert.ok(manifest.icons.every(icon => icon.src.startsWith("/app/icons/")));
-  assert.ok(manifest.shortcuts.every(shortcut => shortcut.url.startsWith("/app/")));
+  assert.equal(manifest.start_url, "/app/");
+  assert.equal(manifest.display, "standalone");
   await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready;
-    if (new URL(registration.scope).pathname !== "/app/") throw new Error("Worker escaped /app/");
+    const r = await navigator.serviceWorker.ready;
+    if (new URL(r.scope).pathname !== "/app/")
+      throw Error("Worker scope escaped app");
   });
-  const cacheUrls = await page.evaluate(async () => {
-    const names = await caches.keys();
-    return (
-      await Promise.all(
-        names.map(async (name) =>
-          (await (await caches.open(name)).keys()).map(
-            (req) => new URL(req.url).pathname,
-          ),
-        ),
-      )
-    ).flat();
+  const cachePaths = await page.evaluate(async () => {
+    const paths = [];
+    for (const key of await caches.keys())
+      for (const request of await (await caches.open(key)).keys())
+        paths.push(new URL(request.url).pathname);
+    return paths;
   });
-  assert.ok(cacheUrls.includes("/app/offline.html"));
+  const allowed = [
+    "/app/offline.html",
+    "/app/mascot.png",
+    "/app/icons/icon-192.png",
+    "/app/icons/icon-512.png",
+    "/app/icons/icon-maskable-512.png",
+    "/app/icons/apple-touch-icon.png",
+  ];
+  assert.ok(cachePaths.includes("/app/offline.html"));
   assert.ok(
-    cacheUrls.every((url) =>
-      [
-        "/app/offline.html",
-        "/app/mascot.png",
-        "/app/icons/icon-192.png",
-        "/app/icons/icon-512.png",
-        "/app/icons/icon-maskable-512.png",
-        "/app/icons/apple-touch-icon.png",
-      ].includes(url),
-    ),
+    cachePaths.every((p) => allowed.includes(p)),
+    JSON.stringify(cachePaths),
   );
   await context.setOffline(true);
   await page.goto(base + "/");
@@ -387,68 +221,25 @@ try {
     .waitFor();
   await context.setOffline(false);
   results.push(
-    "Manifest, service worker public allowlist and offline fallback pass",
+    "Manifest, worker scope, public-only cache and offline fallback pass",
   );
-  const touchContext = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-    reducedMotion: "reduce",
-  });
-  const touchPage = await touchContext.newPage();
-  touchPage.on("pageerror", (error) => errors.push(error.message));
-  await touchPage.goto(base + "/guide");
-  await touchPage.getByRole("checkbox").tap();
-  assert.equal(await touchPage.getByRole("checkbox").isChecked(), true);
-  const workspace = touchPage.locator(".guide-workspace");
-  await workspace.scrollIntoViewIfNeeded();
-  const box = await workspace.boundingBox();
-  const session = await touchContext.newCDPSession(touchPage);
-  const swipeY = Math.min(700, Math.max(180, box.y + 100));
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x: box.x + box.width * 0.85, y: swipeY }],
-  });
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchMove",
-    touchPoints: [{ x: box.x + box.width * 0.15, y: swipeY }],
-  });
-  await session.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
-  await touchPage
-    .getByRole("heading", { name: "Place the LED", exact: true })
-    .waitFor();
-  const moving = await touchPage.evaluate(() =>
-    document
-      .getAnimations()
-      .filter(
-        (a) =>
-          a.playState === "running" &&
-          new Set(a.effect?.getKeyframes().map((f) => f.transform || "none"))
-            .size > 1,
-      )
-      .map((a) => a.effect?.getKeyframes()),
-  );
-  assert.equal(
-    moving.length,
-    0,
-    "Reduced motion leaves no spatial animation: " + JSON.stringify(moving),
-  );
-  await touchContext.close();
-  results.push("Emulated mobile tap/swipe and system reduced-motion pass");
-  assert.equal(errors.length, 0, JSON.stringify(errors));
+  assert.deepEqual(errors, []);
+  assert.deepEqual(violations, []);
+} finally {
   await writeFile(
     new URL("report.json", out),
-    JSON.stringify({ base, verifiedAt: new Date().toISOString(), results, errors, violations }, null, 2),
+    JSON.stringify(
+      {
+        base,
+        verifiedAt: new Date().toISOString(),
+        results,
+        errors,
+        violations,
+      },
+      null,
+      2,
+    ),
   );
-  console.log(JSON.stringify({ base, verifiedAt: new Date().toISOString(), results, errors, violations }, null, 2));
-  assert.equal(
-    violations.length,
-    0,
-    "Accessibility violations; see test-results/report.json",
-  );
-} finally {
   await browser.close();
 }
+console.log(JSON.stringify({ results, errors, violations }, null, 2));

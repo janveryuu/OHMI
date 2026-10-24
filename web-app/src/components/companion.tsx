@@ -139,7 +139,7 @@ export function Companion({
           <p className="muted">
             Keep building. Let’s work through the tricky bits together.
           </p>
-          <span className="badge">Frontend demo</span>
+          <span className="badge">Your circuit buddy</span>
           <Button
             onClick={() => {
               close();

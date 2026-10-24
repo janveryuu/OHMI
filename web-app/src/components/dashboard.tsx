@@ -14,7 +14,6 @@ import {
   MessageCircle,
   Plus,
   ScanLine,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -31,10 +30,10 @@ export function Dashboard() {
     <div className="dashboard">
       <div className="page-heading between">
         <div>
-          <h1>Hey {app.name || "Alex"}, let’s get curious.</h1>
+          <h1>Hey {app.name || "there"}, let’s get curious.</h1>
           <p>Big ideas start with little connections.</p>
         </div>
-        <span className="badge demo-badge">Your demo workspace</span>
+        <span className="badge demo-badge">Your workspace</span>
       </div>
       <section className="welcome-panel">
         <div className="welcome-copy">
@@ -79,7 +78,6 @@ export function Dashboard() {
           />
           <span className="hello-note">
             <span>Hey, builder!</span>
-            <Sparkles size={14} />
           </span>
         </div>
       </section>
@@ -181,7 +179,7 @@ export function Dashboard() {
                 </span>
                 <div>
                   <strong>Making little connections</strong>
-                  <p>{count} guide steps completed this session</p>
+                  <p>{count} guide steps saved</p>
                 </div>
               </div>
             ) : (
@@ -202,7 +200,7 @@ export function Dashboard() {
               <div>
                 <strong>
                   {app.files.length
-                    ? `${app.files.length} local learning material${app.files.length > 1 ? "s" : ""}`
+                    ? `${app.files.length} private learning material${app.files.length > 1 ? "s" : ""}`
                     : "Room for your next idea"}
                 </strong>
                 <p>
@@ -227,13 +225,12 @@ export function Dashboard() {
                     app.conversations.filter((c) => c.messages.length > 1)
                       .length
                   }{" "}
-                  demo conversations explored
+                  saved conversations
                 </p>
               </div>
             </div>
           </div>
           <div className="trail-note">
-            <Sparkles size={17} />
             <p>
               Every question is a step forward.
               <br />
