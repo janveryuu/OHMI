@@ -1,4 +1,4 @@
-# OHMI AI Provider Readiness & Account Baseline
+﻿# OHMI AI Provider Readiness & Account Baseline
 
 **Date:** 25 October 2026  
 **Scope:** OHMI Backend AI Integration (Edge Functions & Database)
@@ -46,3 +46,54 @@
 1. **Zero Cross-Provider Fallback:** Provider outage returns honest 503 / 429 error; never attempts a fallback to a paid or alternate provider.
 2. **Atomic In-Database Admission:** All attempts checked against advisory lock, concurrent lease (1 max pending), and per-user/per-project limits.
 3. **No Client Exposure:** All provider API keys and service-role keys remain strictly within Supabase Edge secrets.
+
+## 4. Implementation Completion & Release Manifest (M0 - M7)
+
+### Verification Summary
+- **Extension Vitest Suite:** 284/284 passed (including groq.test.ts, provider-policy.test.ts, handler.test.ts, gemini.test.ts, phase5-database.test.ts, i-provider-evaluation.test.ts).
+- **Extension TypeScript Typecheck:** Clean (0 errors).
+- **Extension Production Build:** Clean (Chrome MV3 manifest, 2.75 MB total size).
+- **Web-App Node Test Suite:** 39/39 passed (including ackend.test.mjs, media.test.mjs, core.test.mjs, playground missions/engine).
+- **Web-App TypeScript Typecheck:** Clean (0 errors).
+- **Web-App Production Build:** Clean (Next.js 16.4.3 production build succeeded, all 32 static/dynamic routes).
+
+### Database Migration
+- Additive migration file: supabase/migrations/20261025050000_ohmi_ai_provider_routing.sql.
+- Table public.ohmi_ai_provider_limits created with RLS enabled and service_role only access.
+- Updated ohmi_reserve_ai:
+  - Replay checks first.
+  - Rejects retired Qwen on fresh reservations.
+  - Enforces per-model RPM/RPD limits.
+  - Enforces provider cooldowns.
+- Updated ohmi_complete_ai:
+  - Enforces approved models (openai/gpt-oss-120b, openai/gpt-oss-20b, gemini-3.8-flash, and historical models).
+  - Records explicit provider provenance (groq for GroqCloud, gemini for Google Gemini).
+- Updated ohmi_fail_ai and ohmi_defer_ai_provider.
+
+### Staged Deployment & Cutover Sequence
+1. **Database Migration Deployment:**
+   - Apply 20261025050000_ohmi_ai_provider_routing.sql via Supabase migration runner.
+   - Verifies ohmi_ai_provider_limits table and updated RPC functions.
+2. **Secrets Provisioning:**
+   - Set GROQ_API_KEY in Supabase Secrets.
+   - Set GEMINI_API_KEY in Supabase Secrets.
+   - Confirm OHMI_AI_ENABLED=true, OHMI_GROQ_CHAT_ENABLED=true, OHMI_GEMINI_MULTIMODAL_ENABLED=true.
+3. **Edge Functions Deployment:**
+   - Deploy ohmi-ai Edge Function.
+   - Deploy ohmi-web Edge Function.
+4. **Client Applications Deployment:**
+   - Web App (PWA) deployment to hosting.
+   - Extension package build for Chrome Web Store.
+
+### Rollback Triggers & Procedures
+- **Trigger 1 (GroqCloud Chat Failure / High Error Rate):**
+  - Set OHMI_GROQ_CHAT_ENABLED=false in Supabase Secrets / Environment.
+  - Result: Ask OHMI returns honest 503 "Conversational Ask OHMI is paused"; multimodal PDF, image, and circuit check remain fully functional.
+- **Trigger 2 (Gemini Multimodal Failure / Upstream Safety Refusals):**
+  - Set OHMI_GEMINI_MULTIMODAL_ENABLED=false in Supabase Secrets / Environment.
+  - Result: Multimodal features pause; Groq chat remains fully functional.
+- **Trigger 3 (Global Emergency):**
+  - Set OHMI_AI_ENABLED=false in Supabase Secrets.
+  - Result: Immediate global kill switch across all entry points. Saved user history and private projects remain intact.
+- **Trigger 4 (Database Rollback):**
+  - Schema is strictly additive. Backward-compatibility rows for legacy models (gemini-3.5-flash-lite, gemini-3.6-flash, qwen/qwen3.8-27b) are preserved in constraints and tables. Prior Edge Function code can run without database downgrade.
