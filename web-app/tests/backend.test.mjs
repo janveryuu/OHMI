@@ -1,4 +1,4 @@
-import test from "node:test";
+﻿import test from "node:test";
 import assert from "node:assert/strict";
 import {
   accountEpoch,
@@ -158,6 +158,10 @@ test("web proxy preserves the deployed Edge error string and code", () => {
   assert.deepEqual(
     edgeFailure({ ok: false, code: "failed", error: "Previously failed." }),
     { code: "failed", error: "Previously failed." },
+  );
+  assert.deepEqual(
+    edgeFailure({ ok: false, code: "rate_limit", error: "Busy.", retryAfterSeconds: 60 }),
+    { code: "rate_limit", error: "Busy.", retryAfterSeconds: 60 },
   );
   assert.equal(isTerminalAiCode("failed"), true);
   assert.equal(isTerminalAiCode("in_progress"), false);

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import { callGemini, GeminiError, MAX_RESPONSE_BYTES } from './gemini';
 
 describe('Gemini Provider Client', () => {
@@ -131,7 +131,7 @@ describe('Gemini Provider Client', () => {
     expect(result.finishReason).toBe('STOP');
     expect(fakeFetch).toHaveBeenCalledTimes(1);
 
-    const callArgs = fakeFetch.mock.calls[0];
+    const callArgs = fakeFetch.mock.calls[0]!;
     const calledUrl = callArgs[0] as string;
     const calledInit = callArgs[1] as RequestInit;
     expect(calledUrl).not.toContain('?key=');

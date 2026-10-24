@@ -1,4 +1,4 @@
-export function accountEpoch() {
+﻿export function accountEpoch() {
   let generation = 0;
   return {
     capture: () => generation,
@@ -107,6 +107,13 @@ export function completeSketchMarkdown(payload) {
 }
 
 export function edgeFailure(result) {
+  const retryAfter =
+    typeof result.retryAfterSeconds === "number"
+      ? result.retryAfterSeconds
+      : typeof result.error?.retryAfterSeconds === "number"
+        ? result.error.retryAfterSeconds
+        : undefined;
+
   return {
     error:
       typeof result.error === "string"
@@ -115,6 +122,7 @@ export function edgeFailure(result) {
           ? result.error.message
           : "OHMI could not complete this request. Try again after checking your history.",
     code: typeof result.code === "string" ? result.code : result.error?.code,
+    ...(retryAfter !== undefined ? { retryAfterSeconds: retryAfter } : {}),
   };
 }
 

@@ -1,4 +1,4 @@
-import {
+﻿import {
   authenticatedClient,
   requireSameOrigin,
   PRIVATE_HEADERS,
@@ -12,8 +12,23 @@ import {
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export async function GET() {
+  const webAiEnabled = process.env.OHMI_WEB_AI_ENABLED === "true";
+  const groqChatEnabled =
+    process.env.OHMI_GROQ_CHAT_ENABLED !== "false" &&
+    Boolean(process.env.GROQ_API_KEY);
+  const geminiMultimodalEnabled =
+    process.env.OHMI_GEMINI_MULTIMODAL_ENABLED !== "false" &&
+    Boolean(process.env.GEMINI_API_KEY);
+
   return Response.json(
-    { enabled: process.env.OHMI_WEB_AI_ENABLED === "true" },
+    {
+      enabled: webAiEnabled,
+      routes: {
+        chat: webAiEnabled && groqChatEnabled,
+        circuit_check: webAiEnabled && geminiMultimodalEnabled,
+        multimodal: webAiEnabled && geminiMultimodalEnabled,
+      },
+    },
     { headers: PRIVATE_HEADERS },
   );
 }
@@ -95,11 +110,18 @@ export async function POST(request: Request) {
         "The request returned an unreadable response. Refresh history before retrying.",
       );
     }
-    if (!response.ok || !result.ok)
-      return Response.json(edgeFailure(result), {
+    if (!response.ok || !result.ok) {
+      const failure = edgeFailure(result);
+      const headers = new Headers(PRIVATE_HEADERS);
+      const retryHeader = response.headers.get("retry-after");
+      if (retryHeader) {
+        headers.set("Retry-After", retryHeader);
+      }
+      return Response.json(failure, {
         status: response.status >= 400 ? response.status : 502,
-        headers: PRIVATE_HEADERS,
+        headers,
       });
+    }
     if (result.accountId !== user.id || result.requestId !== body.requestId)
       throw new Error(
         "The request returned a mismatched account or request. Refresh your workspace.",

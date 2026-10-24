@@ -1,4 +1,4 @@
-import type { Preferences } from '../preview';
+﻿import type { Preferences } from '../preview';
 
 export type Profile = { id: string; display_name: string; language: Preferences['language'] };
 export type Assignment = { id: string; original_name: string; mime_type: string; size_bytes: number; status: 'pending' | 'ready'; created_at: string };
@@ -58,6 +58,7 @@ export interface AiResponseData {
   language: AiLanguage;
   conversationId?: string;
   historyWatermark?: number;
+  provider?: string;
   result: {
     status: 'answer' | 'needs_clarification' | 'unsupported';
     answer: string;

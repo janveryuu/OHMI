@@ -1,4 +1,4 @@
-import { isTerminalAiCode } from "./guards.mjs";
+﻿import { isTerminalAiCode } from "./guards.mjs";
 export async function askBackend(
   payload: Record<string, unknown>,
   signal?: AbortSignal,
@@ -20,7 +20,11 @@ export async function askBackend(
           ? data.error
           : "OHMI could not complete the request.",
       ),
-      { terminal: isTerminalAiCode(data.code) },
+      {
+        terminal: isTerminalAiCode(data.code),
+        code: data.code,
+        retryAfterSeconds: data.retryAfterSeconds,
+      },
     );
   if (!data.ok || !data.result)
     throw new Error(

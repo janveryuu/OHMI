@@ -1,4 +1,4 @@
-import { browser } from 'wxt/browser';
+﻿import { browser } from 'wxt/browser';
 import { createBackendClient, authStorage, AUTH_STORAGE_KEY } from './client';
 import { readPreferences } from '../preview';
 import { validateCallback, validateFile, type Request } from './validation';
@@ -348,9 +348,19 @@ export async function handleRequest(request: Request): Promise<unknown> {
         signal: controller.signal
       });
 
-      const data = await res.json();
+      const retryAfter = res.headers.get('retry-after');
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'AI assistance failed.');
+        const error = new Error(data.error || 'AI assistance failed.') as Error & { code?: string; retryAfterSeconds?: number; status?: number };
+        error.code = data.code;
+        error.status = res.status;
+        if (typeof data.retryAfterSeconds === 'number') {
+          error.retryAfterSeconds = data.retryAfterSeconds;
+        } else if (retryAfter) {
+          const parsed = parseInt(retryAfter, 10);
+          if (!isNaN(parsed) && parsed > 0) error.retryAfterSeconds = parsed;
+        }
+        throw error;
       }
       return data;
     } catch (err: unknown) {
@@ -385,9 +395,19 @@ export async function handleRequest(request: Request): Promise<unknown> {
         signal: controller.signal
       });
 
-      const data = await res.json();
+      const retryAfter = res.headers.get('retry-after');
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Circuit check failed.');
+        const error = new Error(data.error || 'Circuit check failed.') as Error & { code?: string; retryAfterSeconds?: number; status?: number };
+        error.code = data.code;
+        error.status = res.status;
+        if (typeof data.retryAfterSeconds === 'number') {
+          error.retryAfterSeconds = data.retryAfterSeconds;
+        } else if (retryAfter) {
+          const parsed = parseInt(retryAfter, 10);
+          if (!isNaN(parsed) && parsed > 0) error.retryAfterSeconds = parsed;
+        }
+        throw error;
       }
       return data;
     } catch (err: unknown) {
