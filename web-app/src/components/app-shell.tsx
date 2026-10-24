@@ -141,11 +141,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="avatar">
               {app.name.slice(0, 1).toUpperCase() || "A"}
             </span>
-            <span>
+            <span className="profile-meta">
               <strong>{app.name || "Your account"}</strong>
               <small>{app.user?.email || "Sign in to save your work"}</small>
             </span>
-            <ChevronDown size={15} aria-hidden="true" />
+            <span className="profile-chevron">
+              <ChevronDown size={15} aria-hidden="true" />
+            </span>
           </Link>
           <Button
             variant="ghost"

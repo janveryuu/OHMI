@@ -1,6 +1,6 @@
 ---
 name: OHMI Web App
-description: Calm teal electronics study workspace with the original pixel companion.
+description: Calm mint electronics study workspace with a restrained charcoal dark theme and the original pixel companion.
 colors:
   background: "#f5f8f7"
   foreground: "#20332f"
@@ -13,21 +13,25 @@ colors:
   accent: "#dff5ec"
   accent-foreground: "#09695c"
   destructive: "#b23636"
+  destructive-foreground: "#fafffd"
   border: "#e1e9e4"
   input: "#ccd9d2"
-  background-dark: "#101c1a"
-  foreground-dark: "#e9f3ef"
-  card-dark: "#192824"
+  background-dark: "#0b0c0f"
+  foreground-dark: "#f1f3f5"
+  card-dark: "#15171b"
+  popover-dark: "#202329"
   primary-dark: "#9be4ce"
-  primary-foreground-dark: "#10352b"
-  secondary-dark: "#243830"
-  secondary-foreground-dark: "#d4e7de"
-  muted-foreground-dark: "#a0b8ad"
-  accent-dark: "#244f40"
-  accent-foreground-dark: "#a8ebd5"
-  destructive-dark: "#ffa4a4"
-  border-dark: "#30463d"
-  input-dark: "#466358"
+  primary-foreground-dark: "#10231d"
+  secondary-dark: "#202329"
+  secondary-foreground-dark: "#d8dce2"
+  muted-foreground-dark: "#a2a9b4"
+  accent-dark: "#24272d"
+  accent-foreground-dark: "#b6f0de"
+  mint-dark: "#202329"
+  destructive-dark: "#ffb4ab"
+  destructive-foreground-dark: "#3a1412"
+  border-dark: "#2a2e35"
+  input-dark: "#5f6670"
 typography:
   headline:
     fontFamily: "Geist Variable, sans-serif"
@@ -91,14 +95,14 @@ components:
 
 ## Overview
 
-**Creative North Star: "Calm teal study workspace"**
+**Creative North Star: "Calm mint study workspace"**
 
 Operate mode. A personal electronics workspace with iOS-adjacent adaptive navigation, inset groups, restrained translucent chrome and spring feedback. The explicit user brief fixes the mint/pixel identity; this app extends it without replacing the landing page or redesigning the mascot. No approved visual comp exists: this document records the implemented code.
 
 Design variance 5, motion intensity 6, visual density 4. Usable study tasks take precedence over marketing composition. The original pixel PNG provides the character; the surrounding interface stays quiet.
 
 **Key Characteristics:**
-- Teal actions and pale mint selection on cool green neutrals.
+- Teal actions and pale mint selection in light mode; restrained mint highlights on neutral charcoal in dark mode.
 - Self-hosted Geist, compact labels and comfortable body leading.
 - Rounded task surfaces, adaptive navigation and finite companion greetings.
 
@@ -119,7 +123,7 @@ Teal identifies actions, links and focus. Pale mint with deep teal text identifi
 
 ### Neutral
 
-Cool off-white canvas, near-white cards, charcoal green text and muted gray-green secondary text establish hierarchy. Secondary surfaces group related content; borders and input strokes separate controls. Dark mode uses deep green-charcoal surfaces with light green text. Destructive red is semantic feedback, not an alternate brand accent.
+The existing light palette keeps its cool off-white canvas, near-white cards and green charcoal text. Dark mode uses a near-black canvas, charcoal cards, graphite elevated surfaces, off-white text, cool gray secondary text and subtle gray borders. Semantic red remains feedback, not an alternate brand accent.
 
 **The Semantic Pair Rule.** Change foreground and background tokens together when switching themes; preserve their roles rather than reusing a light-theme literal.
 
@@ -139,7 +143,7 @@ Layer scale: base content 0; sidebar/header 20; mobile navigation 30; companion 
 
 ## Elevation & Depth
 
-Cards combine tonal separation with soft tinted downward shadows. Sticky chrome uses a restrained translucent fill and blur; the topbar becomes opaque under reduced transparency. Dialogs and the floating companion receive stronger ambient elevation. Exact shadow and motion values live in `.impeccable/design.json`.
+Cards combine tonal separation with soft shadows; the dark theme uses neutral black shadows. Sticky chrome uses a restrained translucent fill and blur; the topbar becomes opaque under reduced transparency. Dialogs and the floating companion receive stronger ambient elevation. Shared shadow tokens preserve those roles in both themes.
 
 **The Quiet Chrome Rule.** Reserve stronger elevation for overlays; regular study content uses the shared panel treatment.
 
