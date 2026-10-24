@@ -21,3 +21,5 @@ Production gate: owner says deploy when finished, but also explicitly requires a
 Design: Operate mode, incumbent visual world. Variance 4 / motion 3 / density 5. Library assets carry visual interest; geometry and terminal labels communicate the electrical model. Existing Mobbin catalog provenance applies; detailed paid flows unavailable. Taste skill's landing-page-only rules do not govern this circuit editor. UI/UX search returned general flat tool guidance; incumbent tokens win. Impeccable reports old PRODUCT schema/design sidecar; unrelated repair deferred.
 
 Final M6 result: functional/security/regression gates pass; the measured mobile LCP target remains unmet (4.1 s versus 2.5 s). See PLAYGROUND_VERIFICATION.md. No production frontend release has occurred.
+
+Release update, 25 October 2026: owner explicitly approved immediate publication. Source a6f6699 is on the production Git branch and Vercel READY; official Playground and live behavior checks pass. Earlier pending-approval wording records the pre-release checkpoint.
