@@ -1,0 +1,17 @@
+{
+  "landing": "https://meetohmi.vercel.app",
+  "app": "https://meetohmi.vercel.app/app",
+  "verifiedAt": "2026-10-24T04:27:10.050Z",
+  "checks": [
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 1440px",
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 768px",
+    "Launch, Meet, Ask, Checker and Guide links plus refresh pass at 390px",
+    "All seven /app/ routes return 200 without leaving the official origin",
+    "Legacy root worker retires without navigating; new app and unrelated caches remain intact",
+    "Legacy entry URLs redirect correctly; retirement worker, query strings and uncached same-origin app worker pass",
+    "Chromium reports no PWA installability errors on the official origin",
+    "Canonical /app redirect stays same-origin; manifest/icons and worker use /app/; landing stays outside worker scope",
+    "Live CSS, interaction code and cinematic scene match approved source after Git line-ending normalization"
+  ],
+  "errors": []
+}

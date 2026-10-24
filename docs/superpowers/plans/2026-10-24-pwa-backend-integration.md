@@ -3,7 +3,7 @@
 > For agentic workers: use superpowers:executing-plans inline. The owner approved M2-M5 and continuous execution; do not ask for repeated milestone approval.
 
 Goal: replace the PWA demonstration with existing ownership-scoped Supabase services and verified AI, preserving the approved app and unified origin.
-Architecture: a web Supabase session/data client uses the existing schema and RLS. Authenticated Next endpoints validate files using actual bytes and preserve private storage ownership. Existing ohmi-ai remains the single AI gateway; provider secrets never enter Vercel/browser code.
+Architecture: a web Supabase session/data client uses the existing schema and RLS. Authenticated Next endpoints validate files using actual bytes and preserve private storage ownership. A thin ohmi-web entry reuses the existing validated AI handler; deployed legacy ohmi-ai remains untouched; provider secrets never enter Vercel/browser code.
 Tech stack: existing Next/React/Radix/Motion, pinned Supabase clients, existing validated Markdown/math and media validators.
 Spec: docs/PWA_BACKEND_INTEGRATION_M1_AUDIT.md plus the owner's full integration brief and M2-M5 approval.
 
@@ -11,7 +11,7 @@ Spec: docs/PWA_BACKEND_INTEGRATION_M1_AUDIT.md plus the owner's full integration
 - Preserve /app, landing, mascot, extension, existing data/policies/branches. No paid services, destructive changes or unapproved fallback chains.
 - Reuse tables and private bucket; no schema migration unless a concrete reviewed need survives implementation.
 - Real success only after confirmed persistence; bounded media; no private service-worker or shared HTTP caching.
-- Native Google consent needs the owner's disposable accounts. Gemini free-only billing protection is not confirmed: verify before any live generation.
+- Native Google consent needs the owner's disposable accounts. Owner subsequently confirmed Gemini free-only billing protection before live generation (see execution ledger).
 
 ## Review focus
 - Account switch/logout while queries/upload/AI responses are pending: abort and discard stale results.
@@ -22,31 +22,31 @@ Spec: docs/PWA_BACKEND_INTEGRATION_M1_AUDIT.md plus the owner's full integration
 
 ## Task 1 - M2 auth and persistence
 Files: web-app/src/lib/backend/*, app/auth/callback, app/api/files, components/app-provider, assignments, settings, chat/history, guide/progress.
-- [ ] Add failing pure boundary/session/query ownership tests; run RED.
-- [ ] Add pinned web Supabase client and server JWT verification, exact official PKCE callback and account state lifecycle.
-- [ ] Integrate profiles, private files, conversations/analyses/tutorial progress with existing grants; load/refetch on focus and mutation.
-- [ ] Validate actual upload/preview/download bytes server-side and preserve pending deletion/retry semantics; test malformed/oversized/unowned inputs.
-- [ ] Run unit/type/build and auth/data browser fixtures; commit milestone.
+- [x] Add failing pure boundary/session/query ownership tests; run RED.
+- [x] Add pinned web Supabase client and server JWT verification, exact official PKCE callback and account state lifecycle.
+- [x] Integrate profiles, private files, conversations/analyses/tutorial progress with existing grants; load/refetch on focus and mutation.
+- [x] Validate actual upload/preview/download bytes server-side and preserve pending deletion/retry semantics; test malformed/oversized/unowned inputs.
+- [x] Run unit/type/build and auth/data browser fixtures; commit milestone.
 
 ## Task 2 - M3 live AI gateway and intelligence
 Files: existing supabase/functions/ohmi-ai, web-app chat/checker/guide/rich-text, evaluation harness.
-- [ ] Test authenticated request contracts, current function/SQL compatibility, persistence failure, history and uncertainty guards.
-- [ ] Wire real chat/evidence/check/tutorial requests, safe Markdown/math, saved analyses and guide progress. No simulated streaming/success.
-- [ ] Keep Gemini only; qualify free-only billing protection before bounded live generation. Qwen remains an unqualified candidate.
-- [ ] Verify reviewed handler release preserves extension contracts and default Gemini; commit milestone.
+- [x] Test authenticated request contracts, current function/SQL compatibility, persistence failure, history and uncertainty guards.
+- [x] Wire real chat/evidence/check/tutorial requests, safe Markdown/math, saved analyses and guide progress. No simulated streaming/success.
+- [x] Keep Gemini only; qualify free-only billing protection before bounded live generation. Qwen remains an unqualified candidate.
+- [x] Verify reviewed handler release preserves extension contracts and default Gemini; commit milestone.
 
 ## Task 3 - M4 UI improvements
 Files: layout/theme bootstrap, app-provider, app-shell/dialog CSS, decorative icons.
-- [ ] Add production/browser regression for More element containment and new-user light theme before hydration.
-- [ ] Default light without flash; preserve saved modes; remove decorative sparkles only.
-- [ ] Fix inherited translations and implement the five-control floating dock with safe-area/keyboard behavior; desktop/tablet unchanged.
-- [ ] Batch desktop/mobile inspection and one fix/confirmation pass; commit milestone.
+- [x] Add production/browser regression for More element containment and new-user light theme before hydration.
+- [x] Default light without flash; preserve saved modes; remove decorative sparkles only.
+- [x] Fix inherited translations and implement the five-control floating dock with safe-area/keyboard behavior; desktop/tablet unchanged.
+- [x] Batch desktop/mobile inspection and one fix/confirmation pass; commit milestone.
 
 ## Task 4 - M5 verification and release
-- [ ] Two-account real auth/privacy, upload/preview/download/delete, persistent history/progress, provider errors and approved live evaluation.
-- [ ] Run unit/type/build, browser/a11y, narrow/short/touch/keyboard/reduced-motion, manifest/offline/cache and official-origin routing.
-- [ ] Fresh whole-branch review, fix material findings, save concise evidence and rollback record.
-- [ ] Push approved production branch, confirm Vercel READY/remote commit, run production checks; report exact limits.
+- [x] Two-account real auth/privacy, upload/preview/download/delete, persistent history/progress, provider errors and approved live evaluation.
+- [x] Run unit/type/build, browser/a11y, narrow/short/touch/keyboard/reduced-motion, manifest/offline/cache and official-origin routing.
+- [x] Fresh whole-branch review, fix material findings, save concise evidence and rollback record.
+- [x] Push approved production branch, confirm Vercel READY/remote commit, run production checks; report exact limits.
 
 ## Execution ledger
 - M1 b138dd8 supplies the approved audit; primary checkout's unrelated extension work remains untouched.
@@ -80,3 +80,7 @@ Files: layout/theme bootstrap, app-provider, app-shell/dialog CSS, decorative ic
 
 - M3 final local evidence: saved v2 circuit clarification survives refresh; actual eight-step Arduino tutorial persists complete sketch and step-0 progress. New artifacts remain invisible/undeletable to the other authenticated account.
 - Source and tests ready for production: 282 root tests, 16 web tests, both typechecks; built six-size browser matrix zero errors/axe violations. M5 production checks remain.
+
+- M5 production: source bff5592 remote-confirmed on codex/ohmi-web-app-pwa; automatic Vercel deployment dpl_8gRKwfw6bMPCYVCEwi1ecP5khwLv READY. Official-origin six-size browser, landing links/hash, refresh, PWA installability/scope/offline and real two-account PKCE/private file flows pass.
+- M5 live production: 5284 KiB upload/preview/download/delete, PDF page rendering, restored full sketch/guide progress, correct saved parallel-resistor calculation after refresh, and missing-value clarification preserving goal all pass. Evidence and exact remaining limits are in web-app/docs/BACKEND_INTEGRATION.md.
+- Final review completed; no further review cycle needed. Existing student data, legacy extension function, landing and automatic deployments preserved. Rollback tag ohmi-app-before-backend-integration-2026-10-24 is remote-confirmed at 11f6bbf. Final documentation checkpoint is a normal production-branch push.

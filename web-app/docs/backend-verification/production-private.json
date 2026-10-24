@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-24",
+  "origin": "https://meetohmi.vercel.app/app/",
+  "method": "Real in-app browser with two owner-authorized disposable Google accounts; synthetic files and prompts only",
+  "checks": {
+    "Google_PKCE_returns_to_official_origin": true,
+    "two_distinct_accounts": true,
+    "logout_and_account_switch": true,
+    "session_survives_refresh": true,
+    "B_private_PDF_denied_to_A": true,
+    "A_library_excludes_B_files": true,
+    "large_PNG_upload_KiB": 5284,
+    "large_private_preview_and_download": true,
+    "synthetic_upload_removed": true,
+    "private_PDF_page_renderer": true,
+    "B_saved_tutorial_full_sketch": true,
+    "B_generated_step_0_restored": true,
+    "A_calculation_500_ohm_10_mA_25_mW": true,
+    "calculation_assumptions_and_hardware_caveat": true,
+    "AI_answer_survives_full_refresh": true,
+    "missing_specifications_clarified": true,
+    "clarification_preserves_goal_and_no_complete_guide_claim": true
+  },
+  "limits": [
+    "Small qualitative Gemini sample, not a statistical accuracy benchmark",
+    "Physical devices, Safari and native OS installation not tested",
+    "No private identity values or credentials included"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "base": "https://meetohmi.vercel.app/app",
+  "verifiedAt": "2026-10-24T04:25:40.851Z",
+  "results": [
+    "Routes and navigation fit 1440x1000",
+    "Routes and navigation fit 1024x768",
+    "Routes and navigation fit 768x1024",
+    "Routes and navigation fit 390x844",
+    "Routes and navigation fit 320x640",
+    "Routes and navigation fit 844x390",
+    "Signed-out private APIs reject access; foreign origins rejected; no demo answer",
+    "Local crop works; signed-out review produces no fabricated findings",
+    "Saved theme and accessibility preferences survive refresh",
+    "Manifest, worker scope, public-only cache and offline fallback pass"
+  ],
+  "errors": [],
+  "violations": []
+}
