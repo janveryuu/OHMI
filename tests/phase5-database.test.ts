@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import type { CircuitCheckResult } from '../src/backend/contracts';
 
@@ -360,5 +360,87 @@ describe('Phase 5 Milestone 3: Disposable Database & Persistence Invariants', ()
     // Only assign-1 steps are deleted; assign-2 manual steps remain!
     expect(assignmentSteps).toHaveLength(2);
     expect(assignmentSteps.map(s => s.id)).toEqual(['step-2a', 'step-2b']);
+  });
+// 9. m4_provider_limits_and_qwen_rejection_in_reservation
+  it('m4_provider_limits_and_qwen_rejection_in_reservation', () => {
+    // Simulate provider limits table and reserve logic from 20261025050000_ohmi_ai_provider_routing.sql
+    const providerLimits: Record<string, { enabled: boolean; rpm: number; rpd: number }> = {
+      'openai/gpt-oss-120b': { enabled: true, rpm: 24, rpd: 800 },
+      'openai/gpt-oss-20b': { enabled: false, rpm: 24, rpd: 800 },
+      'gemini-3.8-flash': { enabled: true, rpm: 12, rpd: 1200 },
+      'gemini-3.5-flash-lite': { enabled: true, rpm: 12, rpd: 1200 }
+    };
+
+    const reserveAiSim = (model: string) => {
+      // Step 2: Deny retired Qwen on fresh requests
+      if (model === 'qwen/qwen3.8-27b' || model.startsWith('qwen')) {
+        throw new Error('Qwen provider retired. Use approved Groq or Gemini models');
+      }
+
+      // Step 3: Provider limits check
+      const limit = providerLimits[model];
+      if (limit && !limit.enabled) {
+        throw new Error(`Provider model ${model} is disabled`);
+      }
+
+      return { fresh: true, model };
+    };
+
+    // Qwen must be rejected immediately on fresh reservation
+    expect(() => reserveAiSim('qwen/qwen3.8-27b')).toThrow('Qwen provider retired');
+    expect(() => reserveAiSim('qwen-plus')).toThrow('Qwen provider retired');
+
+    // Disabled evaluation comparator (20b) must be rejected on fresh reservation
+    expect(() => reserveAiSim('openai/gpt-oss-20b')).toThrow('Provider model openai/gpt-oss-20b is disabled');
+
+    // Approved Groq and Gemini production models are admitted cleanly
+    expect(reserveAiSim('openai/gpt-oss-120b')).toEqual({ fresh: true, model: 'openai/gpt-oss-120b' });
+    expect(reserveAiSim('gemini-3.8-flash')).toEqual({ fresh: true, model: 'gemini-3.8-flash' });
+  });
+
+  // 10. m4_completion_sets_provider_provenance_and_accepts_approved_models
+  it('m4_completion_sets_provider_provenance_and_accepts_approved_models', () => {
+    // Simulate complete logic from 20261025050000_ohmi_ai_provider_routing.sql
+    const allowedModels = [
+      'gemini-3.8-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3.8-27b'
+    ];
+
+    const completeAiSim = (model: string, isCircuitCheck: boolean) => {
+      if (!allowedModels.includes(model)) {
+        throw new Error('Invalid AI accounting');
+      }
+
+      const provider = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'].includes(model)
+        ? 'groq'
+        : 'gemini';
+
+      return {
+        model,
+        provider,
+        artifactKind: isCircuitCheck ? 'circuit_check' : 'analysis'
+      };
+    };
+
+    // Groq model records 'groq' provider provenance
+    const groqRes = completeAiSim('openai/gpt-oss-120b', false);
+    expect(groqRes.provider).toBe('groq');
+    expect(groqRes.model).toBe('openai/gpt-oss-120b');
+
+    // Gemini 3.8 Flash records 'gemini' provider provenance
+    const geminiRes = completeAiSim('gemini-3.8-flash', true);
+    expect(geminiRes.provider).toBe('gemini');
+    expect(geminiRes.model).toBe('gemini-3.8-flash');
+
+    // Historical model allowed for legacy completion / replay accounting
+    const histRes = completeAiSim('gemini-3.5-flash-lite', false);
+    expect(histRes.provider).toBe('gemini');
+
+    // Unlisted / arbitrary model rejected
+    expect(() => completeAiSim('unsupported-model-x', false)).toThrow('Invalid AI accounting');
   });
 });
