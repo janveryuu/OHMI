@@ -1,0 +1,166 @@
+import { catalog, terminalKey, validateProject, type Part } from "./model.ts";
+export type Evaluation = {
+  status: "lit" | "off" | "open" | "incomplete" | "unsafe" | "unsupported";
+  message: string;
+  currentMa: number | null;
+  resistorWatts: number | null;
+  scope: string;
+};
+const scope =
+  "Educational DC series model: one source, one red LED, series resistors and optional ideal switches. No breadboard, branches, transient effects or physical verification.";
+export function evaluate(raw: unknown): Evaluation {
+  const result = (
+    status: Evaluation["status"],
+    message: string,
+    currentMa: number | null = null,
+    resistorWatts: number | null = null,
+  ): Evaluation => ({ status, message, currentMa, resistorWatts, scope });
+  let p;
+  try {
+    p = validateProject(raw);
+  } catch {
+    return result(
+      "unsupported",
+      "This project contains invalid or unsupported component data.",
+    );
+  }
+  if (!p.parts.length)
+    return result(
+      "incomplete",
+      "Place a DC supply, a resistor and a red LED to begin.",
+    );
+  const supplies = p.parts.filter((c) => c.kind === "battery"),
+    leds = p.parts.filter((c) => c.kind === "led"),
+    resistors = p.parts.filter((c) => c.kind === "resistor");
+  if (supplies.length > 1 || leds.length > 1)
+    return result(
+      "unsupported",
+      "Only one DC source and one red LED are supported. Multiple sources or LEDs need a broader circuit model.",
+    );
+  if (supplies.length !== 1 || leds.length !== 1)
+    return result("incomplete", "Add one DC supply and one red LED.");
+  const supply = supplies[0];
+  if (supply.value < 1.5 || supply.value > 12)
+    return result(
+      "unsafe",
+      "Supply voltage is outside the supported 1.5–12 V range. Do not power this configuration.",
+    );
+  if (
+    resistors.some((c) => c.value <= 0 || c.value > 1_000_000) ||
+    leds[0].value !== 2
+  )
+    return result(
+      "unsafe",
+      "Use positive resistance up to 1 MΩ and the supported 2 V red LED model.",
+    );
+  const parent = new Map<string, string>();
+  for (const c of p.parts)
+    for (const pin of catalog[c.kind].pins)
+      parent.set(
+        terminalKey({ part: c.id, pin }),
+        terminalKey({ part: c.id, pin }),
+      );
+  const root = (key: string): string => {
+    let n = key;
+    while (parent.get(n) !== n) n = parent.get(n)!;
+    return n;
+  };
+  for (const w of p.wires)
+    parent.set(root(terminalKey(w.from)), root(terminalKey(w.to)));
+  const ends = (c: Part) =>
+    catalog[c.kind].pins.map((pin) => root(terminalKey({ part: c.id, pin })));
+  const [positive, negative] = ends(supply);
+  if (positive === negative)
+    return result(
+      "unsafe",
+      "Short circuit across the supply. Remove the bypass connection before powering anything.",
+    );
+  const edges = p.parts
+    .filter((c) => c.kind !== "battery")
+    .map((c) => ({ part: c, nets: ends(c) }));
+  if (edges.some((e) => e.nets[0] === e.nets[1]))
+    return result(
+      "unsafe",
+      "A component is bypassed by wiring. Remove the short across its terminals.",
+    );
+  const degree = new Map<string, number>();
+  for (const c of p.parts)
+    for (const net of ends(c)) degree.set(net, (degree.get(net) || 0) + 1);
+  if ([...degree.values()].some((d) => d > 2))
+    return result(
+      "unsupported",
+      "This circuit has a branch or bypass. Only a single series loop is supported; no behavior is predicted.",
+    );
+  const visited = new Set<string>();
+  let current = positive,
+    reverse = false,
+    open = false;
+  while (current !== negative) {
+    const next = edges.filter(
+      (e) => !visited.has(e.part.id) && e.nets.includes(current),
+    );
+    if (next.length !== 1)
+      return result(
+        "incomplete",
+        "The power path is open. Connect both terminals of every component into one loop.",
+      );
+    const edge = next[0],
+      entry = edge.nets.indexOf(current);
+    visited.add(edge.part.id);
+    if (edge.part.kind === "led" && entry !== 0) reverse = true;
+    if (edge.part.kind === "switch" && !edge.part.closed) open = true;
+    current = edge.nets[entry === 0 ? 1 : 0];
+  }
+  if (visited.size !== edges.length)
+    return result(
+      "incomplete",
+      "Some components are outside the power path. Connect or remove them before checking.",
+    );
+  if (!resistors.length)
+    return result(
+      "unsafe",
+      "Missing current-limiting resistor. Direct supply connection can damage the LED.",
+    );
+  if (reverse)
+    return result(
+      "unsafe",
+      "Incorrect LED polarity. Connect the anode (A +) toward supply positive and cathode (K −) toward negative. Reverse voltage may damage an LED.",
+    );
+  const resistance = resistors.reduce((sum, c) => sum + c.value, 0),
+    currentA = Math.max(0, (supply.value - 2) / resistance),
+    maxPower = Math.max(...resistors.map((c) => currentA * currentA * c.value));
+  if (currentA > 0.02 + 1e-12 || maxPower > 0.25)
+    return result(
+      "unsafe",
+      `Potential LED or resistor damage when closed: estimated ${(currentA * 1000).toFixed(1)} mA; highest resistor dissipation ${maxPower.toFixed(3)} W. Stay at or below 20 mA and 0.25 W.`,
+      currentA * 1000,
+      maxPower,
+    );
+  if (open)
+    return result(
+      "open",
+      "Switch open: the path is interrupted, so the LED is off.",
+      0,
+      0,
+    );
+  if (supply.value <= 2)
+    return result(
+      "off",
+      "Supply voltage does not exceed the model’s 2 V forward drop. The LED is off in this model.",
+      0,
+      0,
+    );
+  if (currentA < 0.001)
+    return result(
+      "off",
+      "Estimated current is below 1 mA. Brightness is not predicted at this low current.",
+      currentA * 1000,
+      maxPower,
+    );
+  return result(
+    "lit",
+    `Closed series loop. The red LED is expected to light at approximately ${(currentA * 1000).toFixed(2)} mA. Actual hardware varies.`,
+    currentA * 1000,
+    maxPower,
+  );
+}

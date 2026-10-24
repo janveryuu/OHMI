@@ -10,6 +10,8 @@ export function safeReturnPath(value) {
   return [
     "/app/",
     "/app/ask/",
+    "/app/playground/",
+    "/app/library/",
     "/app/assignments/",
     "/app/checker/",
     "/app/guide/",

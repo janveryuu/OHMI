@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      ohmi_playground_projects: {
+        Row: { id:string; user_id:string; name:string; project:Json; revision:number; created_at:string; updated_at:string }
+        Insert: { id:string; user_id:string; name:string; project:Json; revision?:number; created_at?:string; updated_at?:string }
+        Update: { name?:string; project?:Json; revision?:number; updated_at?:string }
+        Relationships: []
+      }
+
       ohmi_assignment_steps: {
         Row: {
           assignment_id: string
