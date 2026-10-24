@@ -1,0 +1,72 @@
+{
+  "status": "sample-review-pending",
+  "generatedOn": "2026-10-24",
+  "mode": "built-in image_gen",
+  "commonPrompt": "Use case: scientific-educational / stylized-concept. Create ONE standalone 4:3 landscape sample illustration for OHMI's Circuit Library. All three supplied images are references, NOT edit targets: combine resistor's clear simple silhouette and material colors, breadboard's disciplined isometric depth and pixel-inspired small details, Arduino's technically recognizable component placement. Unified SOFT VOXEL ART: carefully authored small beveled blocks and subtly stepped contours, crisp clean planar facets, matte toy-like materials, no outlines, no noisy texture, no photorealism, no glossy clay blobs. Consistent orthographic isometric camera: elevation 30 degrees, verticals vertical, horizontal board axes at +30 and -30 degrees; long subject axis projects from lower-left toward upper-right. Soft large upper-left key light, gentle ambient fill, short diffuse mint-gray contact shadow down-right. Flat very pale warm cream background #F7F6ED with faint mint cast, no horizon or vignette. Center single isolated object, generous 14% safety margins, approximately 70-76% of image width; consistent small bevel size relative to hardware. Muted turquoise, warm cream, graphite, brushed silver and sensible component accent colors. Cute through proportion and clean craft, never faces or anthropomorphism. No unrelated objects, wires, plants, decoration, particles, labels, watermarks or textual headings. No fake text or invented electronic details. This is a collection asset, not an infographic or collage. ",
+  "prompts": {
+    "resistor": "Use case: scientific-educational / stylized-concept. Create ONE standalone 4:3 landscape sample illustration for OHMI's Circuit Library. All three supplied images are references, NOT edit targets: combine resistor's clear simple silhouette and material colors, breadboard's disciplined isometric depth and pixel-inspired small details, Arduino's technically recognizable component placement. Unified SOFT VOXEL ART: carefully authored small beveled blocks and subtly stepped contours, crisp clean planar facets, matte toy-like materials, no outlines, no noisy texture, no photorealism, no glossy clay blobs. Consistent orthographic isometric camera: elevation 30 degrees, verticals vertical, horizontal board axes at +30 and -30 degrees; long subject axis projects from lower-left toward upper-right. Soft large upper-left key light, gentle ambient fill, short diffuse mint-gray contact shadow down-right. Flat very pale warm cream background #F7F6ED with faint mint cast, no horizon or vignette. Center single isolated object, generous 14% safety margins, approximately 70-76% of image width; consistent small bevel size relative to hardware. Muted turquoise, warm cream, graphite, brushed silver and sensible component accent colors. Cute through proportion and clean craft, never faces or anthropomorphism. No unrelated objects, wires, plants, decoration, particles, labels, watermarks or textual headings. No fake text or invented electronic details. This is a collection asset, not an infographic or collage. Subject: a familiar classroom electronics resistor with a tan cylindrical body, four color bands red-red-brown-gold, and two thin silver bent leads. It represents a 220 ohm resistor. Clearly separate the gold band from the first three. Center it diagonally from lower left toward upper right. Keep it friendly, clean, softly faceted and consistent with the three supplied reference images. Exactly one resistor on the plain cream background. No other objects.",
+    "breadboard": "Use case: scientific-educational / stylized-concept. Create ONE standalone 4:3 landscape sample illustration for OHMI's Circuit Library. All three supplied images are references, NOT edit targets: combine resistor's clear simple silhouette and material colors, breadboard's disciplined isometric depth and pixel-inspired small details, Arduino's technically recognizable component placement. Unified SOFT VOXEL ART: carefully authored small beveled blocks and subtly stepped contours, crisp clean planar facets, matte toy-like materials, no outlines, no noisy texture, no photorealism, no glossy clay blobs. Consistent orthographic isometric camera: elevation 30 degrees, verticals vertical, horizontal board axes at +30 and -30 degrees; long subject axis projects from lower-left toward upper-right. Soft large upper-left key light, gentle ambient fill, short diffuse mint-gray contact shadow down-right. Flat very pale warm cream background #F7F6ED with faint mint cast, no horizon or vignette. Center single isolated object, generous 14% safety margins, approximately 70-76% of image width; consistent small bevel size relative to hardware. Muted turquoise, warm cream, graphite, brushed silver and sensible component accent colors. Cute through proportion and clean craft, never faces or anthropomorphism. No unrelated objects, wires, plants, decoration, particles, labels, watermarks or textual headings. No fake text or invented electronic details. This is a collection asset, not an infographic or collage. Subject: one EMPTY solderless half-size breadboard, ivory ABS plastic. Use the breadboard reference for faithful structural geometry but remove ALL mounted components. Long rectangular board about 2.5:1 length to width. Two equal terminal fields separated by one continuous recessed center channel along the long axis. Each terminal field has exactly FIVE hole tracks across its width, repeated evenly along its length. Outer power rails along both long edges, with paired red and blue fine straight stripes and regular socket holes. Dark square socket openings with tiny recessed cream rims, disciplined repeated grid, no uneven or melted holes. Visible shallow front and side walls, small sensible interlocking side tabs. Isometric long axis lower-left to upper-right. No wires, LEDs, resistors, capacitor or other inserted components. No row letters or numbers; structural clarity without embedded text.",
+    "arduinoUno": "Use case: scientific-educational / stylized-concept. Create ONE standalone 4:3 landscape sample illustration for OHMI's Circuit Library. All three supplied images are references, NOT edit targets: combine resistor's clear simple silhouette and material colors, breadboard's disciplined isometric depth and pixel-inspired small details, Arduino's technically recognizable component placement. Unified SOFT VOXEL ART: carefully authored small beveled blocks and subtly stepped contours, crisp clean planar facets, matte toy-like materials, no outlines, no noisy texture, no photorealism, no glossy clay blobs. Consistent orthographic isometric camera: elevation 30 degrees, verticals vertical, horizontal board axes at +30 and -30 degrees; long subject axis projects from lower-left toward upper-right. Soft large upper-left key light, gentle ambient fill, short diffuse mint-gray contact shadow down-right. Flat very pale warm cream background #F7F6ED with faint mint cast, no horizon or vignette. Center single isolated object, generous 14% safety margins, approximately 70-76% of image width; consistent small bevel size relative to hardware. Muted turquoise, warm cream, graphite, brushed silver and sensible component accent colors. Cute through proportion and clean craft, never faces or anthropomorphism. No unrelated objects, wires, plants, decoration, particles, labels, watermarks or textual headings. No fake text or invented electronic details. This is a collection asset, not an infographic or collage. Subject: one Arduino Uno R3 style through-hole microcontroller development board, accurately recognizable silhouette in muted turquoise PCB with graphite headers and silver metal. Use supplied Arduino image for physical layout, NOT its flat illustration style. Four mounting holes at plausible board corners. At connector short end, recognizable silver USB TYPE-B female socket with square opening, and separate graphite barrel power jack with round opening. Black rectangular DIP-28 microcontroller lengthwise through center-right, visible tidy fine metal pins on both long sides. Female socket header banks along both long edges: digital bank split 10+8, opposite power and analog bank split 8+6, gap between banks. Show small reset pushbutton, silver oval crystal, two silver-top electrolytic capacitors close to barrel jack, small USB interface IC near USB connector, two tiny 2x3 ICSP pin headers in plausible separate locations, sparse restrained SMD details. Keep source board recognizable, no extra large chips, no ports at the opposite end. Orient connector end toward lower-left/front, long axis to upper-right. No logo, lettering, pin labels or illegible pseudo-text. It is an artistic recognition image, not a pinout diagram."
+  },
+  "corrections": {
+    "breadboard": "Refine this generated OHMI breadboard illustration with ONE technical correction. Preserve its exact soft voxel style, cream background, camera, composition, lights, body and center channel. Each outer power rail strip currently shows only ONE long row of socket holes. It must show TWO distinct parallel rows of socket holes, one for positive and one for negative, on EACH of the two outer strips: FOUR outer rows total. Widen those outer strips inward slightly if necessary. Red stripe alongside positive row, blue stripe alongside negative row. Keep central terminal blocks with five socket tracks per block. No text, no inserted components. Keep all geometry clean and evenly spaced. Output one 4:3 illustration."
+  },
+  "references": [
+    {
+      "role": "resistor silhouette and materials",
+      "source": "user-supplied",
+      "filename": "codex-clipboard-090ec9ff-3341-4713-afff-545d35ae36e6.png"
+    },
+    {
+      "role": "breadboard isometric depth and restrained detail",
+      "source": "user-supplied",
+      "filename": "codex-clipboard-26209c11-b759-4a2a-9668-9277b1f38d75.png"
+    },
+    {
+      "role": "Arduino recognizable geometry and layout",
+      "source": "user-supplied",
+      "filename": "codex-clipboard-7577eccf-b7ef-413e-9c85-346a82a790a5.png"
+    }
+  ],
+  "constraints": {
+    "aspectRatio": "4:3",
+    "background": "#F7F6ED cream with mint cast",
+    "camera": "orthographic isometric, 30 degree elevation",
+    "light": "upper left, short diffuse mint-gray shadow",
+    "mascot": "unchanged; palette compatibility only",
+    "rollout": "requires user review of all three samples",
+    "accuracy": "recognition illustrations; never use as pinout, rail connectivity or electrical verification"
+  },
+  "assets": [
+    {
+      "path": "samples/arduino-uno.png",
+      "bytes": 1730295,
+      "sha256": "692ab8597a7e081c2672e5467554d567aad29f1fa63ee8220b8b060499cf7e25"
+    },
+    {
+      "path": "samples/arduino-uno.webp",
+      "bytes": 75278,
+      "sha256": "022a79a7563641fa78b6382f34e55d9a10f20272bf7cea4942e4315e21ca3123"
+    },
+    {
+      "path": "samples/breadboard.png",
+      "bytes": 1883491,
+      "sha256": "a3ab4f183c90db00d6d5db8027e323ee367d3082fe0805ae6f0e3dcd83c30e17"
+    },
+    {
+      "path": "samples/breadboard.webp",
+      "bytes": 105692,
+      "sha256": "74edbec2782dcf5df0f5ab3abcf17be61f23d3639be0ff77192824261690760b"
+    },
+    {
+      "path": "samples/resistor.png",
+      "bytes": 1188864,
+      "sha256": "4cccc89d4bcd81ace293ab9f34fc961e3c2f5df57d9b48807ea9b29a862c230f"
+    },
+    {
+      "path": "samples/resistor.webp",
+      "bytes": 22054,
+      "sha256": "72acdeba0201973397f00ebdac39f0203738650164af937f9e047e2fdbbd3d35"
+    }
+  ]
+}
