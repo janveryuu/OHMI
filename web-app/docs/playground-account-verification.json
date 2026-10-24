@@ -1,0 +1,13 @@
+{
+  "ownerSave": true,
+  "reopenAfterReload": true,
+  "editRevision": true,
+  "delete": true,
+  "staleConflict": true,
+  "crossOwnerReadWriteDeleteDenied": true,
+  "anonymousDenied": true,
+  "wrongOriginDenied": true,
+  "invalidProjectDenied": true,
+  "realSupabase": true,
+  "syntheticAccounts": 2
+}

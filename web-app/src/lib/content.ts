@@ -4,6 +4,7 @@ export const navigation = [
   { href: "/assignments", label: "Assignments", icon: "FolderOpen" },
   { href: "/checker", label: "Circuit Checker", icon: "ScanLine" },
   { href: "/guide", label: "Step-by-Step Guide", icon: "BookOpen" },
+  { href: "/playground", label: "Playground", icon: "Cable" },
   { href: "/library", label: "Library", icon: "LibraryBig" },
   {
     href: "/progress",

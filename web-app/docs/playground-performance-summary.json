@@ -1,0 +1,13 @@
+{
+  "mobileLabScores": {
+    "performance": 78,
+    "accessibility": 100,
+    "best-practices": 100
+  },
+  "lcpMs": 4070.945225,
+  "tbtMs": 321.8719750000005,
+  "cls": 0.001822836751674234,
+  "consoleErrors": [],
+  "targetLcpMs": 2500,
+  "lcpTargetMet": false
+}

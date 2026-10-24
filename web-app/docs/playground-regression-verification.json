@@ -1,0 +1,27 @@
+{
+  "base": "http://127.0.0.1:3120/app",
+  "verifiedAt": "2026-10-24T19:22:46.520Z",
+  "results": [
+    "Routes and navigation fit 1440x1000",
+    "Account profile target works at 1440px",
+    "Routes and navigation fit 1024x768",
+    "Account profile target works at 1024px",
+    "Routes and navigation fit 768x1024",
+    "Account profile target works at 768px",
+    "Routes and navigation fit 390x844",
+    "Account profile target works at 390px",
+    "Routes and navigation fit 320x640",
+    "Account profile target works at 320px",
+    "Routes and navigation fit 844x390",
+    "Account profile target works at 844px",
+    "Dark mobile navigation dialog matches charcoal surfaces and passes axe",
+    "Ask OHMI language select supports keyboard and touch sizing; submit stays protected while signed out",
+    "Signed-out private APIs reject access; foreign origins rejected; no demo answer",
+    "Local crop works; signed-out review produces no fabricated findings",
+    "Authenticated Ask OHMI submits through its existing chat payload; touch selector and send, pending, and completion states work",
+    "Saved theme and accessibility preferences survive refresh",
+    "Manifest, worker scope, public-only cache and offline fallback pass"
+  ],
+  "errors": [],
+  "violations": []
+}

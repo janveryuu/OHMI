@@ -1,0 +1,8 @@
+{
+  "fetchTime": "2026-10-24T19:11:07.537Z",
+  "performance": 0.68,
+  "lcp": "4.9\u00a0s",
+  "tbt": "540\u00a0ms",
+  "errors": [],
+  "note": "Valid stable-build audit before deferring the new Playground rich-text renderer."
+}

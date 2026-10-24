@@ -11,6 +11,7 @@ import {
   ScanLine,
   BookOpen,
   LibraryBig,
+  Cable,
   ChartNoAxesCombined,
   Settings2,
   PanelLeftClose,
@@ -44,6 +45,7 @@ const icons = {
   ScanLine,
   BookOpen,
   LibraryBig,
+  Cable,
   ChartNoAxesCombined,
   Settings2,
 };
@@ -95,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           pathname === item.href ||
           (item.href === "/library" && pathname.startsWith("/library/"));
         return (
-          <Link
+          <Link prefetch={pathname === "/playground" ? false : undefined}
             key={item.href}
             href={item.href}
             className={`nav-item ${active ? "active" : ""}`}
@@ -134,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <PwaControls statusOnly />
       <aside className="sidebar">
-        <Link href="/" className="brand" aria-label="OHMI dashboard">
+        <Link prefetch={pathname === "/playground" ? false : undefined} href="/" className="brand" aria-label="OHMI dashboard">
           <Image src="/app/mascot.png" alt="" width="37" height="44" />
           <span>
             OHMI<span className="brand-dot">.</span>
@@ -151,7 +153,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p>Keep your circuit buddy close while you build.</p>
             <Companion trigger="Launch Floating OHMI" globalLauncher />
           </div>
-          <Link
+          <Link prefetch={pathname === "/playground" ? false : undefined}
             className="profile-link"
             href="/settings"
             aria-label="Open account profile"
@@ -189,7 +191,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="muted">/</span>
             <strong>{label}</strong>
           </div>
-          <Link href="/" className="mobile-brand">
+          <Link prefetch={pathname === "/playground" ? false : undefined} href="/" className="mobile-brand">
             OHMI<span>.</span>
           </Link>
           <div className="row">
@@ -216,7 +218,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               {app.theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
             </Button>
-            <Link
+            <Link prefetch={pathname === "/playground" ? false : undefined}
               href="/settings"
               aria-label="Open profile"
               className="avatar small-avatar"
@@ -226,7 +228,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main id="main" className="main-content" tabIndex={-1}>
-          <AccountNotice />
+          {(pathname !== "/playground" || app.error || !app.configured) && <AccountNotice />}
           {children}
           <footer className="workspace-footer">
             <span>A little curiosity goes a long way.</span>
@@ -253,7 +255,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {navigation.slice(4).map((item) => {
               const Icon = icons[item.icon];
               return (
-                <Link
+                <Link prefetch={pathname === "/playground" ? false : undefined}
                   className="more-link"
                   key={item.href}
                   href={item.href}
@@ -302,7 +304,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 n.label.toLowerCase().includes(query.toLowerCase()),
               )
               .map((n) => (
-                <Link
+                <Link prefetch={pathname === "/playground" ? false : undefined}
                   className="more-link"
                   key={n.href}
                   href={n.href}
