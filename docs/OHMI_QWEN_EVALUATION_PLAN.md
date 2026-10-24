@@ -1,6 +1,11 @@
 # OHMI Qwen evaluation and optional integration plan
 
-**Status:** Planning only; owner approval required before AGY implements any milestone. No provider requests, paid services, deployments, credential changes or database changes are authorized by this document.
+**Status:** Superseded / Inactive.
+
+> [!WARNING]
+> **SUPERSEDED (25 October 2026):** Active Qwen evaluation and integration has been retired in favor of GroqCloud (openai/gpt-oss-120b) for Ask OHMI and Google Gemini (gemini-3.8-flash) for multimodal workflows. See [OHMI_AI_PROVIDER_MIGRATION_PLAN.md](OHMI_AI_PROVIDER_MIGRATION_PLAN.md). This document is preserved for historical audit only.
+
+
 
 **Reviewed:** 18 October 2026. Source `6ca7133`, branch `codex/phase-5-m1-wip`. Concurrent AssistantPanel/browser-test edits are external work; preserve and reconcile them. Read [the six-improvement plan](OHMI_ASSIGNMENTS_CHAT_IMPROVEMENT_PLAN.md), [project context](PROJECT_CONTEXT.md) and [Phase 5 report](PHASE_5_VERIFICATION_REPORT.md). The context document's M1 summary is stale. No Graphify graph exists; findings below were checked in source.
 

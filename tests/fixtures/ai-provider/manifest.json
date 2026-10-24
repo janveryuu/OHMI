@@ -1,7 +1,7 @@
 {
-  "description": "OHMI Qwen Evaluation Offline Synthetic Fixture Matrix (12 Cases)",
-  "version": "1.0.0",
-  "evaluatedModels": ["qwen3.8-flash", "qwen3.8-max"],
+  "description": "OHMI AI Provider Evaluation Offline Synthetic Fixture Matrix (12 Cases)",
+  "version": "2.0.0",
+  "evaluatedProviders": ["groq", "gemini"],
   "totalCases": 12,
   "languageDistribution": {
     "english": 4,
@@ -18,7 +18,7 @@
   },
   "fixtures": [
     {
-      "id": "qwen-01",
+      "id": "ai-provider-01",
       "title": "Resistor explanation with request for shorter follow-up",
       "category": "concept_explanation",
       "language": "english",
@@ -42,8 +42,8 @@
           { "role": "assistant", "text": "A resistor resists electric current flow. In electronic circuits, resistors are used to reduce current flow, adjust signal levels, divide voltages, bias active elements, and terminate transmission lines. For an LED on a 5V power supply, a current limiting resistor prevents burning out the diode." }
         ]
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "openai/gpt-oss-120b",
         "choices": [
           {
             "finish_reason": "stop",
@@ -57,7 +57,7 @@
       }
     },
     {
-      "id": "qwen-02",
+      "id": "ai-provider-02",
       "title": "Known-input LED calculation checked against deterministic helper",
       "category": "deterministic_calculation",
       "language": "english",
@@ -82,8 +82,8 @@
           "operands": { "supplyVoltage": 5, "forwardVoltage": 2, "targetCurrent": 0.02 }
         }
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "openai/gpt-oss-120b",
         "choices": [
           {
             "finish_reason": "stop",
@@ -97,7 +97,7 @@
       }
     },
     {
-      "id": "qwen-03",
+      "id": "ai-provider-03",
       "title": "Missing voltage/current requiring clarification before advising",
       "category": "clarification_abstention",
       "language": "taglish",
@@ -117,8 +117,8 @@
         "language": "taglish",
         "message": "Anong resistor ang gagamitin ko para sa LED ko?"
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "openai/gpt-oss-120b",
         "choices": [
           {
             "finish_reason": "stop",
@@ -132,7 +132,7 @@
       }
     },
     {
-      "id": "qwen-04",
+      "id": "ai-provider-04",
       "title": "Uno sketch with missing pin mode and pin inconsistency",
       "category": "code_inconsistency",
       "language": "taglish",
@@ -153,8 +153,8 @@
         "message": "Bakit hindi umiilaw ang LED ko sa sketch na ito?",
         "code": "void setup() {\n  // Setting up pins\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(12, LOW);\n  delay(1000);\n}"
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "openai/gpt-oss-120b",
         "choices": [
           {
             "finish_reason": "stop",
@@ -168,7 +168,7 @@
       }
     },
     {
-      "id": "qwen-05",
+      "id": "ai-provider-05",
       "title": "Confirmed LED breadboard screenshot with labeled ground truth",
       "category": "standard_valid_circuit",
       "language": "english",
@@ -199,8 +199,8 @@
           }
         ]
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -214,7 +214,7 @@
       }
     },
     {
-      "id": "qwen-06",
+      "id": "ai-provider-06",
       "title": "Ambiguous rail/crossing screenshot requiring uncertainty abstention",
       "category": "uncertain_wiring",
       "language": "filipino",
@@ -244,8 +244,8 @@
           }
         ]
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -259,7 +259,7 @@
       }
     },
     {
-      "id": "qwen-07",
+      "id": "ai-provider-07",
       "title": "Text PDF assignment with page-numbered requirements",
       "category": "pdf_citation",
       "language": "english",
@@ -280,8 +280,8 @@
         "assignmentId": "22222222-2222-2222-2222-222222222222",
         "message": "Extract all circuit component requirements and cite the page numbers."
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -295,7 +295,7 @@
       }
     },
     {
-      "id": "qwen-08",
+      "id": "ai-provider-08",
       "title": "Scanned/diagram PDF with fact present only in visual diagram",
       "category": "pdf_image_fact",
       "language": "taglish",
@@ -315,8 +315,8 @@
         "assignmentId": "22222222-2222-2222-2222-222222222222",
         "message": "Ano ang nakasaad na pull-down resistor value sa schematic diagram ng laboratory PDF na ito?"
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -330,7 +330,7 @@
       }
     },
     {
-      "id": "qwen-09",
+      "id": "ai-provider-09",
       "title": "Conflicting assignment requirement and screenshot evidence",
       "category": "conflicting_evidence",
       "language": "filipino",
@@ -361,8 +361,8 @@
           }
         ]
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -376,7 +376,7 @@
       }
     },
     {
-      "id": "qwen-10",
+      "id": "ai-provider-10",
       "title": "Beginner guide with confirmed board, components, and checkpoints",
       "category": "beginner_guide",
       "language": "filipino",
@@ -397,8 +397,8 @@
         "language": "filipino",
         "message": "Turuan mo ako kung paano magkabit ng push button na may pull-down resistor sa Arduino Uno."
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -412,7 +412,7 @@
       }
     },
     {
-      "id": "qwen-11",
+      "id": "ai-provider-11",
       "title": "Structured educational diagram request with known net connections",
       "category": "educational_diagram",
       "language": "filipino",
@@ -432,8 +432,8 @@
         "language": "filipino",
         "message": "Gawan mo ako ng step-by-step schematic diagram plan para sa simpleng LED circuit gamit ang Pin 13 at 220 ohm resistor."
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",
@@ -447,7 +447,7 @@
       }
     },
     {
-      "id": "qwen-12",
+      "id": "ai-provider-12",
       "title": "Downloadable study notes and minimal safe Arduino sketch",
       "category": "study_notes_code",
       "language": "taglish",
@@ -467,8 +467,8 @@
         "language": "taglish",
         "message": "Pahingi ng study notes at malinis na Arduino code para sa LED blinker na may potentiometer delay."
       },
-      "mockQwenResponse": {
-        "model": "qwen3.8-flash",
+      "mockResponse": {
+        "model": "gemini-3.8-flash",
         "choices": [
           {
             "finish_reason": "stop",

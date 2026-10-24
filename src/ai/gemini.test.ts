@@ -130,5 +130,19 @@ describe('Gemini Provider Client', () => {
     expect(result.totalTokens).toBe(40);
     expect(result.finishReason).toBe('STOP');
     expect(fakeFetch).toHaveBeenCalledTimes(1);
+
+    const callArgs = fakeFetch.mock.calls[0];
+    const calledUrl = callArgs[0] as string;
+    const calledInit = callArgs[1] as RequestInit;
+    expect(calledUrl).not.toContain('?key=');
+    expect(calledUrl).toContain('gemini-3.8-flash:generateContent');
+    expect((calledInit.headers as Record<string, string>)['x-goog-api-key']).toBe(dummyKey);
+
+    const sentBody = JSON.parse(calledInit.body as string);
+    expect(sentBody.generationConfig?.temperature).toBeUndefined();
+    expect(sentBody.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'LOW',
+      includeThoughts: false
+    });
   });
 });

@@ -25,7 +25,7 @@ import {
 } from './tutor-policy.ts';
 import type { CircuitRequestV2, CircuitEvidence, CircuitCheckResult } from '../../../src/backend/contracts.ts';
 
-export const MODEL = 'gemini-3.5-flash-lite';
+export const MODEL = GEMINI_PRODUCTION_MODEL;
 export const MAX_BODY_BYTES = 32 * 1024; // 32 KiB
 export const MAX_BODY_BYTES_V1 = 32 * 1024; // 32 KiB
 export const MAX_BODY_BYTES_V2 = 6 * 1024 * 1024; // 6 MiB
@@ -77,13 +77,16 @@ export async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
 }
 
 import {
-  callQwenChatCompletions,
-  validateQwenModel,
-  DEFAULT_QWEN_MODEL,
+  resolveAiRoute,
+  checkRouteReadiness,
   sanitizeErrorMessage,
-  type QwenChatMessage,
-  type QwenContentPart
-} from './qwen.ts';
+  GEMINI_PRODUCTION_MODEL,
+  DEFAULT_GROQ_CHAT_MODEL,
+  ALLOWED_GROQ_MODELS,
+  type ResolvedRoute,
+  type AiProvider
+} from './provider-policy.ts';
+import { callGroqChatCompletions } from './groq.ts';
 
 export interface AiHandlerDependencies {
   env?: {
@@ -91,11 +94,13 @@ export interface AiHandlerDependencies {
     SUPABASE_ANON_KEY?: string;
     SUPABASE_SERVICE_ROLE_KEY?: string;
     GEMINI_API_KEY?: string;
-    QWEN_API_KEY?: string;
-    QWEN_BASE_URL?: string;
-    QWEN_MODEL?: string;
-    OHMI_AI_PROVIDER?: string;
+    GROQ_API_KEY?: string;
+    GROQ_CHAT_MODEL?: string;
+    GEMINI_MODEL?: string;
     OHMI_AI_ENABLED?: string;
+    OHMI_GROQ_CHAT_ENABLED?: string;
+    OHMI_GEMINI_MULTIMODAL_ENABLED?: string;
+    OHMI_AI_PROVIDER?: string;
   };
   createClient?: typeof createClient;
   fetch?: typeof fetch;
@@ -116,7 +121,7 @@ const getEnv = (key: string, deps?: AiHandlerDependencies): string => {
 };
 
 export interface AiTransportRequest {
-  provider: 'gemini' | 'qwen';
+  provider: 'gemini' | 'groq';
   model: string;
   systemInstruction: string;
   promptText: string;
@@ -127,15 +132,14 @@ export interface AiTransportRequest {
   temperature?: number;
   responseFormat?: 'text' | 'json_object';
   geminiApiKey?: string;
-  qwenApiKey?: string;
-  qwenBaseUrl?: string;
+  groqApiKey?: string;
   timeoutMs?: number;
   fetchFn?: typeof fetch;
 }
 
 export interface AiTransportResponse {
   ok: true;
-  provider: 'gemini' | 'qwen';
+  provider: 'gemini' | 'groq';
   model: string;
   text: string;
   promptTokens: number;
@@ -146,7 +150,7 @@ export interface AiTransportResponse {
 
 export interface AiTransportError {
   ok: false;
-  provider: 'gemini' | 'qwen';
+  provider: 'gemini' | 'groq';
   model: string;
   status: number;
   code: 'timeout' | 'rate_limit' | 'unavailable' | 'safety' | 'payload_too_large' | 'invalid_json' | 'quota_exhausted' | 'empty_answer' | 'provider_error';
@@ -158,93 +162,65 @@ export type AiTransportResult = AiTransportResponse | AiTransportError;
 
 /**
  * Internal unified transport seam for ohmi-ai provider requests.
- * Adapts Gemini and Qwen to a single contract returning visible text, model, usage,
+ * Adapts Gemini and Groq to a single contract returning visible text, model, usage,
  * and normalized error statuses without SDK auto-retries or cross-provider fallbacks.
  */
 export async function callAiProviderTransport(req: AiTransportRequest): Promise<AiTransportResult> {
   const timeoutMs = req.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const fetchFn = req.fetchFn || fetch;
 
-  if (req.provider === 'qwen') {
-    const qwenApiKey = (req.qwenApiKey || '').trim();
-    if (!qwenApiKey) {
+  if (req.provider === 'groq') {
+    const groqApiKey = (req.groqApiKey || '').trim();
+    if (!groqApiKey) {
       return {
         ok: false,
-        provider: 'qwen',
+        provider: 'groq',
         model: req.model,
         status: 500,
         code: 'provider_error',
-        message: 'Qwen API key is not configured.'
+        message: 'Groq API key is not configured.'
       };
     }
 
-    const messages: QwenChatMessage[] = [];
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     if (req.history && req.history.length > 0) {
       for (const h of req.history) {
-        messages.push({
-          role: h.role,
-          content: h.content
-        });
+        messages.push({ role: h.role, content: h.content });
       }
     }
+    messages.push({ role: 'user', content: req.promptText });
 
-    const hasMedia = (req.images && req.images.length > 0) || Boolean(req.pdf);
-    if (hasMedia) {
-      const parts: QwenContentPart[] = [{ type: 'text', text: req.promptText }];
-      if (req.images) {
-        for (const img of req.images) {
-          parts.push({
-            type: 'image_url',
-            image_url: { url: `data:${img.mimeType};base64,${img.data}` }
-          });
-        }
-      }
-      if (req.pdf) {
-        parts.push({
-          type: 'file',
-          file_data: `data:${req.pdf.mimeType};base64,${req.pdf.data}`,
-          file_name: req.pdf.fileName || 'assignment.pdf'
-        });
-      }
-      messages.push({ role: 'user', content: parts });
-    } else {
-      messages.push({ role: 'user', content: req.promptText });
-    }
-
-    const qwenRes = await callQwenChatCompletions({
-      apiKey: qwenApiKey,
-      baseUrl: req.qwenBaseUrl,
+    const groqRes = await callGroqChatCompletions({
+      apiKey: groqApiKey,
       model: req.model,
       systemInstruction: req.systemInstruction,
       messages,
       maxTokens: req.maxTokens,
-      temperature: req.temperature ?? 0.1,
-      responseFormat: req.responseFormat,
       timeoutMs,
       fetchFn
     });
 
-    if (!qwenRes.ok) {
+    if (!groqRes.ok) {
       return {
         ok: false,
-        provider: 'qwen',
+        provider: 'groq',
         model: req.model,
-        status: qwenRes.status,
-        code: qwenRes.code,
-        message: qwenRes.message,
-        retryAfterSeconds: qwenRes.retryAfterSeconds
+        status: groqRes.status,
+        code: groqRes.code,
+        message: groqRes.message,
+        retryAfterSeconds: groqRes.retryAfterSeconds
       };
     }
 
     return {
       ok: true,
-      provider: 'qwen',
-      model: qwenRes.model,
-      text: qwenRes.content,
-      promptTokens: qwenRes.promptTokens,
-      completionTokens: qwenRes.completionTokens,
-      totalTokens: qwenRes.totalTokens,
-      finishReason: qwenRes.finishReason
+      provider: 'groq',
+      model: groqRes.model,
+      text: groqRes.content,
+      promptTokens: groqRes.promptTokens,
+      completionTokens: groqRes.completionTokens,
+      totalTokens: groqRes.totalTokens,
+      finishReason: groqRes.finishReason
     };
   }
 
@@ -261,7 +237,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     };
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent?key=${geminiApiKey}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(req.model)}:generateContent`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -301,13 +277,19 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
   try {
     providerRes = await fetchFn(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey
+      },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: req.systemInstruction }] },
         contents,
         generationConfig: {
           maxOutputTokens: req.maxTokens,
-          temperature: req.temperature ?? 0.1,
+          thinkingConfig: {
+            thinkingLevel: 'LOW',
+            includeThoughts: false
+          },
           ...(req.responseFormat === 'json_object' ? { responseMimeType: 'application/json' } : {})
         }
       }),
@@ -501,32 +483,10 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY', deps);
   const supabaseServiceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY', deps);
   const geminiApiKey = getEnv('GEMINI_API_KEY', deps);
-  const qwenApiKey = getEnv('QWEN_API_KEY', deps);
-  const qwenBaseUrl = getEnv('QWEN_BASE_URL', deps);
-  const rawProvider = getEnv('OHMI_AI_PROVIDER', deps);
-  const provider = (rawProvider ? rawProvider.trim().toLowerCase() : 'gemini');
-
-  if (provider !== 'gemini' && provider !== 'qwen') {
-    return errorResponse('server_error', `Unsupported AI provider "${provider}".`, 500);
-  }
+  const groqApiKey = getEnv('GROQ_API_KEY', deps);
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return errorResponse('server_error', 'Supabase backend configuration is missing.', 500);
-  }
-  if (provider === 'gemini' && !geminiApiKey) {
-    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
-  }
-  if (provider === 'qwen' && !qwenApiKey) {
-    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
-  }
-
-  let activeModel: string = MODEL;
-  if (provider === 'qwen') {
-    try {
-      activeModel = validateQwenModel(getEnv('QWEN_MODEL', deps) || DEFAULT_QWEN_MODEL);
-    } catch (err: unknown) {
-      return errorResponse('server_error', err instanceof Error ? err.message : 'Invalid Qwen model.', 500);
-    }
   }
 
   const clientFactory = deps?.createClient || createClient;
@@ -565,6 +525,10 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('invalid_request', 'Invalid JSON body.', 400);
   }
 
+  if (body?.provider || body?.baseUrl) {
+    return errorResponse('invalid_request', 'Client model/provider override is prohibited.', 400);
+  }
+
   if (body?.version === 2) {
     return handleCircuitCheckRequest(body, rawBody, user, token, adminClient, userClient, deps);
   }
@@ -600,6 +564,15 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   if (circuitAnalysisId !== undefined && !uuidRegex.test(circuitAnalysisId)) {
     return errorResponse('invalid_request', 'Invalid circuitAnalysisId format.', 400);
   }
+
+  if (operation === 'chat' && (assignmentId || body?.images || body?.pdf)) {
+    return errorResponse('invalid_request', 'Chat operation cannot contain attachments. Use pdf or image operation.', 400);
+  }
+
+  const route = resolveAiRoute(operation, {
+    circuitAnalysisId,
+    hasArtifactReference: Boolean(circuitAnalysisId)
+  }, getEnv('GROQ_CHAT_MODEL', deps));
 
   if (!['chat', 'image', 'pdf', 'tutorial'].includes(operation)) {
     return errorResponse('invalid_request', 'Invalid operation.', 400);
@@ -829,8 +802,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   // Canonical input hash including conversationId and history snapshot (P4-7 / F3)
   const inputHash = await sha256Hex(JSON.stringify({
     version: 1,
-    provider,
-    model: activeModel,
+    provider: route.provider,
+    model: route.model,
     operation,
     language,
     message: message.trim(),
@@ -854,7 +827,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     p_target: targetId,
     p_hash: inputHash,
     p_language: language,
-    p_model: activeModel,
+    p_model: route.model,
     p_conversation_id: conversationId || null
   });
 
@@ -928,7 +901,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
         operation,
         language,
         result: replayedResult,
-        model: reservation.model || activeModel,
+        model: reservation.model || route.model,
+        provider: route.provider,
         ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
       });
     }
@@ -1031,8 +1005,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
 
   // Call provider through unified transport seam
   const transportRes = await callAiProviderTransport({
-    provider,
-    model: activeModel,
+    provider: route.provider,
+    model: route.model,
     systemInstruction,
     promptText,
     history: historyList,
@@ -1041,8 +1015,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     maxTokens: operation === 'tutorial' ? 2048 : 1536,
     responseFormat: operation === 'tutorial' ? 'json_object' : 'text',
     geminiApiKey,
-    qwenApiKey,
-    qwenBaseUrl,
+    groqApiKey,
     timeoutMs: DEFAULT_TIMEOUT_MS,
     fetchFn: deps?.fetch || fetch
   });
@@ -1056,12 +1029,12 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
       p_request_id: requestId,
       p_error_code: errCode,
       p_error_message: transportRes.message.slice(0, 200),
-      p_model: activeModel
+      p_model: route.model
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: activeModel,
+        p_model: route.model,
         p_retry_after: transportRes.retryAfterSeconds || 60
       });
       return errorResponse(
@@ -1129,7 +1102,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
         p_request_id: requestId,
         p_error_code: 'invalid_tutorial',
         p_error_message: tutVal.error || 'Tutorial validation failed.',
-        p_model: activeModel
+        p_model: route.model
       });
       return errorResponse('unavailable', tutVal.error || 'Tutorial did not meet required format.', 502);
     }
@@ -1176,7 +1149,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
-    p_model: activeModel
+    p_model: route.model
   });
 
   if (completeRes.error) {
@@ -1190,7 +1163,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     operation,
     language,
     result: resultPayload,
-    model: activeModel,
+    model: route.model,
+    provider: route.provider,
     ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
   });
 }
@@ -1204,31 +1178,12 @@ export async function handleCircuitCheckRequest(
   userClient: any,
   deps?: AiHandlerDependencies
 ): Promise<Response> {
-  const rawProvider = getEnv('OHMI_AI_PROVIDER', deps);
-  const provider = (rawProvider ? rawProvider.trim().toLowerCase() : 'gemini');
-  if (provider !== 'gemini' && provider !== 'qwen') {
-    return errorResponse('server_error', `Unsupported AI provider "${provider}".`, 500);
+  if (body?.provider || body?.baseUrl) {
+    return errorResponse('invalid_request', 'Client model/provider override is prohibited.', 400);
   }
 
   const geminiApiKey = getEnv('GEMINI_API_KEY', deps);
-  const qwenApiKey = getEnv('QWEN_API_KEY', deps);
-  const qwenBaseUrl = getEnv('QWEN_BASE_URL', deps);
-
-  if (provider === 'gemini' && !geminiApiKey) {
-    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
-  }
-  if (provider === 'qwen' && !qwenApiKey) {
-    return errorResponse('server_error', 'AI provider configuration is missing.', 500);
-  }
-
-  let activeModel: string = MODEL;
-  if (provider === 'qwen') {
-    try {
-      activeModel = validateQwenModel(getEnv('QWEN_MODEL', deps) || DEFAULT_QWEN_MODEL);
-    } catch (err: unknown) {
-      return errorResponse('server_error', err instanceof Error ? err.message : 'Invalid Qwen model.', 500);
-    }
-  }
+  const route = resolveAiRoute('circuit_check');
 
   // 1. Validate V2 Request schema and semantic bounds
   let reqV2: CircuitRequestV2;
@@ -1367,8 +1322,8 @@ export async function handleCircuitCheckRequest(
 
   const inputHash = await sha256Hex(JSON.stringify({
     version: 2,
-    provider,
-    model: activeModel,
+    provider: route.provider,
+    model: route.model,
     operation: 'circuit_check',
     language: reqV2.language,
     mode: reqV2.mode,
@@ -1394,7 +1349,7 @@ export async function handleCircuitCheckRequest(
     p_target: targetId,
     p_hash: inputHash,
     p_language: reqV2.language,
-    p_model: activeModel,
+    p_model: route.model,
     p_conversation_id: reqV2.conversationId || null
   });
 
@@ -1458,7 +1413,8 @@ export async function handleCircuitCheckRequest(
         resultId: reservation.result_id,
         conversationId: reqV2.conversationId || reservation.conversation_id || undefined,
         result: replayedResult,
-        model: reservation.model || activeModel,
+        model: reservation.model || route.model,
+        provider: route.provider,
         ...(calculationResult ? { calculation: calculationResult } : {})
       });
     }
@@ -1478,16 +1434,14 @@ export async function handleCircuitCheckRequest(
   }
 
   const transportRes = await callAiProviderTransport({
-    provider,
-    model: activeModel,
+    provider: route.provider,
+    model: route.model,
     systemInstruction,
     promptText,
     images: reqV2.images.map((img: any) => ({ mimeType: img.mimeType, data: img.data })),
     maxTokens: 3072,
     responseFormat: 'json_object',
     geminiApiKey,
-    qwenApiKey,
-    qwenBaseUrl,
     timeoutMs: DEFAULT_TIMEOUT_MS,
     fetchFn: deps?.fetch || fetch
   });
@@ -1501,12 +1455,12 @@ export async function handleCircuitCheckRequest(
       p_request_id: reqV2.requestId,
       p_error_code: errCode,
       p_error_message: transportRes.message.slice(0, 200),
-      p_model: activeModel
+      p_model: route.model
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: activeModel,
+        p_model: route.model,
         p_retry_after: transportRes.retryAfterSeconds || 60
       });
       return errorResponse(
@@ -1557,7 +1511,7 @@ export async function handleCircuitCheckRequest(
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
       p_error_message: 'Failed to parse JSON from circuit check response.',
-      p_model: activeModel
+      p_model: route.model
     });
     return errorResponse('unavailable', 'Received invalid circuit check format from AI provider.', 502);
   }
@@ -1571,7 +1525,7 @@ export async function handleCircuitCheckRequest(
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
       p_error_message: valErr.slice(0, 200),
-      p_model: activeModel
+      p_model: route.model
     });
     return errorResponse('unavailable', valErr, 502);
   }
@@ -1589,7 +1543,7 @@ export async function handleCircuitCheckRequest(
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
-    p_model: activeModel
+    p_model: route.model
   });
 
   if (completeRes.error) {
@@ -1605,7 +1559,8 @@ export async function handleCircuitCheckRequest(
     resultId: completeRes.data?.id,
     conversationId: reqV2.conversationId || undefined,
     result: validatedResult,
-    model: activeModel,
+    model: route.model,
+    provider: route.provider,
     ...(calculationResult ? { calculation: calculationResult } : {})
   });
 }

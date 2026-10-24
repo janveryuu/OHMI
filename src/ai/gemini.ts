@@ -1,18 +1,21 @@
 /**
- * Single-provider client for Google Gemini (gemini-3.5-flash-lite).
+ * Single-provider client for Google Gemini (gemini-3.8-flash).
  * Enforces:
  * - 0 automatic retries
  * - 20s maximum generation timeout
- * - 64 KiB maximum response body size
+ * - 64 KiB maximum response body size with bounded stream reading
  * - Safe error mapping without secret leakage
+ * - Key sent in x-goog-api-key header (never in query URL)
+ * - Thinking config: LOW thinkingLevel, includeThoughts: false
  */
 
-export const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+export const DEFAULT_MODEL = 'gemini-3.8-flash';
 export const MAX_RESPONSE_BYTES = 64 * 1024; // 64 KiB
 export const DEFAULT_TIMEOUT_MS = 20_000;    // 20 seconds
 
 export interface GeminiPart {
   text?: string;
+  thought?: boolean;
   inlineData?: {
     mimeType: string;
     data: string; // base64
@@ -57,6 +60,39 @@ export class GeminiError extends Error {
   }
 }
 
+async function readBoundedStream(response: Response, maxBytes = MAX_RESPONSE_BYTES): Promise<string> {
+  if (!response.body) {
+    return '';
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let totalBytes = 0;
+  let text = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        totalBytes += value.byteLength;
+        if (totalBytes > maxBytes) {
+          try {
+            await reader.cancel();
+          } catch {
+            // ignore cancel errors
+          }
+          throw new GeminiError('Provider response exceeded 64 KiB limit.', 'payload_too_large', 502);
+        }
+        text += decoder.decode(value, { stream: true });
+      }
+    }
+    text += decoder.decode();
+    return text;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function callGemini(options: GeminiCallOptions): Promise<GeminiResult> {
   const {
     apiKey,
@@ -73,13 +109,17 @@ export async function callGemini(options: GeminiCallOptions): Promise<GeminiResu
     throw new GeminiError('Provider API key is missing.', 'auth_error', 401);
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // Key in header, never in URL
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
   const bodyPayload: Record<string, unknown> = {
     contents,
     generationConfig: {
       maxOutputTokens,
-      temperature: 0.2
+      thinkingConfig: {
+        thinkingLevel: 'LOW',
+        includeThoughts: false
+      }
     }
   };
 
@@ -105,7 +145,8 @@ export async function callGemini(options: GeminiCallOptions): Promise<GeminiResu
     response = await fetchFn(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify(bodyPayload),
       signal: controller.signal
@@ -120,11 +161,22 @@ export async function callGemini(options: GeminiCallOptions): Promise<GeminiResu
     clearTimeout(timer);
   }
 
+  // Bounded response reading
+  let rawText = '';
+  try {
+    rawText = await readBoundedStream(response, MAX_RESPONSE_BYTES);
+  } catch (err) {
+    if (err instanceof GeminiError) {
+      throw err;
+    }
+    throw new GeminiError('Failed reading provider response stream.', 'unavailable', 502);
+  }
+
   // Check HTTP status
   if (!response.ok) {
     let errorMsg = `Provider error (status ${response.status})`;
     try {
-      const errJson = await response.json() as { error?: { message?: string } };
+      const errJson = JSON.parse(rawText) as { error?: { message?: string } };
       if (errJson?.error?.message) {
         errorMsg = errJson.error.message;
       }
@@ -144,17 +196,6 @@ export async function callGemini(options: GeminiCallOptions): Promise<GeminiResu
       throw new GeminiError('Provider service is temporarily unavailable. Try again shortly.', 'unavailable', response.status, 60);
     }
     throw new GeminiError(errorMsg.slice(0, 150), 'invalid_request', response.status);
-  }
-
-  // Bounded response reading: reject bodies > 64 KiB
-  const contentLength = response.headers.get('content-length');
-  if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_BYTES) {
-    throw new GeminiError('Provider response exceeded 64 KiB limit.', 'payload_too_large', 502);
-  }
-
-  const rawText = await response.text();
-  if (rawText.length > MAX_RESPONSE_BYTES) {
-    throw new GeminiError('Provider response exceeded 64 KiB limit.', 'payload_too_large', 502);
   }
 
   let data: any;
@@ -177,7 +218,17 @@ export async function callGemini(options: GeminiCallOptions): Promise<GeminiResu
     throw new GeminiError('Response blocked by provider safety filters.', 'safety_refusal', 400);
   }
 
-  const textPart = candidate.content?.parts?.[0]?.text ?? '';
+  const rawParts = candidate.content?.parts;
+  let textPart = '';
+  if (Array.isArray(rawParts)) {
+    textPart = rawParts
+      .filter((p: any) => p && typeof p.text === 'string' && !p.thought)
+      .map((p: any) => p.text)
+      .join('');
+  } else if (typeof rawParts?.[0]?.text === 'string') {
+    textPart = rawParts[0].text;
+  }
+
   const inputTokens = data.usageMetadata?.promptTokenCount ?? 0;
   const outputTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
   const totalTokens = data.usageMetadata?.totalTokenCount ?? (inputTokens + outputTokens);

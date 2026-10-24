@@ -8,7 +8,10 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
     SUPABASE_ANON_KEY: 'test-anon-key',
     SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
     GEMINI_API_KEY: 'test-gemini-key',
-    OHMI_AI_ENABLED: 'true'
+    GROQ_API_KEY: 'test-groq-key',
+    OHMI_AI_ENABLED: 'true',
+    OHMI_GROQ_CHAT_ENABLED: 'true',
+    OHMI_GEMINI_MULTIMODAL_ENABLED: 'true'
   };
 
   let mockUser: any;
@@ -62,23 +65,43 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
     });
 
-    mockFetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              finishReason: 'STOP',
-              content: { parts: [{ text: 'Here is the circuit advice.' }] }
+    mockFetch = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('groq.com')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: { role: 'assistant', content: 'Here is the circuit advice.' }
+                }
+              ],
+              usage: { prompt_tokens: 120, completion_tokens: 45, total_tokens: 165 },
+              model: 'openai/gpt-oss-120b'
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: 'Here is the circuit advice.' }] }
+              }
+            ],
+            usageMetadata: {
+              promptTokenCount: 120,
+              candidatesTokenCount: 45,
+              totalTokenCount: 165
             }
-          ],
-          usageMetadata: {
-            promptTokenCount: 120,
-            candidatesTokenCount: 45
-          }
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+    });
   });
 
   const createMockClientFactory = () => {
@@ -227,17 +250,17 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
   });
 
   it('regression 4: non_stop_and_invalid_tutorial_are_rejected', async () => {
-    // A: finishReason !== 'STOP' (e.g. MAX_TOKENS / truncated)
+    // A: finish_reason !== 'stop' on Groq chat (e.g. length / truncated)
     mockFetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          candidates: [
+          choices: [
             {
-              finishReason: 'MAX_TOKENS',
-              content: { parts: [{ text: 'Incomplete truncated text...' }] }
+              finish_reason: 'length',
+              message: { role: 'assistant', content: 'Incomplete truncated text...' }
             }
           ],
-          usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 2048 }
+          usage: { prompt_tokens: 100, completion_tokens: 2048 }
         }),
         { status: 200 }
       )
@@ -321,17 +344,17 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
   });
 
   it('regression 6: unknown_usage_is_not_zero', async () => {
-    // When usageMetadata is omitted by provider, handler must use conservative estimate (not 0)
+    // When usage is omitted by provider, handler must use conservative estimate (not 0)
     mockFetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          candidates: [
+          choices: [
             {
-              finishReason: 'STOP',
-              content: { parts: [{ text: 'Here is an answer without usage metadata.' }] }
+              finish_reason: 'stop',
+              message: { role: 'assistant', content: 'Here is an answer without usage metadata.' }
             }
           ]
-          // usageMetadata is omitted!
+          // usage is omitted!
         }),
         { status: 200 }
       )
@@ -997,6 +1020,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         version: 1,
         requestId: '00000000-0000-0000-0000-000000000010',
         operation: 'chat',
+        circuitAnalysisId: '00000000-0000-0000-0000-000000000001',
         language: 'english',
         message: 'What does a resistor do?'
       });
@@ -1069,63 +1093,64 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
     });
   });
 
-  describe('Qwen Transport Adapter in handleAiRequest', () => {
-    const qwenEnv = {
-      ...defaultEnv,
-      OHMI_AI_PROVIDER: 'qwen',
-      QWEN_API_KEY: 'test-qwen-api-key',
-      QWEN_MODEL: 'qwen3.8-flash'
-    };
-
-    it('rejects request when Qwen provider is selected but QWEN_API_KEY is missing', async () => {
+  describe('Milestone M1 & M3: Provider Routing, Groq Transport & Qwen Rejection in handleAiRequest', () => {
+    it('rejects request when client attempts to override provider to qwen or supply foreign baseUrl', async () => {
       const req = createRequest({
         version: 1,
         requestId: '00000000-0000-0000-0000-000000000020',
         operation: 'chat',
         language: 'english',
-        message: 'Hello'
+        message: 'Hello',
+        provider: 'qwen'
       });
 
       const res = await handleAiRequest(req, {
-        env: { ...defaultEnv, OHMI_AI_PROVIDER: 'qwen', QWEN_API_KEY: '' },
+        env: defaultEnv,
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.ok).toBe(false);
-      expect(data.code).toBe('server_error');
+      expect(data.code).toBe('invalid_request');
+      expect(data.error).toContain('override is prohibited');
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('routes V1 chat request to Qwen Chat Completions endpoint with correct auth and model', async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            choices: [
-              {
-                finish_reason: 'stop',
-                message: { role: 'assistant', content: 'Qwen response explaining series resistance.' }
-              }
-            ],
-            usage: { prompt_tokens: 42, completion_tokens: 18, total_tokens: 60 },
-            model: 'qwen3.8-flash'
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        )
-      );
-
+    it('rejects V1 chat request carrying assignmentId or media fields', async () => {
       const req = createRequest({
         version: 1,
         requestId: '00000000-0000-0000-0000-000000000021',
+        operation: 'chat',
+        language: 'english',
+        message: 'Look at this',
+        assignmentId: '22222222-2222-2222-2222-222222222222'
+      });
+
+      const res = await handleAiRequest(req, {
+        env: defaultEnv,
+        createClient: createMockClientFactory(),
+        fetch: mockFetch
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.code).toBe('invalid_request');
+      expect(data.error).toContain('Chat operation cannot contain attachments');
+    });
+
+    it('ignores legacy OHMI_AI_PROVIDER=qwen env var and routes chat to GroqCloud', async () => {
+      const req = createRequest({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000022',
         operation: 'chat',
         language: 'english',
         message: 'Explain resistors in series'
       });
 
       const res = await handleAiRequest(req, {
-        env: qwenEnv,
+        env: { ...defaultEnv, OHMI_AI_PROVIDER: 'qwen' },
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
@@ -1133,33 +1158,25 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.ok).toBe(true);
-      expect(data.result.answer).toBe('Qwen response explaining series resistance.');
-      expect(data.model).toBe('qwen3.8-flash');
+      expect(data.model).toBe('openai/gpt-oss-120b');
+      expect(data.provider).toBe('groq');
 
-      // Verify transport dispatch
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, init] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions');
-      expect(init.headers['Authorization']).toBe('Bearer test-qwen-api-key');
+      expect(url).toBe('https://api.groq.com/openai/v1/chat/completions');
+      expect(init.headers['Authorization']).toBe('Bearer test-groq-key');
 
       const body = JSON.parse(init.body);
-      expect(body.model).toBe('qwen3.8-flash');
-      expect(body.enable_thinking).toBe(false);
-      expect(body.stream).toBe(false);
-      expect(body.messages[0].role).toBe('system');
-      expect(body.messages[1].role).toBe('user');
-      expect(body.messages[1].content).toContain('Explain resistors in series');
+      expect(body.model).toBe('openai/gpt-oss-120b');
+      expect(body.reasoning_effort).toBe('low');
+      expect(body.include_reasoning).toBe(false);
 
-      // Verify persistence recorded Qwen model
       const completeCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_complete_ai');
       expect(completeCall).toBeDefined();
-      expect(completeCall[1].p_model).toBe('qwen3.8-flash');
-      expect(completeCall[1].p_input_tokens).toBe(42);
-      expect(completeCall[1].p_output_tokens).toBe(18);
+      expect(completeCall[1].p_model).toBe('openai/gpt-oss-120b');
     });
 
-    it('routes V1 PDF request to Qwen with native file part and generic filename (never signed URL)', async () => {
-      // Mock assignment fetch
+    it('routes V1 PDF request to Gemini with x-goog-api-key header and thinkingLevel LOW', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -1178,7 +1195,6 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
       });
 
-      // Minimal valid 1-page PDF
       const samplePdfBytes = new Uint8Array([
         0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xc4, 0xe5, 0xf2, 0xe5, 0x0a,
         0x31, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, 0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65,
@@ -1210,25 +1226,9 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         })
       });
 
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            choices: [
-              {
-                finish_reason: 'stop',
-                message: { role: 'assistant', content: 'Objective: Analyze circuit on page 1.' }
-              }
-            ],
-            usage: { prompt_tokens: 110, completion_tokens: 25, total_tokens: 135 },
-            model: 'qwen3.8-flash'
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        )
-      );
-
       const req = createRequest({
         version: 1,
-        requestId: '00000000-0000-0000-0000-000000000022',
+        requestId: '00000000-0000-0000-0000-000000000023',
         operation: 'pdf',
         language: 'english',
         assignmentId: '22222222-2222-2222-2222-222222222222',
@@ -1236,112 +1236,31 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       });
 
       const res = await handleAiRequest(req, {
-        env: qwenEnv,
+        env: defaultEnv,
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
 
       expect(res.status).toBe(200);
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [, init] = mockFetch.mock.calls[0];
-      const body = JSON.parse(init.body);
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).not.toContain('?key=');
+      expect(url).toContain('gemini-3.8-flash:generateContent');
+      expect(init.headers['x-goog-api-key']).toBe('test-gemini-key');
 
-      // Confirm PDF file part reached mocked provider with sanitized generic filename
-      const contentParts = body.messages[1].content;
-      const filePart = contentParts.find((p: any) => p.type === 'file');
-      expect(filePart).toBeDefined();
-      expect(filePart.file_name).toBe('assignment.pdf');
-      expect(filePart.file_data).toContain('data:application/pdf;base64,');
+      const body = JSON.parse(init.body);
+      expect(body.generationConfig?.temperature).toBeUndefined();
+      expect(body.generationConfig?.thinkingConfig).toEqual({
+        thinkingLevel: 'LOW',
+        includeThoughts: false
+      });
     });
 
-    it('routes V2 circuit_check request to Qwen with image_url parts and response_format json_object', async () => {
-      const circuitResult = {
-        schemaVersion: 2,
-        status: 'reviewed',
-        summary: 'Circuit review of LED and 220 ohm resistor on pin 13.',
-        findings: [
-          {
-            id: 'finding-1',
-            severity: 'info',
-            certainty: 'observed',
-            observation: 'LED in series with 220 ohm resistor.',
-            why: 'Current limiting.',
-            action: 'Good.',
-            evidence: [{ kind: 'code', startLine: 1, endLine: 1 }]
-          }
-        ],
-        unknowns: [],
-        questions: [],
-        comparisons: [],
-        steps: [],
-        limitations: ['Visual review only.']
-      };
-
+    it('handles Groq 429 rate limit with Retry-After header', async () => {
       mockFetch.mockResolvedValueOnce(
         new Response(
-          JSON.stringify({
-            choices: [
-              {
-                finish_reason: 'stop',
-                message: { role: 'assistant', content: JSON.stringify(circuitResult) }
-              }
-            ],
-            usage: { prompt_tokens: 350, completion_tokens: 120, total_tokens: 470 },
-            model: 'qwen3.8-flash'
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        )
-      );
-
-      const req = createRequest({
-        version: 2,
-        operation: 'circuit_check',
-        requestId: '00000000-0000-0000-0000-000000000023',
-        language: 'english',
-        mode: 'check',
-        message: 'Check this LED circuit',
-        board: 'uno-r3',
-        code: 'void setup() { pinMode(13, OUTPUT); } void loop() {}',
-        images: [
-          {
-            id: 'overview',
-            mimeType: 'image/png',
-            data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-          }
-        ]
-      });
-
-      const res = await handleAiRequest(req, {
-        env: qwenEnv,
-        createClient: createMockClientFactory(),
-        fetch: mockFetch
-      });
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.ok).toBe(true);
-      expect(data.model).toBe('qwen3.8-flash');
-      expect(data.result.status).toBe('reviewed');
-
-      const [, init] = mockFetch.mock.calls[0];
-      const body = JSON.parse(init.body);
-      expect(body.response_format).toEqual({ type: 'json_object' });
-      expect(body.max_tokens).toBe(3072);
-
-      const contentParts = body.messages[1].content;
-      const imgPart = contentParts.find((p: any) => p.type === 'image_url');
-      expect(imgPart).toBeDefined();
-      expect(imgPart.image_url.url).toContain('data:image/png;base64,');
-    });
-
-    it('handles Qwen AllocationQuota.FreeTierOnly quota exhaustion error with 503 code unavailable', async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            code: 'AllocationQuota.FreeTierOnly',
-            message: 'Free tier quota exhausted or expired for model qwen3.8-flash'
-          }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: { message: 'Rate limit exceeded' } }),
+          { status: 429, headers: { 'Content-Type': 'application/json', 'retry-after': '30' } }
         )
       );
 
@@ -1354,68 +1273,57 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       });
 
       const res = await handleAiRequest(req, {
-        env: qwenEnv,
+        env: defaultEnv,
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(503);
+      expect(res.status).toBe(429);
+      expect(res.headers.get('Retry-After')).toBe('30');
       const data = await res.json();
-      expect(data.ok).toBe(false);
-      expect(data.code).toBe('unavailable');
-      expect(data.error).toContain('free quota is exhausted or expired');
-
-      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
-      expect(failCall).toBeDefined();
-      expect(failCall[1].p_error_code).toBe('quota_exhausted');
+      expect(data.code).toBe('rate_limit');
     });
 
-    it('handles Qwen timeout cleanly with 504 and fails AI without fallback', async () => {
-      mockFetch.mockImplementationOnce(() => {
-        const error = new Error('The operation was aborted');
-        error.name = 'AbortError';
-        return Promise.reject(error);
-      });
+    it('redacts Groq secret keys from error messages', async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'invalid_api_key',
+              message: 'Invalid API key gsk_secretgroqkey1234567890 supplied'
+            }
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
 
       const req = createRequest({
         version: 1,
         requestId: '00000000-0000-0000-0000-000000000025',
         operation: 'chat',
         language: 'english',
-        message: 'Calculate resistance'
+        message: 'Hello'
       });
 
       const res = await handleAiRequest(req, {
-        env: qwenEnv,
+        env: { ...defaultEnv, GROQ_API_KEY: 'gsk_secretgroqkey1234567890' },
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(504);
-      const data = await res.json();
-      expect(data.ok).toBe(false);
-      expect(data.code).toBe('timeout');
-
-      // Exactly 1 fetch attempt, zero automatic fallbacks to Gemini
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-
+      expect(res.status).toBe(502);
       const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
       expect(failCall).toBeDefined();
-      expect(failCall[1].p_error_code).toBe('timeout');
+      expect(failCall[1].p_error_message).not.toContain('gsk_secretgroqkey1234567890');
+      expect(failCall[1].p_error_message).toContain('[REDACTED_KEY]');
     });
 
-    it('redacts Qwen secret keys from error messages', async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            error: {
-              code: 'AuthenticationError',
-              message: 'Invalid key: Bearer sk-secretqwenkey1234567890'
-            }
-          }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        )
-      );
+    it('handles Groq timeout cleanly with 504 and fails AI without fallback', async () => {
+      mockFetch.mockImplementationOnce(() => {
+        const err = new Error('The operation was aborted');
+        err.name = 'AbortError';
+        return Promise.reject(err);
+      });
 
       const req = createRequest({
         version: 1,
@@ -1426,22 +1334,22 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       });
 
       const res = await handleAiRequest(req, {
-        env: { ...qwenEnv, QWEN_API_KEY: 'sk-secretqwenkey1234567890' },
+        env: defaultEnv,
         createClient: createMockClientFactory(),
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(502);
+      expect(res.status).toBe(504);
       const data = await res.json();
-      expect(data.error).toBe('AI provider returned an error.');
+      expect(data.code).toBe('timeout');
 
       const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
       expect(failCall).toBeDefined();
-      expect(failCall[1].p_error_message).not.toContain('sk-secretqwenkey1234567890');
-      expect(failCall[1].p_error_message).toContain('[REDACTED');
+      expect(failCall[1].p_error_code).toBe('timeout');
     });
   });
-  describe('Milestone F3: Secure Conversational Memory & History Paging', () => {
+
+    describe('Milestone F3: Secure Conversational Memory & History Paging', () => {
     it('rejects invalid historyThroughPosition format', async () => {
       const req = createRequest({
         version: 1,
@@ -1595,13 +1503,13 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       mockFetch.mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            candidates: [
+            choices: [
               {
-                finishReason: 'STOP',
-                content: { parts: [{ text: 'Use V = I * R to find the voltage drop.' }] }
+                finish_reason: 'stop',
+                message: { role: 'assistant', content: 'Use V = I * R to find the voltage drop.' }
               }
             ],
-            usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 30 }
+            usage: { prompt_tokens: 120, completion_tokens: 30 }
           }),
           { status: 200 }
         )
