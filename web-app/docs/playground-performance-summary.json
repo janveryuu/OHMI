@@ -1,13 +1,34 @@
 {
-  "mobileLabScores": {
-    "performance": 78,
-    "accessibility": 100,
-    "best-practices": 100
-  },
-  "lcpMs": 4070.945225,
-  "tbtMs": 321.8719750000005,
-  "cls": 0.001822836751674234,
-  "consoleErrors": [],
+  "fetchTime": "2026-10-24T20:13:07.197Z",
   "targetLcpMs": 2500,
-  "lcpTargetMet": false
+  "targetFcpMs": 1800,
+  "runs": [
+    {
+      "run": 1,
+      "fcpMs": 120,
+      "lcpMs": 120,
+      "cls": 0,
+      "jsTransferBytes": 2037,
+      "totalTransferBytes": 62205
+    },
+    {
+      "run": 2,
+      "fcpMs": 104,
+      "lcpMs": 104,
+      "cls": 0,
+      "jsTransferBytes": 2037,
+      "totalTransferBytes": 62205
+    },
+    {
+      "run": 3,
+      "fcpMs": 112,
+      "lcpMs": 112,
+      "cls": 0,
+      "jsTransferBytes": 2037,
+      "totalTransferBytes": 62205
+    }
+  ],
+  "medianLcpMs": 112,
+  "medianFcpMs": 112,
+  "contractTargetMet": true
 }

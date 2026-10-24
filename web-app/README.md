@@ -4,7 +4,7 @@ Current integration connects Google PKCE authentication, private files, profiles
 
 Copy `.env.example` to ignored `.env.local` for public configuration. Never add provider or service-role keys here. Run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:browser`. The authorized integration test origin uses port 3115. Lists show the latest 100 files, 50 conversations and 50 analyses; older messages paginate in batches of 50.
 
-Playground is live at [meetohmi.vercel.app/app/playground/](https://meetohmi.vercel.app/app/playground/), released from source `a6f6699` after explicit owner approval. It adds terminal-based circuit editing, bounded deterministic checks, three missions, private saved projects and contextual AI guidance. See [Playground verification and release gate](docs/PLAYGROUND_VERIFICATION.md) and [surface design notes](docs/PLAYGROUND_DESIGN.md).
+Playground is live at [meetohmi.vercel.app/app/playground/](https://meetohmi.vercel.app/app/playground/), released from source `a6f6699` after explicit owner approval. It adds terminal-based circuit editing, bounded deterministic checks, three missions, private saved projects and contextual AI guidance. See [Playground verification](docs/PLAYGROUND_VERIFICATION.md), [remediation report](docs/PLAYGROUND_REMEDIATION_REPORT.md), [device matrix](docs/PLAYGROUND_DEVICE_MATRIX.md), [AI qualification](docs/PLAYGROUND_AI_QUALIFICATION.md), and [surface design notes](docs/PLAYGROUND_DESIGN.md).
 
 The remaining text records the original frontend-only stage and is historical. This folder retains its independent dependency lockfile, build and server. The extension and cinematic landing retain separate deployments.
 

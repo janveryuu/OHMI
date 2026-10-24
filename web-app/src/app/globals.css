@@ -90,7 +90,7 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --font-sans: "Geist Variable", sans-serif;
+  --font-sans: var(--font-geist), "Geist Variable", sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -104,7 +104,7 @@ html {
 body {
   margin: 0;
   color: var(--foreground);
-  font-family: "Geist Variable", sans-serif;
+  font-family: var(--font-geist), "Geist Variable", sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

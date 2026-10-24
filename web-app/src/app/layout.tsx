@@ -1,9 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/geist";
+import localFont from "next/font/local";
 import "./globals.css";
-import "katex/dist/katex.min.css";
 import { AppProvider } from "@/components/app-provider";
 import { AppShell } from "@/components/app-shell";
+
+const geist = localFont({
+  src: [
+    {
+      path: "../../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
+  display: "swap",
+  variable: "--font-geist",
+});
 
 export const metadata: Metadata = {
   title: { default: "OHMI | Your Circuit Buddy", template: "%s | OHMI" },
@@ -30,7 +46,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" className={geist.variable} data-theme="light" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

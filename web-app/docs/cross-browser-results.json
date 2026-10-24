@@ -1,0 +1,180 @@
+[
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "mobile-320",
+    "width": 320,
+    "height": 600,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "mobile-320",
+    "width": 320,
+    "height": 600,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "mobile-390",
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "mobile-390",
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "tablet-768",
+    "width": 768,
+    "height": 1024,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "tablet-768",
+    "width": 768,
+    "height": 1024,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "desktop-1024",
+    "width": 1024,
+    "height": 768,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "desktop-1024",
+    "width": 1024,
+    "height": 768,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "desktop-1440",
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "desktop-1440",
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "landscape-844",
+    "width": 844,
+    "height": 390,
+    "theme": "light",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Chromium (Desktop & Mobile)",
+    "viewport": "landscape-844",
+    "width": 844,
+    "height": 390,
+    "theme": "dark",
+    "status": "FAIL",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+      }
+    ]
+  },
+  {
+    "browser": "Firefox",
+    "status": "BLOCKED/NOT INSTALLED",
+    "detail": "browserType.launch: Executable doesn't exist at C:\\Users\\LEGION\\AppData\\Local\\ms-playwright\\firefox-1555\\firefox\\firefox.exe"
+  },
+  {
+    "browser": "WebKit (Playwright engine)",
+    "status": "BLOCKED/NOT INSTALLED",
+    "detail": "browserType.launch: Executable doesn't exist at C:\\Users\\LEGION\\AppData\\Local\\ms-playwright\\webkit-2370\\Playwright.exe"
+  }
+]

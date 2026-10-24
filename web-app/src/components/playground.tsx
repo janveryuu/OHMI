@@ -435,7 +435,7 @@ function Workbench() {
           )
         ) : (
           <>
-            <Link href="/settings">Sign in</Link> to save projects. You can
+            <Link href="/settings" prefetch={false}>Sign in</Link> to save projects. You can
             experiment without an account.
           </>
         )}
@@ -642,7 +642,7 @@ function Workbench() {
               Breadboard electrical connectivity is not supported yet. Every
               wire here joins two labeled terminals.
             </p>
-            <Link href="/library">
+            <Link href="/library" prefetch={false}>
               Explore the Library
               <ChevronRight size={14} aria-hidden="true" />
             </Link>
