@@ -13,12 +13,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export async function GET() {
   const webAiEnabled = process.env.OHMI_WEB_AI_ENABLED === "true";
-  const groqChatEnabled =
-    process.env.OHMI_GROQ_CHAT_ENABLED !== "false" &&
-    Boolean(process.env.GROQ_API_KEY);
-  const geminiMultimodalEnabled =
-    process.env.OHMI_GEMINI_MULTIMODAL_ENABLED !== "false" &&
-    Boolean(process.env.GEMINI_API_KEY);
+  const groqChatEnabled = process.env.OHMI_GROQ_CHAT_ENABLED !== "false";
+  const geminiMultimodalEnabled = process.env.OHMI_GEMINI_MULTIMODAL_ENABLED !== "false";
 
   return Response.json(
     {
