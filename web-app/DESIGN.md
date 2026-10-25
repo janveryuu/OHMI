@@ -171,7 +171,7 @@ Primary uses paired primary tokens; secondary uses paired secondary tokens. Outl
 
 A single outlined Google action spans the content column with a 54px minimum height, paired card/foreground tokens, input border and selected-state shadow. Hover uses secondary fill and the focus token for its border; pending/session restoration disables repeat activation and announces feedback through a polite live region. Back and theme controls retain the established 44px touch minimum.
 
-Reuse the exact unchanged `public/mascot.png` with crisp pixel rendering and the approved byte-for-byte countryside at `public/welcome-countryside.webp`, sourced from `website/src/assets/countryside-1672.webp`. The countryside stays static; mascot motion moves the unchanged PNG as described below. Neither image is a replacement-design opportunity.
+Reuse the exact unchanged `public/mascot.png` with crisp pixel rendering. The owner approved countryside detail restoration on 25 October 2026: login now uses `public/welcome-countryside-4k.webp`, a 3840 × 2160 export from an AI-enhanced 1672 × 941 source. Preserve the established scene, composition and character identities. Original countryside remains `public/welcome-countryside.webp` for rollback; the landing artwork is unchanged. Provenance and resolution limits are in `design/login/countryside-enhancement.md`. The countryside stays static; mascot motion moves the unchanged PNG as described below.
 
 ### Chips
 

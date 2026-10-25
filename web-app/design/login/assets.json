@@ -13,5 +13,19 @@
     "file": "public/google-g.svg",
     "origin": "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg",
     "sha256": "cbe9772630b9b72daf7c14eab28c6c86f88e07da9cb08487544e022e385ede1f"
+  },
+  {
+    "file": "design/login/countryside-enhanced-source.png",
+    "origin": "Built-in ImageGen detail restoration; prompt and dimensions in countryside-enhancement.md",
+    "width": 1672,
+    "height": 941,
+    "sha256": "a3f87db508535ad548f9c6953be436d8b399f10cc665aafbd9470ce2abd6dac4"
+  },
+  {
+    "file": "public/welcome-countryside-4k.webp",
+    "origin": "AI-enhanced source exported with Sharp Lanczos3, WebP quality92; not native4K generation",
+    "width": 3840,
+    "height": 2160,
+    "sha256": "4b9b5bcd09020b3bd3c3420439d57d08ae0b614e4079574b7d355a8907a50692"
   }
 ]

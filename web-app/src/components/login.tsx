@@ -55,7 +55,8 @@ export function Login() {
       <a className="skip" href="#welcome">Skip to sign in</a>
       <div className="login-frame">
         <section className="login-scene" aria-label="OHMI countryside illustration">
-          <Image src="/app/welcome-countryside.webp" alt="OHMI and a student resting on a grassy hill beneath a bright, open sky." fill sizes="(min-width: 900px) 55vw, 100vw" fetchPriority="high" loading="eager" className="login-countryside" />
+          {/* The tall cover crop needs more source pixels than its visible column width. */}
+          <Image src="/app/welcome-countryside-4k.webp" alt="OHMI and a student resting on a grassy hill beneath a bright, open sky." fill sizes="(min-width: 900px) 1423px, (min-width: 640px) and (max-height: 540px) 900px, (max-width: 639px) 600px, 100vw" quality={90} fetchPriority="high" loading="eager" className="login-countryside" />
           <div className="login-scene-brand" aria-hidden="true">OHMI<span>.</span></div>
           <div className="login-scene-caption"><p>A little curiosity.<br />A world of possibility.</p><span>Your circuit buddy, by your side.</span></div>
         </section>
