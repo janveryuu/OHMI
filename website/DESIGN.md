@@ -117,7 +117,9 @@ Use full pills for navigation and actions, gently rounded rectangles for cards a
 
 **Navigation and actions.** The compact three-part desktop header holds the brand, centered glass navigation and launch action. Links reveal a fine underline; primary pills rise (2px), their arrows shift diagonally, and active pills compress to (.98). Keyboard focus uses a (3px) yellow outline offset (5px). The mobile menu closes on link activation, outside click or Escape, returning focus on Escape.
 
-**Feature cards.** Real local PWA screenshots introduce Ask OHMI, Check My Circuit and Guided Builds; they depict frontend previews. Cards have image windows at (1.64) aspect ratio and rise (8px), with image scale (1.05), on hover or keyboard focus. Preserve their anchors to the corresponding learning explanations.
+**Feature cards.** Owner-approved pixel-art workshop illustrations introduce Ask OHMI, Check My Circuit and Guided Builds. The notebook, magnifier and staged LED build share warm sunlight and OHMI's mint/forest palette. They are conceptual illustrations, not product screenshots or electrically verified diagrams. Deliver the three local 1200 x 751 WebP assets inside the existing 1.64 image windows. Keep the existing card lift, image hover and links to `/app/ask`, `/app/checker` and `/app/guide`.
+
+**Installation options.** Beneath Explore, a sparse row pairs the two real access paths: browser PWA and manual desktop Chrome installation through the GitHub Quickstart. Reuse the 56px pill actions and yellow keyboard focus. The GitHub pill uses the existing pale mint surface and forest ink. Stack the copy/actions at 1100px; at 820px stack buttons when needed. Preserve `#get-started` on this row and the separate scripted learning preview.
 
 **Learning preview.** A pale-green container holds three native question buttons and a polite live answer region. Forest fill and white text indicate selection. Responses are scripted local text; the visible limitation belongs beside the preview. No input field or upload interaction exists here.
 

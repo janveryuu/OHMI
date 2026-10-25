@@ -29,22 +29,29 @@
         <nav class="desktop-nav enter" aria-label="Main navigation">
           <a href="#home" aria-current="page">Home</a><a href="#features">Features</a><a href="#how-it-works">How It Works</a><a href="#about">About OHMI</a>
         </nav>
-        <div class="header-actions enter"><a class="pill launch" href="#try">Launch OHMI <span aria-hidden="true">↗</span></a><button class="menu-toggle" aria-expanded="false" aria-controls="mobile-nav">Menu</button></div>
+        <div class="header-actions enter"><a class="pill launch" href="/app">Launch OHMI <span aria-hidden="true">↗</span></a><button class="menu-toggle" aria-expanded="false" aria-controls="mobile-nav">Menu</button></div>
         <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation" hidden><a href="#home">Home</a><a href="#features">Features</a><a href="#how-it-works">How It Works</a><a href="#about">About OHMI</a></nav>
       </header>
       <section class="hero" aria-labelledby="hero-title">
         <p class="kicker enter">YOUR CIRCUIT BUDDY</p>
         <h1 id="hero-title"><span class="headline-line">MEET</span><span class="headline-line">OHMI</span></h1>
         <p class="hero-description enter">Your little buddy for big circuit ideas.<br>Learn electronics, build with confidence,<br class="desktop-break"> and figure things out together.</p>
-        <div class="hero-actions"><a class="pill primary enter" href="#explore">Meet OHMI <span aria-hidden="true">↗</span></a><a class="pill secondary enter" href="#how-it-works"><span class="play" aria-hidden="true"></span>See How It Works</a></div>
+        <div class="hero-actions"><a class="pill primary enter" href="/app">Meet OHMI <span aria-hidden="true">↗</span></a><a class="pill secondary enter" href="#how-it-works"><span class="play" aria-hidden="true"></span>See How It Works</a></div>
       </section>
       <div class="scene-tools"><button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false" aria-label="Pause environmental motion"><span class="pause-symbol" aria-hidden="true"></span><span class="motion-label">Pause scene</span></button></div>
       <section id="features" class="features" aria-labelledby="features-title">
         <div class="section-top enter"><h2 id="features-title">EXPLORE OHMI</h2><a href="#how-it-works">A little help, every step <span aria-hidden="true">›</span></a></div>
         <div class="feature-track" aria-label="OHMI features" tabindex="0">
-          <a class="feature-card enter" href="#ask-ohmi"><div class="card-art"><img src="assets/ask-preview.webp" alt="OHMI's local chat frontend with an electronics question." width="960" height="640" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Ask OHMI</h3><p>A little help with your next big question.</p></div></a>
-          <a class="feature-card enter" href="#check-circuit"><div class="card-art"><img src="assets/check-preview.webp" alt="Circuit screenshot preview and crop controls in OHMI's local frontend." width="960" height="640" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Check My Circuit</h3><p>Look closer. Understand what to check.</p></div></a>
-          <a class="feature-card enter" href="#guided-builds"><div class="card-art"><img src="assets/build-preview.webp" alt="A guided LED build in OHMI's local frontend." width="960" height="640" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Guided Builds</h3><p>Small steps. Lightbulb moments.</p></div></a>
+          <a class="feature-card enter" href="/app/ask"><div class="card-art"><img src="assets/ask-workshop.webp" alt="Pixel-art circuit notebook and a speech bubble on a sunlit electronics workbench." width="1200" height="751" loading="lazy" decoding="async"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Ask OHMI</h3><p>A little help with your next big question.</p></div></a>
+          <a class="feature-card enter" href="/app/checker"><div class="card-art"><img src="assets/check-workshop.webp" alt="Pixel-art magnifying glass examining an LED and resistor on a breadboard." width="1200" height="751" loading="lazy" decoding="async"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Check My Circuit</h3><p>Look closer. Understand what to check.</p></div></a>
+          <a class="feature-card enter" href="/app/guide"><div class="card-art"><img src="assets/build-workshop.webp" alt="Pixel-art components, a breadboard and a glowing LED arranged as a guided build." width="1200" height="751" loading="lazy" decoding="async"><span class="card-arrow" aria-hidden="true">↗</span></div><div class="card-copy"><h3>Guided Builds</h3><p>Small steps. Lightbulb moments.</p></div></a>
+        </div>
+        <div id="get-started" class="install-options">
+          <div class="install-copy"><h3>Two ways to meet OHMI.</h3><p>Open the PWA in your browser, or manually install the extension for desktop Chrome.</p></div>
+          <div class="install-actions" aria-label="Choose how to use OHMI">
+            <a class="pill primary" href="/app/">Open the PWA <span aria-hidden="true">↗</span></a>
+            <a class="pill repository" href="https://github.com/janveryuu/OHMI#-quickstart" target="_blank" rel="noopener noreferrer">View on GitHub <span aria-hidden="true">↗</span></a>
+          </div>
         </div>
       </section>
     </div>
@@ -63,7 +70,7 @@
     <section id="try" class="try-section wrap reveal" aria-labelledby="try-title">
       <div class="try-heading"><h2 id="try-title">Start with a little question.</h2><p>A scripted preview. No live AI, uploads, or saved conversations.</p></div>
       <div class="learning-preview"><div class="preview-speaker"><img src="assets/ohmi-64.webp" alt="" width="56" height="56"><span>OHMI<span class="preview-caption">Learning preview</span></span></div><div class="question-options" role="group" aria-label="Choose a sample question"><button type="button" aria-pressed="true" data-question="led">Why does an LED need a resistor?</button><button type="button" aria-pressed="false" data-question="arduino">What does digitalWrite do?</button><button type="button" aria-pressed="false" data-question="build">Where do I start?</button></div><div id="preview-answer" aria-live="polite"><p>A resistor limits current through the LED. Without one, too much current can damage it.</p><p>Start with the LED’s datasheet and your supply voltage. Then use <strong>R = (V<sub>supply</sub> − V<sub>LED</sub>) / I</strong> to choose a suitable resistance.</p></div></div>
-      <p id="get-started" class="source-note">Want to explore the project? <a href="https://github.com/janveryuu/OHMI#load-or-update" target="_blank" rel="noopener noreferrer">Read the source setup guide <span aria-hidden="true">↗</span></a></p>
+      <p class="source-note">Prefer OHMI beside Tinkercad? <a href="https://github.com/janveryuu/OHMI#-quickstart" target="_blank" rel="noopener noreferrer">Read the extension setup guide <span aria-hidden="true">↗</span></a></p>
     </section>
     <section id="about" class="about-section wrap reveal" aria-labelledby="about-title"><h2 id="about-title">Made for the “oh, I get it” moment.</h2><p>OHMI is an independent student project for learning electronics alongside Tinkercad Circuits. Patient explanations, curious questions, and a little encouragement.</p><p>Not affiliated with or endorsed by Autodesk. Learning guidance can be mistaken; check component specifications and test your work.</p></section>
     <section id="faq" class="faq-section wrap" aria-labelledby="faq-title">
@@ -71,7 +78,7 @@
       <details><summary>Is OHMI made by Autodesk?</summary><p>OHMI is an independent student project. It is not affiliated with or endorsed by Autodesk. Tinkercad is a separate product.</p></details>
       <details><summary>Does OHMI verify my circuit?</summary><p>OHMI supports learning and discussion. An image or explanation cannot electrically verify a circuit. Review component specifications, your assignment, and the simulation before working with hardware.</p></details>
       <details><summary>Does this website send my data to AI?</summary><p>No. The examples on this website are scripted and run in your browser. This website has no chat upload, account form, or AI connection. The extension is separate; review its setup and data-handling information before using it.</p></details>
-      <details><summary>How can I try OHMI?</summary><p>Start with the <a href="https://github.com/janveryuu/OHMI#load-or-update">repository’s setup instructions</a>. The current route is a source build for desktop Chrome. This page does not offer a Chrome Web Store installation.</p></details>
+      <details><summary>How can I try OHMI?</summary><p>Open the <a href="/app/">OHMI web app</a> in your browser and install the PWA on supported devices. To use OHMI alongside Tinkercad in desktop Chrome, follow the <a href="https://github.com/janveryuu/OHMI#-quickstart" target="_blank" rel="noopener noreferrer">GitHub extension setup guide</a>: build the extension, enable Developer mode, and load the unpacked extension. This is a manual installation, not a Chrome Web Store download.</p></details>
     </section>
   </main>
   <footer class="wrap"><a class="footer-brand" href="#home">OHMI</a><p>A little buddy. A brighter build.</p><a href="https://github.com/janveryuu/OHMI" target="_blank" rel="noopener noreferrer">Explore the source <span aria-hidden="true">↗</span></a></footer>

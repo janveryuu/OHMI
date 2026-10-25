@@ -4,5 +4,11 @@
   "buildCommand": "node build.mjs",
   "installCommand": "",
   "outputDirectory": "dist",
-  "git": { "deploymentEnabled": { "*": false, "codex/ohmi-website": true } }
+  "git": { "deploymentEnabled": { "*": false, "codex/ohmi-website": true } },
+  "rewrites": [
+    { "source": "/app/", "destination": "https://ohmi-workspace.vercel.app/app/" },
+    { "source": "/app/:path*/", "destination": "https://ohmi-workspace.vercel.app/app/:path*/" },
+    { "source": "/app", "destination": "https://ohmi-workspace.vercel.app/app" },
+    { "source": "/app/:path*", "destination": "https://ohmi-workspace.vercel.app/app/:path*" }
+  ]
 }
