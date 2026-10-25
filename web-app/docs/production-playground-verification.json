@@ -1,0 +1,76 @@
+{
+  "base": "https://meetohmi.vercel.app/app",
+  "commit": "a6f6699acd9a5089672b1571293e3effd8b85914",
+  "deployment": "dpl_2njRsHikbdx5MwFdngTnXURAq3r6",
+  "checkedAt": "2026-10-24T19:30:05.785Z",
+  "routes": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/ask/",
+      "status": 200
+    },
+    {
+      "path": "/assignments/",
+      "status": 200
+    },
+    {
+      "path": "/checker/",
+      "status": 200
+    },
+    {
+      "path": "/guide/",
+      "status": 200
+    },
+    {
+      "path": "/library/",
+      "status": 200
+    },
+    {
+      "path": "/progress/",
+      "status": 200
+    },
+    {
+      "path": "/settings/",
+      "status": 200
+    },
+    {
+      "path": "/playground/",
+      "status": 200
+    }
+  ],
+  "views": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "axeViolations": 0
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "axeViolations": 0
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "axeViolations": 0
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "axeViolations": 0
+    }
+  ],
+  "errors": [],
+  "checks": [
+    "Private project API rejects anonymous reads and foreign-origin writes; no-store headers present",
+    "Live unsafe circuit warning, resistor edit, deterministic 9.09mA result, mission completion and undo/redo pass",
+    "Desktop/mobile light/dark, overflow and axe checks pass; no page errors"
+  ]
+}

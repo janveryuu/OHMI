@@ -33,7 +33,18 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "./ui/dialog";
-import { Companion } from "./companion";
+import dynamic from "next/dynamic";
+const Companion = dynamic(
+  () => import("./companion").then((m) => m.Companion),
+  {
+    loading: () => (
+      <Button variant="outline" className="launch-button">
+        Launch Floating OHMI
+        <ArrowUpRight size={15} />
+      </Button>
+    ),
+  }
+);
 import { AuthStatus, AccountNotice } from "./auth-status";
 import { PwaControls } from "./pwa-controls";
 import { safeReturnPath } from "@/lib/backend/guards.mjs";

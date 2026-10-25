@@ -1,5 +1,14 @@
 # OHMI Playground verification
 
+## Production release — 25 October 2026
+
+The owner explicitly authorized immediate GitHub and Vercel publication. Production branch `codex/ohmi-web-app-pwa` is remote-confirmed at `a6f6699acd9a5089672b1571293e3effd8b85914`. Vercel production deployment `dpl_2njRsHikbdx5MwFdngTnXURAq3r6` is READY at `https://ohmi-workspace-k62pe2ah6-janveryu1-s-projects.vercel.app`; the official `https://meetohmi.vercel.app/app/playground/` serves the new feature.
+
+Live verification passed all nine PWA route responses, unsafe-to-correct LED mission behavior and 9.09mA result, undo/redo, desktop/mobile in both themes, zero scoped axe violations/overflow/page errors, anonymous project denial, foreign-origin write denial and private no-store headers. See `production-playground-verification.json` and `screenshots/playground/production-*`. No live student account or new AI generation was used in this release smoke.
+
+Rollback tag `ohmi-app-before-playground-2026-10-25` preserves source `426ab8ab3d36e1eeb6b1dbe67f88b23d99c31883`. Retain private Playground rows/table during any code rollback. The previously disclosed local mobile cold-load performance gap remains; this release smoke does not establish field Core Web Vitals.
+
+
 Verified implementation: 25 October 2026, isolated branch `codex/ohmi-playground`, based on production source `426ab8ab3d36e1eeb6b1dbe67f88b23d99c31883`.
 
 ## Delivered M0-M6 scope
@@ -59,3 +68,16 @@ Functional implementation and hosted additive storage are ready for the owner's 
 After approval, integrate the verified feature into `codex/ohmi-web-app-pwa`, confirm the Vercel build is READY, then verify `/app/playground/` and existing official routes on `https://meetohmi.vercel.app/app/`. Preserve remote history; do not force-push. Rollback the app to source `426ab8a` or its preserved deployment if needed. Retain the additive Playground table and saved rows during rollback; do not drop student projects.
 
 Evidence: `playground-browser.json`, `playground-account-verification.json`, `playground-lighthouse.json`, `playground-performance-before.json`, `PLAYGROUND_DESIGN.md`, and `screenshots/playground/`.
+
+
+## Launch-gap remediation update — 25 October 2026
+
+Remediation was executed in accordance with the owner's instruction and the launch gap remediation plan.
+- **Critical CSS & font discovery:** Defer KaTeX stylesheet to dynamic rich-text rendering; migrated Geist variable font to `next/font/local` Latin and Latin-ext preloads in `layout.tsx`.
+- **First-paint animation:** Removed uninspected initial `@keyframes pg-feedback-in` animation on `.pg-feedback`, rendering initial workbench instructions immediately without layout delay.
+- **Route & companion deferral:** Deferred `Companion` floating window via dynamic import; suppressed route motion on initial cold load in `template.tsx`; added `prefetch={false}` to internal links.
+- **Measured outcomes:** Observed mobile median FCP 104.0 ms, LCP 104.0 ms, CLS 0.0000. Lighthouse mobile FCP improved to 939–1,540 ms, TBT to 245–288 ms, CLS to 0.0016.
+- **Qualification evidence:**
+  - `PLAYGROUND_REMEDIATION_REPORT.md`
+  - `PLAYGROUND_DEVICE_MATRIX.md` (Chromium PASS across 12 viewports; untested browsers/hardware labeled BLOCKED/NOT RUN)
+  - `PLAYGROUND_AI_QUALIFICATION.md` (12 canonical cases qualified without electrical solver mutation)
