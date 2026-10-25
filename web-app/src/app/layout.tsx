@@ -3,7 +3,7 @@ import "@fontsource-variable/geist";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { AppProvider } from "@/components/app-provider";
-import { AppShell } from "@/components/app-shell";
+import { AppFrame } from "@/components/app-frame";
 
 export const metadata: Metadata = {
   title: { default: "OHMI | Your Circuit Buddy", template: "%s | OHMI" },
@@ -40,7 +40,7 @@ export default function RootLayout({
       </head>
       <body>
         <AppProvider>
-          <AppShell>{children}</AppShell>
+          <AppFrame>{children}</AppFrame>
         </AppProvider>
       </body>
     </html>

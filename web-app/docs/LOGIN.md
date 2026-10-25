@@ -1,6 +1,6 @@
 # OHMI welcome and authentication
 
-The owner approved the frontend and non-destructive integration on 25 October 2026. Production deployment requires the owner's review of the completed experience. Work is isolated on `codex/ohmi-premium-login`, based on production source `426ab8a`.
+The owner approved the frontend and non-destructive integration on 25 October 2026. Production deployment requires the owner's review of the completed experience. Work is isolated on `codex/ohmi-premium-login`, based on production source `426ab8a` and merged with incoming Playground source `a6f6699` before final verification.
 
 ## Surface contract
 
@@ -8,7 +8,7 @@ Operate mode: sign in and continue to the intended workspace. The supplied colla
 
 The approved countryside is reused byte-for-byte from `website/src/assets/countryside-1672.webp` on the landing branch. The standalone mascot remains `public/mascot.png`, unchanged. Google’s unmodified G asset comes from `https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg`; button guidance: `https://developers.google.com/identity/branding-guidelines`. The owner's collage is the visual reference; the saved Mobbin/Refero catalogs supplied supporting navigation and system references, not copied layouts or characters.
 
-The page inherits new-user light mode and the existing saved-preference script. A manual theme control includes system-theme resolution. Entrance and press springs use installed Motion; the mascot greeting ends within five seconds. Reduced motion removes spatial movement. Landscape phones use a compact split so the primary action remains visible. Artwork remains static. No registration fields, other providers, invented legal links or generated replacement artwork were added.
+The page inherits new-user light mode and the existing saved-preference script. A manual theme control includes system-theme resolution. Entrance and press springs use installed Motion; the mascot greeting ends within five seconds. Reduced motion removes spatial movement. Landscape phones use a compact split so the primary action remains visible. Artwork remains static. No registration fields, other providers, invented legal links or generated replacement artwork were added. `AppFrame` defers the existing workspace shell on login; the countryside image is eager and explicitly high priority. The original shell and shared auth/theme providers remain in use.
 
 ## Authentication and navigation
 
@@ -20,7 +20,7 @@ The page inherits new-user light mode and the existing saved-preference script. 
 - Successful local sign-out clears private in-memory state, aborts in-flight reads and replaces the page with login. Expiration and cross-tab sign-out also hide the workspace and route to login.
 - Login, page redirects and callbacks use private/no-store responses. The worker retains its public-only cache and `/app/` scope, including on login. No auth response or private data is added to its cache.
 
-No schema, provider, credential, billing, landing, extension or hosted configuration changes are required. Existing production environment variables and callback allowlists remain in force. The separate Playground worktree is untouched; the page guard and safe return helper recognize its route for later integration.
+No schema, provider, credential, billing, landing, extension or hosted configuration changes are required. Existing production environment variables and callback allowlists remain in force. The separate Playground worktree is untouched. Its incoming production source is preserved through a normal merge; the page guard and safe return helper cover `/app/playground/`. This task applies no migrations or hosted writes.
 
 ## Local verification
 
@@ -45,6 +45,8 @@ npm run start -- --port 3115
 npm run test:login
 npm run test:browser
 node tests/library-browser.mjs
+node tests/playground-browser.mjs
+node tests/playground-interactions.mjs
 ```
 
 `test:login` covers the real SDK’s Google authorization parameters, PKCE challenge/verifier exchange, cookie session, safe returns, cancellation, invalid exchange, session restoration/refresh, logout, account isolation, keyboard/touch, light/dark persistence and six screen sizes. Browser and library suites use synthetic authenticated sessions and retain their existing UI, API-denial, PWA and library checks. They make no hosted writes or real AI calls.

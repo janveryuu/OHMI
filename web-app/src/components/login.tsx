@@ -55,7 +55,7 @@ export function Login() {
       <a className="skip" href="#welcome">Skip to sign in</a>
       <div className="login-frame">
         <section className="login-scene" aria-label="OHMI countryside illustration">
-          <Image src="/app/welcome-countryside.webp" alt="OHMI and a student resting on a grassy hill beneath a bright, open sky." fill sizes="(min-width: 900px) 55vw, 100vw" priority className="login-countryside" />
+          <Image src="/app/welcome-countryside.webp" alt="OHMI and a student resting on a grassy hill beneath a bright, open sky." fill sizes="(min-width: 900px) 55vw, 100vw" fetchPriority="high" loading="eager" className="login-countryside" />
           <div className="login-scene-brand" aria-hidden="true">OHMI<span>.</span></div>
           <div className="login-scene-caption"><p>A little curiosity.<br />A world of possibility.</p><span>Your circuit buddy, by your side.</span></div>
         </section>
@@ -69,7 +69,7 @@ export function Login() {
           <div className="login-content">
             <motion.div className="login-mascot" {...enter}>
               <motion.div animate={reduced ? {} : { y: [0, -5, 0] }} transition={{ duration: 3.8, ease: "easeInOut", delay: 0.35 }}>
-                <Image src="/app/mascot.png" alt="OHMI, your friendly circuit buddy" width={180} height={180} sizes="(min-width: 900px) 180px, 124px" priority />
+                <Image src="/app/mascot.png" alt="OHMI, your friendly circuit buddy" width={180} height={180} sizes="(min-width: 900px) 180px, 124px" loading="eager" />
               </motion.div>
             </motion.div>
             <motion.div {...enter} transition={{ ...enter.transition, delay: reduced ? 0 : 0.08 }}>

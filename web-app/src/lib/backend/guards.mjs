@@ -19,8 +19,6 @@ export function safeReturnPath(value) {
     "/app/guide/",
     "/app/progress/",
     "/app/settings/",
-    "/app/library/",
-    "/app/playground/",
   ].includes(path) || /^\/app\/library\/[a-z0-9-]+\/$/.test(path)
     ? path
     : "/app/";

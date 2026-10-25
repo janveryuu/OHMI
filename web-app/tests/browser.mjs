@@ -36,6 +36,7 @@ page.on("response", (r) => {
 const routes = [
   "/",
   "/ask/",
+  "/playground/",
   "/assignments/",
   "/checker/",
   "/guide/",

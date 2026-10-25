@@ -49,7 +49,7 @@ try {
   assert.equal(await freshPage.evaluate(()=>document.activeElement?.tagName),"BUTTON");
   assert.equal(await freshPage.locator(".login-mascot").evaluate(el=>getComputedStyle(el).opacity),"1");
   results.push("Light default, saved theme without flash, reduced motion and keyboard focus");
-  for (const path of ["/", "/ask/", "/assignments/", "/checker/", "/guide/", "/library/", "/library/resistor/", "/progress/", "/settings/"]) {
+  for (const path of ["/", "/ask/", "/playground/", "/assignments/", "/checker/", "/guide/", "/library/", "/library/resistor/", "/progress/", "/settings/"]) {
     await page.goto(base + path);
     assert.equal(new URL(page.url()).pathname,"/app/login/");
     assert.equal(new URL(page.url()).searchParams.get("next"),path === "/" ? null : "/app"+path);
