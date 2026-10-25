@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="assets/ohmi-hero-banner.png" alt="OHMI — Your Circuit Buddy" width="100%" style="border-radius: 12px;" />
+  <a href="https://meetohmi.vercel.app/">
+    <img src="assets/landing-page-preview.png" alt="OHMI — A little buddy. A brighter build." width="100%" style="border-radius: 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);" />
+  </a>
 </p>
 
 <h1 align="center">OHMI — Your Circuit Buddy</h1>
@@ -62,19 +64,19 @@ Rather than switching tabs to search through dense datasheets or confusing forum
 
 ## 🌐 Explore MeetOHMI
 
-We launched a standalone companion website with zero dependencies, showcasing OHMI's philosophy, interactive circuit math, and project previews:
-
-👉 **[meetohmi.vercel.app](https://meetohmi.vercel.app/)**
+Experience the live companion landing page at 👉 **[meetohmi.vercel.app](https://meetohmi.vercel.app/)** — built with zero external runtime dependencies, ultra-fast loading, and interactive circuit demonstrations:
 
 <p align="center">
-  <a href="https://meetohmi.vercel.app/">
-    <img src="website/design/concept-c-spark.png" alt="MeetOHMI Landing Page Preview" width="85%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  <a href="https://meetohmi.vercel.app/#explore">
+    <img src="assets/landing-explore-preview.png" alt="MeetOHMI Interactive Circuit Learning" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
   </a>
 </p>
 
-- **Approved Concept C (Spark)**: Features bold typography, dark emerald tones (`#020e0b`), mint accents (`#10b981`), and interactive gaze-following pupils.
-- **In-Browser Interactive Demos**: Explore Ohm's Law calculations, Arduino blink sketches, and step-by-step breadboard setups without touching a backend.
-- **Zero Build Dependencies**: Authored in pure vanilla HTML, modern CSS, and JavaScript.
+- ⚡ **Live Interactive Circuit Math**: Test Ohm's Law in real-time with dynamic SVG schematics and formula breakdowns ($(5\text{ V} - 2\text{ V}) / 330\ \Omega \approx 9\text{ mA}$).
+- 💡 **Interactive Arduino Code**: Inspect live syntax-highlighted Arduino Uno blink sketches with step-by-step logic explanations.
+- 📋 **Build Step Checklists**: Follow structured milestone wiring guides before simulating in Tinkercad.
+- 👀 **Animated Pupil Gaze**: Responsive eyes track your cursor movement across the viewport with strict `prefers-reduced-motion` compliance.
+- 🚀 **Zero Build Dependencies**: Authored in pure semantic HTML5, modern CSS3, and vanilla JavaScript—deployed globally on Vercel.
 
 ---
 
@@ -245,48 +247,81 @@ flowchart TD
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Quickstart & Chrome Extension Installation
+
+Follow these steps to install and run the OHMI Chrome Extension on your computer:
 
 ### Prerequisites
+- **Google Chrome**: Version 116 or higher (desktop)
 - **Node.js**: `v22.12.0+` (verified with `v24.16.0`)
-- **Google Chrome**: Version 116 or higher
+- **npm**: Included with Node.js
 
-### 1. Clone & Install
+---
+
+### Step 1: Clone Repository & Install Dependencies
+Open your terminal and clone the repository:
 ```bash
 git clone https://github.com/janveryuu/OHMI.git
 cd OHMI
 npm ci
 ```
 
-### 2. Configure Environment
-Copy the example environment file:
+### Step 2: Configure Environment (Optional for Local Tryout)
+Copy the example environment configuration:
 ```bash
 cp .env.example .env
 ```
-Fill in your public Supabase URL and anonymous publishable key:
-```env
-WXT_SUPABASE_URL=https://your-project.supabase.co
-WXT_SUPABASE_ANON_KEY=your-publishable-anon-key
-WXT_EMAIL_DELIVERY_READY=false
-```
+> [!NOTE]
+> If you are trying OHMI locally without your own cloud backend, default settings work out of the box with interactive guides and sample chats. To enable private cloud accounts and cloud assignment uploads, fill in your Supabase credentials in `.env`:
+> ```env
+> WXT_SUPABASE_URL=https://your-project.supabase.co
+> WXT_SUPABASE_ANON_KEY=your-publishable-anon-key
+> WXT_EMAIL_DELIVERY_READY=false
+> ```
 
-### 3. Build Extension
+### Step 3: Build the Manifest V3 Extension
+Compile the production extension bundle:
 ```bash
 npm run build
 ```
-This produces a production-ready Chrome Manifest V3 build in `.output/chrome-mv3/`.
+This compiles all TypeScript and React sources into a ready-to-load Chrome Manifest V3 directory:
+```
+.output/chrome-mv3/
+```
 
-### 4. Load into Chrome
-1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Toggle on **Developer mode** in the top-right corner.
-3. Click **Load unpacked** and select the `.output/chrome-mv3` folder inside your OHMI project directory.
-4. Verify that **OHMI — Your Circuit Buddy** is active with version `0.3.0`.
+> [!TIP]
+> **Developing or Testing Live Edits?** Run `npm run dev` instead. WXT starts a dedicated developer Chrome instance with Hot Module Replacement (HMR) so code edits in React or styles instantly reflect in your Tinkercad tab without manual rebuilding!
 
-### 5. Launch with Tinkercad Circuits
-1. Open any circuit in [Autodesk Tinkercad Circuits](https://www.tinkercad.com/things/).
-2. Click into the editor (`/things/<id>/editel`).
-3. You will see OHMI appear in the lower corner, ready to guide your build!
-4. Click on OHMI or press `Settings` → **Sign in to OHMI** to connect your account.
+---
+
+### Step 4: Load Extension into Google Chrome
+
+1. **Open Extensions Page**: In Google Chrome, navigate to `chrome://extensions/` in your address bar (or click Chrome's three-dot menu **⋮** → **Extensions** → **Manage Extensions**).
+2. **Enable Developer Mode**: Look at the top-right corner of the Extensions page and toggle **Developer mode** to **ON**.
+3. **Click "Load unpacked"**: In the top-left action bar, click the **Load unpacked** button.
+4. **Select the Build Folder**: In the file selection dialog, navigate into your cloned `OHMI` project directory and select:
+   ```
+   .output/chrome-mv3
+   ```
+   > [!IMPORTANT]
+   > Make sure to select the **`.output/chrome-mv3`** subfolder specifically, **not** the main repository root folder.
+5. **Verify Installation**: **OHMI — Your Circuit Buddy** will appear in your extensions list with its mint robot icon and active version `0.3.0`.
+6. **Pin OHMI to Toolbar**: Click the puzzle icon (🧩 Extensions) in Chrome's top toolbar, find **OHMI — Your Circuit Buddy**, and click the pin icon (📌) so it is always accessible.
+
+---
+
+### Step 5: Launch in Autodesk Tinkercad Circuits
+
+1. Navigate to [Autodesk Tinkercad Circuits](https://www.tinkercad.com/things/).
+2. Open any circuit project, or create a new circuit to enter the editor (`https://www.tinkercad.com/things/<circuit-id>/editel`).
+3. **OHMI will automatically appear** in the lower corner of your editor canvas!
+   - 🖱️ **Drag & Reposition**: Click and drag OHMI anywhere across your workspace.
+   - ⌨️ **Keyboard Accessibility**: Press <kbd>Shift</kbd> + Arrow keys to reposition OHMI pixel-by-pixel with the keyboard.
+   - 🔽 **Minimize**: Click OHMI or press its close icon to shrink it into a compact bubble when you need maximum canvas room.
+   - 💬 **Open Assistant Panel**: Click on OHMI to launch the multi-tab assistant panel (**Ask Tutor**, **Assignments**, **Guide Checklist**, **Settings**).
+
+> [!NOTE]
+> **Intended Scope & Privacy**: OHMI only activates on Tinkercad Circuits editor URLs (`https://www.tinkercad.com/things/*/editel`). It intentionally remains inactive on normal web pages, Tinkercad 3D models, or Autodesk account dashboards to guarantee strict zero-interference and student privacy.
 
 ---
 
@@ -328,6 +363,12 @@ OHMI is an independent educational tool developed by students for students. It i
 Circuit suggestions and explanations generated by AI are educational aids and should always be verified against official component datasheets and lab safety guidelines before powering physical hardware.
 
 ---
+
+## Standalone Web App + PWA
+
+The independent frontend demo lives in [`web-app/`](web-app/README.md). From that folder, run `npm ci` and `npm run dev`, then open `http://127.0.0.1:3100/app/`. For service-worker and install testing, run `npm run build` followed by `npm run start` instead.
+
+The live PWA is [meetohmi.vercel.app/app/](https://meetohmi.vercel.app/app/), connected from [meetohmi.vercel.app](https://meetohmi.vercel.app/) through `/app/` proxy routes. This app does not connect to Supabase, authentication, AI providers or the extension. Its separate dependency/build boundary preserves the landing page and extension. See [production setup](web-app/docs/PRODUCTION.md) for branches, update instructions and rollback details.
 
 ## 🤝 Authors & Acknowledgments
 
