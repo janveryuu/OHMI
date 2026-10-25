@@ -44,7 +44,15 @@ type State = {
   signIn: (next?: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveProfile: (value: { name?: string; language?: string }) => Promise<void>;
-  uploadFile: (file: File) => Promise<string>;
+  uploadFile: (
+    file: File,
+    options?: {
+      onStage?: (
+        stage: "preparing" | "uploading" | "processing" | "saving" | "complete",
+      ) => void;
+      signal?: AbortSignal;
+    },
+  ) => Promise<string>;
   removeFile: (id: string) => Promise<void>;
   newConversation: (title?: string) => Promise<string>;
   loadOlder: (id: string) => Promise<void>;
@@ -316,13 +324,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setError(cause.message);
     });
   }
-  async function uploadFile(file: File) {
+  async function uploadFile(
+    file: File,
+    options?: {
+      onStage?: (
+        stage: "preparing" | "uploading" | "processing" | "saving" | "complete",
+      ) => void;
+      signal?: AbortSignal;
+    },
+  ) {
+    if (options?.signal?.aborted) throw new Error("Upload was cancelled.");
+    options?.onStage?.("preparing");
     const { client, generation } = await requireAccount();
     const call = async (body: Record<string, unknown>) => {
       const response = await fetch("/app/api/files/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Upload did not finish.");
@@ -334,6 +353,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     if (!epoch.current.current(generation))
       throw new Error("Account changed. Refresh your library.");
+    if (options?.signal?.aborted) throw new Error("Upload was cancelled.");
+    options?.onStage?.("uploading");
     try {
       const stored = await client.storage
         .from("ohmi-assignments")
@@ -348,10 +369,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
       if (!epoch.current.current(generation))
         throw new Error("Account changed. Refresh your library.");
+      if (options?.signal?.aborted) throw new Error("Upload was cancelled.");
+      options?.onStage?.("processing");
       await call({ action: "finalize", id: prepared.id });
       if (!epoch.current.current(generation))
         throw new Error("Account changed. Refresh your library.");
+      options?.onStage?.("saving");
       await refresh();
+      options?.onStage?.("complete");
       return prepared.id as string;
     } catch (cause) {
       if (epoch.current.current(generation)) await refresh();

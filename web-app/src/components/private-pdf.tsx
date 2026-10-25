@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { LocalFile } from "./app-provider";
 import { Button } from "./ui/button";
+import { LoadingSpinner } from "./ui/loading-spinner";
+import { LoadingSkeleton } from "./ui/loading-skeleton";
 type Pdf = Awaited<ReturnType<(typeof import("unpdf"))["getDocumentProxy"]>>;
 export function PrivatePdf({ file }: { file: LocalFile }) {
   const [pdf, setPdf] = useState<Pdf | null>(null),
@@ -88,7 +90,24 @@ export function PrivatePdf({ file }: { file: LocalFile }) {
   }, [pdf, page]);
   return (
     <div className="stack-sm">
-      {busy && <p role="status">Rendering private PDF…</p>}
+      {busy && (
+        <div
+          className="flex flex-col gap-2.5 p-4 rounded-xl border border-border bg-card/60"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+            <LoadingSpinner size="xs" variant="primary" />
+            <span>Rendering PDF preview…</span>
+          </div>
+          <LoadingSkeleton
+            variant="rectangular"
+            height={200}
+            className="w-full rounded-lg"
+            ariaLabel="Rendering PDF page"
+          />
+        </div>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}

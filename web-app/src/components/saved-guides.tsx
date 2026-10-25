@@ -1,14 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Sparkles, X, AlertCircle } from "lucide-react";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
+import { LoadingSpinner } from "./ui/loading-spinner";
 import { RichText } from "./rich-text";
-import {
-  completeSketchMarkdown,
-  guideNeedsDetails,
-} from "@/lib/backend/guards.mjs";
+import { guideNeedsDetails } from "@/lib/backend/guards.mjs";
 import { askBackend } from "@/lib/backend/ai";
-export function SavedGuides() {
+
+export interface GuideGeneratorProps {
+  onCreated?: (analysisId: string) => void;
+  onCancel?: () => void;
+}
+
+export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
   const app = useApp(),
     [goal, setGoal] = useState(""),
     [assignment, setAssignment] = useState(""),
@@ -18,6 +23,7 @@ export function SavedGuides() {
   const sequence = useRef(0),
     request = useRef<AbortController | null>(null),
     retry = useRef<{ key: string; id: string } | null>(null);
+
   useEffect(() => {
     sequence.current++;
     request.current?.abort();
@@ -32,6 +38,7 @@ export function SavedGuides() {
       request.current?.abort();
     };
   }, [app.user?.id]);
+
   async function generate() {
     if (!app.user || !goal.trim() || busy) return;
     const current = ++sequence.current,
@@ -65,6 +72,27 @@ export function SavedGuides() {
       await app.refresh();
       setGoal("");
       retry.current = null;
+
+      // Find the created analysis id and switch directly to Your Path
+      const createdId =
+        (typeof response === "object" &&
+          response !== null &&
+          "analysisId" in response &&
+          typeof (response as Record<string, unknown>).analysisId ===
+            "string" &&
+          ((response as Record<string, unknown>).analysisId as string)) ||
+        "";
+      if (createdId && onCreated) {
+        onCreated(createdId);
+      } else if (onCreated) {
+        // Fallback: pick the latest created tutorial analysis
+        const latest = app.analyses.find(
+          (a) =>
+            a.artifact_kind === "tutorial" &&
+            a.model !== "ohmi-curated-led-v1",
+        );
+        if (latest) onCreated(latest.id);
+      }
     } catch (cause) {
       if (
         cause &&
@@ -77,39 +105,50 @@ export function SavedGuides() {
         setError(
           cause instanceof Error
             ? cause.message
-            : "Guide could not be generated.",
+            : "Guide could not be generated. Check your connection or materials.",
         );
     } finally {
       if (current === sequence.current) setBusy(false);
     }
   }
-  const saved = app.analyses.filter(
-    (a) => a.artifact_kind === "tutorial" && a.model !== "ohmi-curated-led-v1",
-  );
+
   return (
-    <section className="panel stack">
-      <h2>Your assignment guides</h2>
-      <p className="muted">
-        Generate a guide from your materials or describe a circuit to learn. AI
-        may ask for missing details.
+    <section className="panel stack guide-generator-panel" aria-label="Assignment Guide Generator">
+      <div className="between">
+        <div className="row">
+          <Sparkles size={20} className="text-primary" />
+          <h3>Generate an Interactive Guide</h3>
+        </div>
+        {onCancel && (
+          <Button variant="ghost" size="sm" onClick={onCancel} aria-label="Close generator">
+            <X size={16} />
+          </Button>
+        )}
+      </div>
+      <p className="muted small">
+        Describe a circuit or select your uploaded assignment materials. OHMI will turn
+        it into an interactive, step-by-step <strong>Your Path</strong> tutorial with visuals,
+        checks, and code.
       </p>
       <label className="field">
-        Learning goal
+        Learning goal or circuit description
         <textarea
           className="input"
+          placeholder="e.g. Build an Arduino ultrasonic distance alarm with a buzzer and LED..."
           maxLength={2000}
+          rows={3}
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
         />
       </label>
       <label className="field">
-        Private material (optional)
+        Private assignment material (optional)
         <select
           className="input"
           value={assignment}
           onChange={(e) => setAssignment(e.target.value)}
         >
-          <option value="">No material</option>
+          <option value="">No material (describe goal above)</option>
           {app.files
             .filter((f) => f.status === "ready")
             .map((f) => (
@@ -119,20 +158,47 @@ export function SavedGuides() {
             ))}
         </select>
       </label>
-      <Button disabled={!app.user || busy || !goal.trim()} onClick={generate}>
-        {busy ? "Generating and saving…" : "Generate guide"}
-      </Button>
+      <div className="row">
+        <Button
+          disabled={!app.user || busy || !goal.trim()}
+          onClick={generate}
+        >
+          {busy ? "Generating your path…" : "Generate Your Path"}
+        </Button>
+        {onCancel && (
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+        )}
+      </div>
+      {busy && (
+        <div
+          className="p-3.5 rounded-xl border border-border bg-card/80 flex items-center gap-3"
+          role="status"
+          aria-live="polite"
+        >
+          <LoadingSpinner size="sm" variant="primary" />
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-semibold text-foreground">
+              Generating your interactive guide…
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              OHMI is analyzing learning goals and structuring interactive steps.
+            </span>
+          </div>
+        </div>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {feedback && (
-        <div className="notice">
-          <p>
-            OHMI needs more detail or cannot build this guide. No complete guide
-            was saved.
-          </p>
+        <div className="notice" role="alert">
+          <div className="row">
+            <AlertCircle size={18} />
+            <strong>OHMI needs a few more details to build this guide safely:</strong>
+          </div>
           <RichText
             text={[feedback.answer, feedback.notes]
               .filter((v) => typeof v === "string")
@@ -140,98 +206,18 @@ export function SavedGuides() {
           />
           {Array.isArray(feedback.clarificationQuestions) &&
             feedback.clarificationQuestions.map((q, i) => (
-              <p key={i}>{typeof q === "string" ? q : ""}</p>
+              <p key={i}>• {typeof q === "string" ? q : ""}</p>
             ))}
         </div>
       )}
-      {saved.map((a) => (
-        <SavedGuide key={a.id} analysis={a} />
-      ))}
     </section>
   );
 }
-function SavedGuide({
-  analysis,
-}: {
-  analysis: ReturnType<typeof useApp>["analyses"][number];
-}) {
-  const app = useApp(),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const value = analysis.payload,
-    progress = app.savedProgress.find((p) => p.analysis_id === analysis.id);
-  const steps = Array.isArray(value.steps) ? value.steps : [];
-  const text = (v: unknown) => (typeof v === "string" ? v : "");
-  return (
-    <details>
-      <summary>{analysis.title || text(value.title) || "Saved guide"}</summary>
-      <RichText
-        text={[value.objective, value.answer, value.notes]
-          .map(text)
-          .filter(Boolean)
-          .join("\n\n")}
-      />
-      <RichText text={completeSketchMarkdown(value)} />
-      {Array.isArray(value.components) && (
-        <ul>
-          {value.components.map((c: Record<string, unknown>, i: number) => (
-            <li key={i}>
-              {String(c.quantity || "")} {text(c.name)} {text(c.notes)}
-            </li>
-          ))}
-        </ul>
-      )}
-      {steps.map((step: Record<string, unknown>, index: number) => (
-        <section key={index} className="stack-sm">
-          <h3>
-            Step {index + 1}: {text(step.title)}
-          </h3>
-          <RichText
-            text={[
-              step.instruction,
-              step.why,
-              step.check,
-              step.code ? "```cpp\n" + text(step.code) + "\n```" : "",
-            ]
-              .map(text)
-              .join("\n\n")}
-          />
-          <label className="complete-step">
-            <input
-              type="checkbox"
-              disabled={busy}
-              checked={progress?.completed.includes(index) || false}
-              onChange={async (e) => {
-                const done = e.target.checked;
-                setBusy(true);
-                setError("");
-                try {
-                  const completed = new Set(progress?.completed || []);
-                  if (done) completed.add(index);
-                  else completed.delete(index);
-                  await app.saveProgress(
-                    analysis.id,
-                    index,
-                    [...completed].sort((a, b) => a - b),
-                  );
-                } catch {
-                  setError("Progress could not be saved. Try again.");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            />
-            I completed this step.
-          </label>
-        </section>
-      ))}
-      {Array.isArray(value.clarificationQuestions) &&
-        value.clarificationQuestions.map((q, i) => <p key={i}>{text(q)}</p>)}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-    </details>
-  );
+
+// Export SavedGuides as an alias/wrapper for backward compatibility
+export function SavedGuides({
+  onCreated,
+  onCancel,
+}: GuideGeneratorProps = {}) {
+  return <GuideGenerator onCreated={onCreated} onCancel={onCancel} />;
 }

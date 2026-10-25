@@ -6,14 +6,18 @@ const list = (items: unknown, maxItems: number) => ({ type: 'array', items, maxI
 const choice = (values: string[]) => ({ type: 'string', enum: values });
 
 // Shape constraints help the producer; local validators still enforce grounding and semantics.
-export function circuitResponseSchema(evidence: CircuitEvidence): Record<string, unknown> {
-  const variants: unknown[] = [];
-  if (evidence.imageIds.length) variants.push(object({ kind: choice(['image']), imageId: choice(evidence.imageIds), location: text }));
-  if (evidence.codeLineCount) variants.push(object({ kind: choice(['code']), startLine: { type: 'integer', minimum: 1 }, endLine: { type: 'integer', minimum: 1 } }));
-  if (evidence.requirementIds?.length) variants.push(object({ kind: choice(['requirement']), requirementId: choice(evidence.requirementIds) }));
-  if (evidence.simulationText) variants.push(object({ kind: choice(['simulation']), excerpt: text }));
-  if (evidence.priorFindingIds?.length) variants.push(object({ kind: choice(['prior_check']), findingId: choice(evidence.priorFindingIds) }));
-  const evidenceList = list(variants.length ? { anyOf: variants } : object({ kind: choice(['image']), imageId: text, location: text }), variants.length ? 6 : 0);
+export function circuitResponseSchema(_evidence: CircuitEvidence): Record<string, unknown> {
+  const evidenceItem = object({
+    kind: choice(['image', 'code', 'requirement', 'simulation', 'prior_check']),
+    imageId: text,
+    location: text,
+    startLine: { type: 'integer' },
+    endLine: { type: 'integer' },
+    requirementId: text,
+    excerpt: text,
+    findingId: text
+  }, ['kind']);
+  const evidenceList = list(evidenceItem, 6);
   return object({
     schemaVersion: { type: 'integer', enum: [2] },
     status: choice(['reviewed', 'needs_clarification', 'unsupported']), summary: text,

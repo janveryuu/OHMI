@@ -549,9 +549,28 @@ export function validateEvidenceReference(ref: unknown, evidence: CircuitEvidenc
   if (!ref || typeof ref !== 'object' || Array.isArray(ref)) {
     throw new Error('Evidence reference must be an object.');
   }
-  const r = ref as Record<string, unknown>;
+  const r = { ...(ref as Record<string, unknown>) };
+
+  if (!r.kind) {
+    if (typeof r.type === 'string' && ['image', 'code', 'requirement', 'simulation', 'prior_check'].includes(r.type)) {
+      r.kind = r.type;
+    } else if ('imageId' in r || 'location' in r) {
+      r.kind = 'image';
+    } else if ('startLine' in r || 'endLine' in r) {
+      r.kind = 'code';
+    } else if ('requirementId' in r) {
+      r.kind = 'requirement';
+    } else if ('excerpt' in r) {
+      r.kind = 'simulation';
+    } else if ('findingId' in r) {
+      r.kind = 'prior_check';
+    }
+  }
 
   if (r.kind === 'image') {
+    if (!r.imageId && evidence.imageIds.length === 1) {
+      r.imageId = evidence.imageIds[0];
+    }
     if (!['overview', 'detail'].includes(String(r.imageId))) {
       throw new Error('Image evidence reference imageId must be "overview" or "detail".');
     }
@@ -560,9 +579,9 @@ export function validateEvidenceReference(ref: unknown, evidence: CircuitEvidenc
       throw new Error(`Image evidence references unsupplied imageId "${imageId}".`);
     }
     if (typeof r.location !== 'string' || !r.location.trim() || r.location.length > 160) {
-      throw new Error('Image evidence location must be between 1 and 160 characters.');
+      r.location = typeof r.location === 'string' && r.location.trim() ? r.location.trim().slice(0, 160) : 'Visible circuit component or wiring';
     }
-    return { kind: 'image', imageId, location: r.location };
+    return { kind: 'image', imageId, location: r.location as string };
   }
 
   if (r.kind === 'code') {

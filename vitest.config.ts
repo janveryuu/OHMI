@@ -2,7 +2,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { WxtVitest } from 'wxt/testing/vitest-plugin';
 
 export default defineConfig({
-  test: { exclude: [...configDefaults.exclude, 'web-app/**'] },
+  test: { exclude: [...configDefaults.exclude, 'web-app/**', '.worktrees/**'] },
   plugins: [WxtVitest()],
   resolve: {
     alias: {

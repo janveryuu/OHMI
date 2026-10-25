@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
+import { OhmiTypingIndicator } from "./ui/typing-indicator";
+import { LoadingSkeleton } from "./ui/loading-skeleton";
 import dynamic from "next/dynamic";
 const RichText = dynamic(() => import("./rich-text").then(m => m.RichText), { loading: () => <p role="status">Formatting OHMI’s explanation…</p> });
 import { useApp } from "./app-provider";
@@ -118,6 +120,22 @@ export function PlaygroundHelp({ project }: { project: Project }) {
         <MessageCircle aria-hidden="true" />
         {pending ? "Asking OHMI…" : "Ask OHMI"}
       </Button>
+      {pending && (
+        <div
+          className="p-3.5 rounded-xl border border-border bg-card/60 flex flex-col gap-2 mt-2"
+          role="status"
+          aria-live="polite"
+        >
+          <OhmiTypingIndicator message="OHMI is reviewing your circuit workbench…" />
+          <div className="mt-1">
+            <LoadingSkeleton
+              variant="text-block"
+              lines={2}
+              ariaLabel="Preparing circuit guidance"
+            />
+          </div>
+        </div>
+      )}
       {!app.user && (
         <p>
           <Link href="/settings">Sign in</Link> for contextual AI help.

@@ -1093,14 +1093,46 @@ progress::-moz-progress-bar {
   background: var(--accent);
   color: var(--accent-foreground);
 }
+.message.user.pending-message {
+  opacity: 0.92;
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.message.user.failed-message {
+  background: color-mix(in srgb, var(--destructive) 10%, var(--card));
+  border: 1px solid var(--destructive);
+  color: var(--foreground);
+}
 .message.assistant {
   align-self: flex-start;
 }
+.message.assistant.typing-message {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-selected);
+  min-width: 260px;
+}
 .message-sender {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.02em;
   margin-bottom: 7px;
+}
+.message-sender-status {
+  font-size: 9.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.message-sender-status.pending {
+  color: var(--primary);
+}
+.message-sender-status.failed {
+  color: var(--destructive);
 }
 .user-text {
   white-space: pre-wrap;
@@ -1132,6 +1164,38 @@ progress::-moz-progress-bar {
 }
 .rich-text pre code {
   padding: 0;
+}
+.incomplete-continuation-card {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+}
+.incomplete-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.incomplete-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+.continue-answer-btn {
+  margin-top: 4px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
 }
 .chat-suggestions {
   align-self: center;
@@ -1308,6 +1372,93 @@ progress::-moz-progress-bar {
     to {
       opacity: 0.9;
     }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--secondary) 85%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 90%, transparent) 50%,
+      color-mix(in srgb, var(--secondary) 85%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmerGradient 1.5s ease-in-out infinite;
+  }
+  @keyframes skeletonShimmerGradient {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .typing-dot {
+    animation: typingDotBounce 1.4s ease-in-out infinite;
+  }
+  @keyframes typingDotBounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+
+  .indeterminate-progress-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 9999px;
+    animation: indeterminateProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes indeterminateProgress {
+    0% {
+      left: -35%;
+      width: 35%;
+    }
+    50% {
+      left: 20%;
+      width: 60%;
+    }
+    100% {
+      left: 100%;
+      width: 35%;
+    }
+  }
+
+  .scan-beam {
+    animation: scanBeam 2.2s ease-in-out infinite;
+  }
+  @keyframes scanBeam {
+    0% {
+      top: 0%;
+      opacity: 0.8;
+    }
+    50% {
+      top: calc(100% - 4px);
+      opacity: 1;
+    }
+    100% {
+      top: 0%;
+      opacity: 0.8;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .typing-dot,
+  .indeterminate-progress-bar,
+  .scan-beam {
+    animation: none !important;
+  }
+  .indeterminate-progress-bar {
+    left: 0;
+    width: 60%;
+    opacity: 0.75;
   }
 }
 /* Files and circuit review */
@@ -1659,6 +1810,210 @@ progress::-moz-progress-bar {
   margin-top: 6px;
   line-height: 1.7;
 }
+
+/* Guide Switcher Tabs */
+.guide-switcher-bar {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.guide-pills {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.guide-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.guide-pill:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--primary);
+}
+.guide-pill.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.guide-pill.new-guide-pill {
+  border-style: dashed;
+  color: var(--primary);
+}
+.guide-pill.new-guide-pill:hover,
+.guide-pill.new-guide-pill.active {
+  border-style: solid;
+}
+
+/* Guide Generator Card */
+.guide-generator-panel {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 8px;
+  animation: guideFadeIn 0.2s ease-out;
+}
+@keyframes guideFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dynamic Step Visual Card */
+.step-visual-card {
+  margin: 20px 0;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+.step-visual-inner {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.step-visual-image-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-visual-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.step-visual-details h4 {
+  font-size: 16px;
+  margin: 6px 0 4px;
+}
+.step-visual-tag {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.step-visual-schematic {
+  padding: 8px 4px;
+}
+.step-visual-schematic svg {
+  width: 100%;
+  height: auto;
+}
+.step-visual-caption {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  padding: 10px 12px 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+/* Verification Checkpoint */
+.guide-checkpoint {
+  background: var(--secondary);
+  border-left: 3px solid var(--primary);
+  color: var(--foreground);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  margin-top: 14px;
+}
+.guide-checkpoint strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+.guide-checkpoint .guide-check-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.guide-checkpoint p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Arduino Code Box */
+.guide-code-box {
+  margin: 16px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.guide-code-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.guide-code-box pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Full Sketch Details */
+.guide-full-sketch {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+.guide-full-sketch summary {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--secondary);
+  user-select: none;
+}
+.guide-full-sketch pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .complete-step {
   display: flex;
   align-items: center;
@@ -2568,6 +2923,14 @@ progress::-moz-progress-bar {
   }
   .guide-tip {
     padding: 16px;
+  }
+  .step-visual-inner {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .step-visual-image-wrap {
+    max-width: 220px;
+    margin: 0 auto;
   }
   .progress-overview {
     padding: 24px;

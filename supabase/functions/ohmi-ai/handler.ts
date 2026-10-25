@@ -869,7 +869,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   const systemInstruction = operation === 'tutorial'
     ? buildTutorialSystemInstruction(language)
     : buildAskSystemInstruction(language, operation);
-  const maxTokens = operation === 'tutorial' ? 4096 : operation === 'pdf' ? 3072 : operation === 'image' ? 2048 : 1536;
+  const maxTokens = operation === 'tutorial' ? 4096 : operation === 'pdf' ? 3072 : operation === 'image' ? 2048 : 2560;
   const estimatedTokens = Math.min(64000, maxTokens + Math.ceil(new TextEncoder().encode(systemInstruction + message + (code || '') + canonicalHistory.map(m => m.content).join('')).byteLength / 2) + (inlineMediaPart ? (extractedPdfPages.length ? Math.ceil(new TextEncoder().encode(extractedPdfPages.join('')).byteLength / 2) + 2048 : 4096) : 0));
   const reserveKind = (operation === 'tutorial' && !assignmentId) ? 'chat' : operation;
   const reserveResult = await adminClient.rpc('ohmi_reserve_ai', {
@@ -980,7 +980,16 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   if (operation === 'image') {
     promptText += '\n\nPlease analyze this circuit screenshot. Describe the visible components, wiring connections, and any potential mistakes or wiring issues you notice. Clearly state any uncertainties.';
   } else if (operation === 'pdf') {
-    promptText += '\n\nPlease analyze this electronics assignment PDF. Identify the main learning objective, required components, pin connections, and deliverables. Cite specific page numbers for each requirement.';
+    const isSpecificOrContinuation = Boolean(
+      body?.continuation ||
+      body?.isContinuation ||
+      /continue|resum|task\s*\d+|part\s*\d+|question\s*\d+|calculate|solve|find/i.test(message)
+    );
+    if (!isSpecificOrContinuation) {
+      promptText += '\n\nPlease analyze this electronics assignment PDF. Identify the main learning objective, required components, pin connections, and deliverables. Cite specific page numbers for each requirement.';
+    } else if (body?.continuation || body?.isContinuation || /continue|resum/i.test(message)) {
+      promptText += '\n\n[Continuation Instruction]: The previous explanation was paused at the output length limit. Continue the explanation directly from the exact formula or sentence where it stopped. Do not repeat previously completed derivations or questions; provide the remaining calculations, units, and solutions clearly.';
+    }
   } else if (operation === 'tutorial') {
     promptText += `\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits.
 Follow this strict pedagogical sequence:
@@ -1106,7 +1115,19 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
   }
 
   const incomplete = ['MAX_TOKENS', 'length'].includes(transportRes.finishReason);
-  const answerText = transportRes.text + (incomplete ? '\n\n[Answer incomplete: the output token limit was reached. Continue the answer to see the remaining explanation.]' : '');
+  let baseAnswer = transportRes.text;
+  if (incomplete) {
+    const codeBlockCount = (baseAnswer.match(/```/g) || []).length;
+    if (codeBlockCount % 2 === 1) baseAnswer += '\n```';
+    const displayMathCount = (baseAnswer.match(/\$\$/g) || []).length;
+    if (displayMathCount % 2 === 1) {
+      baseAnswer += '\n$$';
+    } else {
+      const inlineMathCount = (baseAnswer.replace(/\\\$/g, '').match(/\$/g) || []).length;
+      if (inlineMathCount % 2 === 1) baseAnswer += '$';
+    }
+  }
+  const answerText = baseAnswer + (incomplete ? '\n\n[Answer incomplete: the output token limit was reached. Continue the answer to see the remaining explanation.]' : '');
   const inputTokens = transportRes.promptTokens;
   const outputTokens = transportRes.completionTokens;
 

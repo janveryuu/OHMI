@@ -16,7 +16,37 @@ import { useApp } from "./app-provider";
 import { askBackend } from "@/lib/backend/ai";
 import { RichText } from "./rich-text";
 import { Button } from "./ui/button";
+import { AsyncStatusCard } from "./ui/async-status-card";
 import { validateFile, cropRect } from "@/lib/demo.mjs";
+
+type CheckerStage =
+  | "preparing_image"
+  | "validating_evidence"
+  | "analyzing_circuit"
+  | "preparing_feedback";
+
+const CHECKER_STAGES = [
+  {
+    id: "preparing_image",
+    label: "Preparing image",
+    detail: "Reading cropped pixels & verifying resolution",
+  },
+  {
+    id: "validating_evidence",
+    label: "Validating evidence",
+    detail: "Checking byte boundaries & AI service availability",
+  },
+  {
+    id: "analyzing_circuit",
+    label: "Analyzing circuit",
+    detail: "Tracing visible wires, connections & component placement",
+  },
+  {
+    id: "preparing_feedback",
+    label: "Preparing feedback",
+    detail: "Structuring findings and safe step-by-step guidance",
+  },
+];
 
 export function CircuitChecker() {
   const app = useApp();
@@ -29,7 +59,10 @@ export function CircuitChecker() {
     [name, setName] = useState(""),
     [crop, setCrop] = useState(100),
     [applied, setApplied] = useState(false),
-    [status, setStatus] = useState<"idle" | "checking" | "done">("idle"),
+    [status, setStatus] = useState<"idle" | "checking" | "done" | "error">(
+      "idle",
+    ),
+    [stage, setStage] = useState<CheckerStage>("preparing_image"),
     [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null),
     source = useRef(""),
@@ -129,16 +162,9 @@ export function CircuitChecker() {
       controller = new AbortController();
     request.current = controller;
     setStatus("checking");
+    setStage("preparing_image");
     setError("");
     try {
-      const availability = await fetch("/app/api/ai/", {
-        cache: "no-store",
-        signal: controller.signal,
-      }).then((r) => r.json());
-      if (!availability.enabled)
-        throw new Error(
-          "AI tutoring is paused until free-only provider access is verified.",
-        );
       const blob = await fetch(image).then((r) => r.blob());
       const img = new Image();
       img.src = image;
@@ -157,6 +183,19 @@ export function CircuitChecker() {
         reader.readAsDataURL(blob);
       });
       if (current !== generation.current) return;
+
+      setStage("validating_evidence");
+      const availability = await fetch("/app/api/ai/", {
+        cache: "no-store",
+        signal: controller.signal,
+      }).then((r) => r.json());
+      if (!availability.enabled)
+        throw new Error(
+          "AI tutoring is paused until free-only provider access is verified.",
+        );
+      if (current !== generation.current) return;
+
+      setStage("analyzing_circuit");
       const payload = {
         version: 2,
         operation: "circuit_check",
@@ -180,6 +219,8 @@ export function CircuitChecker() {
         controller.signal,
       );
       if (current !== generation.current) return;
+
+      setStage("preparing_feedback");
       setResult(response.result);
       setStatus("done");
       await app.refresh();
@@ -192,7 +233,7 @@ export function CircuitChecker() {
       )
         retry.current = null;
       if (current === generation.current) {
-        setStatus("idle");
+        setStatus("error");
         setError(
           cause instanceof Error
             ? cause.message
@@ -397,15 +438,37 @@ export function CircuitChecker() {
               </p>
             </div>
           ) : status === "checking" ? (
-            <div className="stack skeleton checking-skeleton" role="status">
-              <p>Reviewing your evidence…</p>
-              <span />
-              <span />
-              <span />
-              <p className="small muted">
-                Waiting for a confirmed saved result.
-              </p>
-            </div>
+            <AsyncStatusCard
+              title="Reviewing circuit evidence"
+              subtitle="OHMI is examining visible components and connections."
+              stages={CHECKER_STAGES}
+              currentStageId={stage}
+              thumbnailUrl={image}
+              thumbnailAlt={`Circuit: ${name}`}
+              status="loading"
+              onCancel={() => {
+                generation.current++;
+                request.current?.abort();
+                setStatus("idle");
+                setError("Review paused. Your screenshot remains loaded.");
+              }}
+            />
+          ) : status === "error" ? (
+            <AsyncStatusCard
+              title="Circuit review incomplete"
+              subtitle="Check the issue below before retrying."
+              stages={CHECKER_STAGES}
+              currentStageId={stage}
+              thumbnailUrl={image}
+              thumbnailAlt={`Circuit: ${name}`}
+              status="error"
+              error={error}
+              onRetry={analyze}
+              onCancel={() => {
+                setStatus("idle");
+                setError("");
+              }}
+            />
           ) : (
             <div className="stack">
               {result && <CircuitResult result={result} />}

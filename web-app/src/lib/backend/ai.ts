@@ -16,7 +16,14 @@ export async function askBackend(payload: Record<string, unknown>, signal?: Abor
     if (!data.ok || data.requestId !== payload.requestId) throw failure({});
     if (data.status === 'completed' && data.result) return data;
     if (data.status === 'expired') throw failure({ code: 'failed', error: 'The request lease expired without a saved result. You can submit a new attempt when ready.' });
-    if (data.status === 'failed') throw failure({ code: 'failed', error: 'This request failed. You can submit a new attempt when ready.' });
+    if (data.status === 'failed') {
+      const msg = typeof data.error === 'string' && data.error && !data.error.includes('This request failed')
+        ? data.error
+        : typeof data.errorCode === 'string' && data.errorCode
+          ? `Analysis request did not finish (${data.errorCode}). Submit a new attempt when ready.`
+          : 'This request failed. You can submit a new attempt when ready.';
+      throw failure({ code: 'failed', error: msg });
+    }
     throw failure({ code: 'in_progress', error: 'This request is still being processed. Check it again before starting a new one.', retryAfterSeconds: 10 });
   };
   const saved = await lookup();
@@ -29,9 +36,15 @@ export async function askBackend(payload: Record<string, unknown>, signal?: Abor
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
-    const recovered = await lookup();
-    if (recovered) return recovered;
-    // A proxy/network failure does not prove the provider request failed.
+    try {
+      const recovered = await lookup();
+      if (recovered) return recovered;
+    } catch (lookupErr) {
+      if (error && typeof error === 'object' && 'code' in error && (error as any).code) {
+        throw error;
+      }
+      throw lookupErr;
+    }
     throw error;
   }
 }

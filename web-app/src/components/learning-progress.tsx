@@ -14,6 +14,7 @@ import { useApp } from "./app-provider";
 import { steps } from "@/lib/content";
 import { lessonProgress } from "@/lib/demo.mjs";
 import { Button } from "./ui/button";
+import { LoadingSkeleton } from "./ui/loading-skeleton";
 export function LearningProgress() {
   const app = useApp(),
     done = app.completed.filter(Boolean).length,
@@ -86,17 +87,29 @@ export function LearningProgress() {
       <div className="session-stats">
         <div>
           <MessageCircle size={21} />
-          <strong>{questions}</strong>
+          {app.loading ? (
+            <LoadingSkeleton variant="text" width={40} height={20} className="my-1" ariaLabel="Loading questions count" />
+          ) : (
+            <strong>{questions}</strong>
+          )}
           <span>Questions explored</span>
         </div>
         <div>
           <FolderOpen size={21} />
-          <strong>{app.files.length}</strong>
+          {app.loading ? (
+            <LoadingSkeleton variant="text" width={40} height={20} className="my-1" ariaLabel="Loading materials count" />
+          ) : (
+            <strong>{app.files.length}</strong>
+          )}
           <span>Private materials</span>
         </div>
         <div>
           <Flag size={21} />
-          <strong>{done === 5 ? 1 : 0}</strong>
+          {app.loading ? (
+            <LoadingSkeleton variant="text" width={40} height={20} className="my-1" ariaLabel="Loading lessons count" />
+          ) : (
+            <strong>{done === 5 ? 1 : 0}</strong>
+          )}
           <span>Lessons completed</span>
         </div>
       </div>

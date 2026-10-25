@@ -108,15 +108,24 @@ describe('Milestone M1 & M6: AI Provider Evaluation Fixtures and Matrix Qualific
   });
 
   it('correctly reports readiness blockers when provider credentials or confirmations are absent', () => {
-    const readiness = evaluateReadiness();
-    expect(readiness.offlineTestsPassed).toBe(true);
-    expect(readiness.allReady).toBe(false);
-    expect(readiness.blockers.length).toBeGreaterThan(0);
+    const origGemini = process.env.GEMINI_API_KEY;
+    const origGroq = process.env.GROQ_API_KEY;
+    try {
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.GROQ_API_KEY;
+      const readiness = evaluateReadiness();
+      expect(readiness.offlineTestsPassed).toBe(true);
+      expect(readiness.allReady).toBe(false);
+      expect(readiness.blockers.length).toBeGreaterThan(0);
 
-    const blockersText = readiness.blockers.join(' ');
-    expect(blockersText).toContain('GROQ_API_KEY');
-    expect(blockersText).toContain('GEMINI_API_KEY');
-    expect(blockersText).toContain('OHMI_AI_EVAL_ALLOWED');
+      const blockersText = readiness.blockers.join(' ');
+      expect(blockersText).toContain('GROQ_API_KEY');
+      expect(blockersText).toContain('GEMINI_API_KEY');
+      expect(blockersText).toContain('OHMI_AI_EVAL_ALLOWED');
+    } finally {
+      if (origGemini !== undefined) process.env.GEMINI_API_KEY = origGemini;
+      if (origGroq !== undefined) process.env.GROQ_API_KEY = origGroq;
+    }
   });
 
   it('enforces admission limits (6/min, 10/operator/day, 40/project/day)', () => {

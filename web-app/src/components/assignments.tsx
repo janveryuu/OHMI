@@ -21,6 +21,16 @@ import {
   DialogDescription,
   DialogTitle,
 } from "./ui/dialog";
+import { UploadProgress, type UploadStage } from "./ui/upload-progress";
+
+interface ActiveUpload {
+  id: string;
+  file: File;
+  stage: UploadStage;
+  error?: string;
+  previewUrl?: string;
+  controller: AbortController;
+}
 
 export function Assignments() {
   const app = useApp(),
@@ -30,43 +40,149 @@ export function Assignments() {
     [filter, setFilter] = useState("All materials"),
     [query, setQuery] = useState(""),
     [preview, setPreview] = useState<LocalFile | null>(null),
-    [remove, setRemove] = useState<LocalFile | null>(null);
-  const [busy, setBusy] = useState(false);
+    [remove, setRemove] = useState<LocalFile | null>(null),
+    [removing, setRemoving] = useState(false),
+    [uploads, setUploads] = useState<ActiveUpload[]>([]);
   const owner = useRef(app.user?.id);
   owner.current = app.user?.id;
+
   useEffect(() => {
+    uploads.forEach((u) => {
+      u.controller.abort();
+      if (u.previewUrl) URL.revokeObjectURL(u.previewUrl);
+    });
+    setUploads([]);
     setPreview(null);
     setRemove(null);
     setError("");
     setQuery("");
   }, [app.user?.id]);
-  async function add(files: FileList | null) {
-    if (!files || busy) return;
+
+  function cancelUpload(id: string) {
+    setUploads((prev) => {
+      const target = prev.find((u) => u.id === id);
+      target?.controller.abort();
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((u) => u.id !== id);
+    });
+  }
+
+  function dismissUpload(id: string) {
+    setUploads((prev) => {
+      const target = prev.find((u) => u.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((u) => u.id !== id);
+    });
+  }
+
+  function retryUpload(id: string) {
+    const item = uploads.find((u) => u.id === id);
+    if (!item) return;
     const account = owner.current;
     if (!account) return;
-    setBusy(true);
+    const newController = new AbortController();
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === id
+          ? { ...u, stage: "preparing", error: undefined, controller: newController }
+          : u,
+      ),
+    );
+    void (async () => {
+      try {
+        await app.uploadFile(item.file, {
+          onStage: (stage) => {
+            if (owner.current !== account) return;
+            setUploads((prev) =>
+              prev.map((u) => (u.id === id ? { ...u, stage } : u)),
+            );
+          },
+          signal: newController.signal,
+        });
+        if (owner.current !== account) return;
+        setUploads((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, stage: "complete" } : u)),
+        );
+        app.toast(`${item.file.name} uploaded to your private library.`);
+      } catch (cause) {
+        if (owner.current !== account) return;
+        const msg =
+          cause instanceof Error ? cause.message : "Upload did not finish.";
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.id === id ? { ...u, stage: "error", error: msg } : u,
+          ),
+        );
+      }
+    })();
+  }
+
+  async function add(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const account = owner.current;
+    if (!account) return;
     setError("");
-    const issues: string[] = [];
+
     for (const file of Array.from(files)) {
       if (owner.current !== account) break;
       const problem = validateFile(file);
+      const id = crypto.randomUUID();
+      const controller = new AbortController();
+      const previewUrl = file.type.startsWith("image/")
+        ? URL.createObjectURL(file)
+        : undefined;
+
       if (problem) {
-        issues.push(`${file.name}: ${problem}`);
+        setUploads((prev) => [
+          ...prev,
+          { id, file, stage: "error", error: problem, previewUrl, controller },
+        ]);
         continue;
       }
-      try {
-        await app.uploadFile(file);
-        if (owner.current !== account) break;
-        app.toast(`${file.name} uploaded to your private library.`);
-      } catch (cause) {
-        issues.push(
-          cause instanceof Error ? cause.message : "Upload did not finish.",
-        );
-      }
+
+      const item: ActiveUpload = {
+        id,
+        file,
+        stage: "preparing",
+        previewUrl,
+        controller,
+      };
+
+      setUploads((prev) => [...prev, item]);
+
+      void (async () => {
+        try {
+          await app.uploadFile(file, {
+            onStage: (stage) => {
+              if (owner.current !== account) return;
+              setUploads((prev) =>
+                prev.map((u) => (u.id === id ? { ...u, stage } : u)),
+              );
+            },
+            signal: controller.signal,
+          });
+          if (owner.current !== account) return;
+          setUploads((prev) =>
+            prev.map((u) => (u.id === id ? { ...u, stage: "complete" } : u)),
+          );
+          app.toast(`${file.name} uploaded to your private library.`);
+        } catch (cause) {
+          if (owner.current !== account) return;
+          const msg =
+            cause instanceof Error ? cause.message : "Upload did not finish.";
+          setUploads((prev) =>
+            prev.map((u) =>
+              u.id === id ? { ...u, stage: "error", error: msg } : u,
+            ),
+          );
+        }
+      })();
     }
-    if (owner.current === account) setError(issues.join(" "));
-    setBusy(false);
   }
+
+  const busy =
+    removing ||
+    uploads.some((u) => u.stage !== "complete" && u.stage !== "error");
   const visible = app.files.filter(
     (f) =>
       (filter === "All materials" ||
@@ -132,6 +248,28 @@ export function Assignments() {
           }}
         />
       </div>
+      {uploads.length > 0 && (
+        <div
+          className="uploads-list flex flex-col gap-3 my-2"
+          role="region"
+          aria-label="Upload progress"
+        >
+          {uploads.map((item) => (
+            <UploadProgress
+              key={item.id}
+              fileName={item.file.name}
+              fileSize={item.file.size}
+              fileType={item.file.type}
+              stage={item.stage}
+              error={item.error}
+              previewUrl={item.previewUrl}
+              onCancel={() => cancelUpload(item.id)}
+              onRetry={() => retryUpload(item.id)}
+              onDismiss={() => dismissUpload(item.id)}
+            />
+          ))}
+        </div>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -312,7 +450,7 @@ export function Assignments() {
               onClick={async () => {
                 if (!remove) return;
                 const account = owner.current;
-                setBusy(true);
+                setRemoving(true);
                 setError("");
                 try {
                   await app.removeFile(remove.id);
@@ -327,7 +465,7 @@ export function Assignments() {
                         : "Deletion failed.",
                     );
                 } finally {
-                  setBusy(false);
+                  setRemoving(false);
                 }
               }}
             >
