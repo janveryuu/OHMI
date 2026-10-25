@@ -456,6 +456,57 @@ h1 {
 .feature-card:active {
   transform:translateY(-4px) scale(.99);
 }
+.install-options {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:28px;
+  margin-top:32px;
+  padding-top:28px;
+  border-top:1px solid rgb(241 247 239 / .3);
+}
+.install-copy {
+  max-width:470px;
+}
+.install-copy h3 {
+  font-size:26px;
+  line-height:1.2;
+}
+.install-copy p {
+  margin-top:8px;
+  color:#f1f7ef;
+  font-size:15px;
+  line-height:1.6;
+}
+.install-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  flex-shrink:0;
+}
+.repository {
+  background:#dcead9;
+  color:#173f36;
+}
+@media(max-width:1100px) {
+  .install-options {
+    align-items:flex-start;
+    flex-direction:column;
+    gap:20px;
+  }
+}
+@media(max-width:820px) {
+  .install-options {
+    margin:8px 22px 0;
+    padding-top:24px;
+  }
+  .install-actions {
+    width:100%;
+  }
+  .install-actions .pill {
+    flex:1 1 180px;
+  }
+}
 .meet-section {
   display:grid;
   grid-template-columns:.9fr 1.1fr;

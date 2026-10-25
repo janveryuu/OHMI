@@ -117,7 +117,9 @@ Use full pills for navigation and actions, gently rounded rectangles for cards a
 
 **Navigation and actions.** The compact three-part desktop header holds the brand, centered glass navigation and launch action. Links reveal a fine underline; primary pills rise (2px), their arrows shift diagonally, and active pills compress to (.98). Keyboard focus uses a (3px) yellow outline offset (5px). The mobile menu closes on link activation, outside click or Escape, returning focus on Escape.
 
-**Feature cards.** Real local PWA screenshots introduce Ask OHMI, Check My Circuit and Guided Builds; they depict frontend previews. Cards have image windows at (1.64) aspect ratio and rise (8px), with image scale (1.05), on hover or keyboard focus. Preserve their anchors to the corresponding learning explanations.
+**Feature cards.** The owner-approved pixel-art workshop illustrations introduce Ask OHMI, Check My Circuit and Guided Builds. Use `ask-workshop.webp`, `check-workshop.webp` and `build-workshop.webp`, each 1200 x 751. These are conceptual illustrations, not screenshots or verified electrical diagrams. Preserve the 1.64 image windows, card motion and corresponding PWA links.
+
+**Installation choices.** Beneath Explore, retain both `Open the PWA` and `View on GitHub` pill actions, the manual desktop Chrome explanation and `#get-started`. GitHub uses the pale mint surface with forest ink and visible yellow keyboard focus. The layout reflows beneath 1100px and stacks buttons as needed beneath 820px. This row coexists with the approved breakdance animation below.
 
 **Learning preview.** A pale-green container holds three native question buttons and a polite live answer region. Forest fill and white text indicate selection. Responses are scripted local text; the visible limitation belongs beside the preview. No input field or upload interaction exists here.
 

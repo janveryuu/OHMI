@@ -1,0 +1,187 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "images": [
+        {
+          "src": "assets/ask-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/check-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/build-workshop.webp",
+          "width": 1200,
+          "height": 751
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open the PWA\n↗",
+          "href": "http://127.0.0.1:4181/app/",
+          "height": 56,
+          "overflow": false
+        },
+        {
+          "text": "View on GitHub\n↗",
+          "href": "https://github.com/janveryuu/OHMI#-quickstart",
+          "height": 56,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "images": [
+        {
+          "src": "assets/ask-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/check-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/build-workshop.webp",
+          "width": 1200,
+          "height": 751
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open the PWA\n↗",
+          "href": "http://127.0.0.1:4181/app/",
+          "height": 56,
+          "overflow": false
+        },
+        {
+          "text": "View on GitHub\n↗",
+          "href": "https://github.com/janveryuu/OHMI#-quickstart",
+          "height": 56,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "images": [
+        {
+          "src": "assets/ask-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/check-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/build-workshop.webp",
+          "width": 1200,
+          "height": 751
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open the PWA\n↗",
+          "href": "http://127.0.0.1:4181/app/",
+          "height": 56,
+          "overflow": false
+        },
+        {
+          "text": "View on GitHub\n↗",
+          "href": "https://github.com/janveryuu/OHMI#-quickstart",
+          "height": 56,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "images": [
+        {
+          "src": "assets/ask-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/check-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/build-workshop.webp",
+          "width": 1200,
+          "height": 751
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open the PWA\n↗",
+          "href": "http://127.0.0.1:4181/app/",
+          "height": 56,
+          "overflow": false
+        },
+        {
+          "text": "View on GitHub\n↗",
+          "href": "https://github.com/janveryuu/OHMI#-quickstart",
+          "height": 56,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "overflow": false,
+      "images": [
+        {
+          "src": "assets/ask-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/check-workshop.webp",
+          "width": 1200,
+          "height": 751
+        },
+        {
+          "src": "assets/build-workshop.webp",
+          "width": 1200,
+          "height": 751
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open the PWA\n↗",
+          "href": "http://127.0.0.1:4181/app/",
+          "height": 56,
+          "overflow": false
+        },
+        {
+          "text": "View on GitHub\n↗",
+          "href": "https://github.com/janveryuu/OHMI#-quickstart",
+          "height": 56,
+          "overflow": false
+        }
+      ]
+    }
+  ],
+  "dance": {
+    "muted": true,
+    "loop": true,
+    "playing": true,
+    "source": "assets/ohmi-breakdance.webm"
+  },
+  "violations": [],
+  "errors": []
+}

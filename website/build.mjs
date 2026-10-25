@@ -11,7 +11,7 @@ assert.equal(dirname(output), website, 'Build output must remain inside website'
 const html = await readFile(resolve(root, 'index.html'), 'utf8');
 const css = await readFile(resolve(root, 'styles.css'), 'utf8');
 for (const [, asset] of [...html.matchAll(/(?:src|href)="([^"#]+)"/g), ...css.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g)]) {
-  if (/^https?:/.test(asset) || /^\/app(?:\/(?:ask|checker|guide))?$/.test(asset)) continue;
+  if (/^https?:/.test(asset) || /^\/app(?:\/|$)/.test(asset)) continue;
   const path = resolve(root, asset);
   assert.ok(path.startsWith(root + sep), `Asset must stay in website: ${asset}`);
   assert.ok((await readFile(path)).length, `Asset must exist: ${asset}`);
@@ -21,6 +21,12 @@ assert.equal(createHash('sha256').update(await readFile(resolve(root, 'assets/oh
 assert.ok(!html.includes('cloudfront.net'), 'No farming-series artwork or video');
 assert.match(html, /name="description"/);
 assert.match(html, /rel="canonical" href="https:\/\/meetohmi\.vercel\.app\/"/);
+// Production builds must retain approved artwork and both installation paths.
+for (const asset of ['ask-workshop.webp', 'check-workshop.webp', 'build-workshop.webp']) {
+  assert.ok(html.includes(`src="assets/${asset}"`), `Missing approved Explore image: ${asset}`);
+}
+assert.match(html, /class="pill repository" href="https:\/\/github.com\/janveryuu\/OHMI#-quickstart"/);
+assert.match(html, /class="pill primary" href="\/app\/">Open the PWA/);
 await rm(output, { recursive: true, force: true });
 await cp(root, output, { recursive: true });
 console.log('Cinematic static build verified: local assets, canonical mascot, SEO, no dog plate. Output: dist/');

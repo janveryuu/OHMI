@@ -1,5 +1,9 @@
 # OHMI frontend production setup
 
+## Landing source authority, 25 October 2026
+
+Publish the complete approved `website/src` from `codex/ohmi-website`. Integrate landing changes into that branch before release; a manually promoted review deployment can otherwise be overwritten by the next Git deployment. The approved workshop Explore art, PWA/GitHub installation options and breakdance animation must coexist. The static build now checks the artwork and installation controls. See [restoration evidence and release rule](design/explore-refresh/README.md). Preserve all existing PWA proxy rules and security headers.
+
 The owner approved production deployment on 24 October 2026. Preserve the cinematic landing page and Apple/iOS-inspired PWA designs. Backend integration remains outside this release.
 
 ## Architecture
