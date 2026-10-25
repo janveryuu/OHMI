@@ -1,3 +1,4 @@
+import { startAuthFixture, seedSession } from "./auth-fixture.mjs";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 import assert from "node:assert/strict";
@@ -9,6 +10,8 @@ const base = (process.env.OHMI_TEST_URL || "http://127.0.0.1:3115/app").replace(
 );
 const out = new URL("../test-results/", import.meta.url);
 await mkdir(out, { recursive: true });
+assert.equal(new URL(base).origin, "http://127.0.0.1:3115", "Use the isolated local auth test environment.");
+const fixture = await startAuthFixture();
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
@@ -16,6 +19,7 @@ const context = await browser.newContext({
   reducedMotion: "reduce",
   hasTouch: true,
 });
+await seedSession(context);
 const page = await context.newPage(),
   errors = [],
   violations = [],
@@ -32,6 +36,7 @@ page.on("response", (r) => {
 const routes = [
   "/",
   "/ask/",
+  "/playground/",
   "/assignments/",
   "/checker/",
   "/guide/",
@@ -76,9 +81,9 @@ try {
         const metrics = await profile.evaluate((anchor) => {
           const meta = anchor.querySelector(".profile-meta");
           const chevron = anchor.querySelector(".profile-chevron");
-          anchor.querySelector("strong").textContent = "Janveryuu1".repeat(5);
+          anchor.querySelector("strong").textContent = "Test Learner A".repeat(5);
           anchor.querySelector("small").textContent =
-            "janvermanlapaz@gmail.com";
+            "learner-a@example.test";
           const metaBox = meta.getBoundingClientRect();
           const chevronBox = chevron.getBoundingClientRect();
           const rect = anchor.getBoundingClientRect();
@@ -284,43 +289,20 @@ try {
   await language.focus();
   await page.keyboard.press("ArrowDown");
   assert.equal(await language.inputValue(), "Filipino");
-  const signedOutSend = page.getByRole("button", {
-    name: "Send message",
-    exact: true,
-  });
-  assert.equal(await signedOutSend.isDisabled(), true);
+  const send = page.getByRole("button", { name: "Send message", exact: true });
+  assert.equal(await send.isDisabled(), true);
   await page.getByLabel("Your question", { exact: true }).fill("A valid question");
-  assert.equal(await signedOutSend.isDisabled(), true);
+  assert.equal(await send.isDisabled(), false);
   await page.getByLabel("Your question", { exact: true }).fill("");
-  await page
-    .getByRole("button", {
-      name: "Why does an LED need a resistor?",
-      exact: true,
-    })
-    .click();
-  await page
-    .getByText("Sign in to ask OHMI and save your conversation.", {
-      exact: true,
-    })
-    .waitFor();
-  assert.equal(await page.locator(".message").count(), 0);
-  results.push(
-    "Ask OHMI language select supports keyboard and touch sizing; submit stays protected while signed out",
-  );
-  await page.goto(base + "/assignments/");
-  assert.equal(
-    await page
-      .getByRole("button", { name: "Choose files", exact: true })
-      .isDisabled(),
-    true,
-  );
+  results.push("Authenticated language selector and valid/empty send states work");
+  const guest = await browser.newContext();
   const id = "00000000-0000-4000-8000-000000000000";
   for (const [route, method] of [
     [`/api/files/${id}/`, "GET"],
     ["/api/files/", "POST"],
     ["/api/guide/", "POST"],
   ]) {
-    const response = await page.request.fetch(base + route, {
+    const response = await guest.request.fetch(base + route, {
       method,
       headers: { Origin: new URL(base).origin },
       data: method === "POST" ? {} : undefined,
@@ -328,11 +310,12 @@ try {
     assert.equal(response.status(), 401);
     assert.match(response.headers()["cache-control"], /private.*no-store/);
   }
-  const badOrigin = await page.request.post(base + "/api/files/", {
+  const badOrigin = await guest.request.post(base + "/api/files/", {
     headers: { Origin: "https://attacker.invalid" },
     data: {},
   });
   assert.equal(badOrigin.status(), 400);
+  await guest.close();
   results.push(
     "Signed-out private APIs reject access; foreign origins rejected; no demo answer",
   );
@@ -345,15 +328,7 @@ try {
   await page.getByLabel("Centered crop", { exact: false }).fill("60");
   await page.getByRole("button", { name: "Apply crop", exact: true }).click();
   await page.getByRole("button", { name: "Crop applied" }).waitFor();
-  await page
-    .getByRole("button", { name: "Review circuit", exact: true })
-    .click();
-  await page
-    .getByText("Sign in to review a circuit and save findings.")
-    .waitFor();
-  results.push(
-    "Local crop works; signed-out review produces no fabricated findings",
-  );
+  results.push("Authenticated local crop preview works after the route guard");
   const interactionContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -367,10 +342,10 @@ try {
       id: "11111111-1111-4111-8111-111111111111",
       aud: "authenticated",
       role: "authenticated",
-      email: "janvermanlapaz@gmail.com",
+      email: "learner-a@example.test",
       email_confirmed_at: "2026-01-01T00:00:00Z",
       app_metadata: { provider: "google", providers: ["google"] },
-      user_metadata: { full_name: "Janveryuu1" },
+      user_metadata: { full_name: "Test Learner A" },
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
@@ -409,7 +384,7 @@ try {
     );
     let profile = {
         id: user.id,
-        display_name: "Janveryuu1",
+        display_name: "Test Learner A",
         language: "english",
       },
       conversations = [];
@@ -484,7 +459,7 @@ try {
     await interactionPage.waitForFunction(() =>
       document
         .querySelector(".profile-link small")
-        ?.textContent?.includes("janvermanlapaz@gmail.com"),
+        ?.textContent?.includes("learner-a@example.test"),
     );
     const language = interactionPage.getByRole("combobox", {
       name: "Reply language",
@@ -604,5 +579,6 @@ try {
     ),
   );
   await browser.close();
+  await fixture.close();
 }
 console.log(JSON.stringify({ results, errors, violations }, null, 2));

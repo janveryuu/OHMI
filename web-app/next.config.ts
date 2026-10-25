@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   basePath: "/app",
   trailingSlash: true,
+  images: { qualities: [75, 90] },
   async headers() {
     return [
       {

@@ -106,7 +106,7 @@ Design variance 5, motion intensity 6, visual density 4. Usable study tasks take
 - Self-hosted Geist, compact labels and comfortable body leading.
 - Rounded task surfaces, adaptive navigation and finite companion greetings.
 
-Source evidence: `src/app/globals.css`, `src/app/template.tsx`, `src/components/app-shell.tsx`, `src/components/dashboard.tsx`, `src/components/app-provider.tsx` and `src/components/ui/`. Product constraints live in `PRODUCT.md`.
+Source evidence: `src/app/globals.css`, `src/app/template.tsx`, `src/components/app-shell.tsx`, `src/components/dashboard.tsx`, `src/components/app-provider.tsx` and `src/components/ui/`; login evidence is `src/components/login.tsx` and `src/app/login/login.css`, with its surface contract in `docs/LOGIN.md`. Product constraints live in `PRODUCT.md`.
 
 Provenance retained from the incumbent document:
 - https://meetohmi.vercel.app/: visually inspected original mint robot, crisp pixel edges and approachable typography. Only identity principles inherited.
@@ -127,11 +127,15 @@ The existing light palette keeps its cool off-white canvas, near-white cards and
 
 **The Semantic Pair Rule.** Change foreground and background tokens together when switching themes; preserve their roles rather than reusing a light-theme literal.
 
+The login uses these same semantic canvas, card, text, border, focus and error roles in both themes. The static countryside keeps its original colors; its lower-edge scrim and white caption support image legibility, rather than defining a new interface palette.
+
 ## Typography
 
 Self-hosted Geist Variable with sans-serif fallback serves every role. Global page headlines use the frontmatter headline token, reducing to 28px on phones. Dashboard greeting specializes to 30px desktop and 27px phone. Section titles use 20px; item headings use 16px. Body text is 14px with 1.5 leading; supporting labels commonly use 12px. Sentence case keeps tasks approachable.
 
 The implementation also carries smaller chrome labels; these are existing density exceptions, not a recommendation for future body copy.
+
+Login specializes this hierarchy without changing the shared ramp: welcome headline (650 weight, `clamp(28px, 2.65vw, 38px)`, 1.15 leading, -0.035em tracking), portrait headline (30px), short portrait headline (27px) and compact landscape headline (26px). Supporting copy is 16px with 1.6 leading, reducing to 15px portrait and 14px landscape. The Google action is 15px/550; back navigation is 13px; feedback and footer are 12px. Desktop scenic caption uses `clamp(28px, 2.8vw, 40px)` at 600 weight. These are login roles, not replacements for workspace typography.
 
 ## Layout
 
@@ -140,6 +144,10 @@ Desktop uses a sticky 248px sidebar with an optional 88px compact state. From 76
 Main content is capped at 1360px, with 40px horizontal desktop padding, 28px tablet padding and 20px phone padding. Repeated gaps use the frontmatter spacing scale. Panels reduce from 24px padding to 20px on phones. Multi-column task surfaces collapse on phones; checker and settings also simplify at tablet sizes.
 
 Layer scale: base content 0; sidebar/header 20; mobile navigation 30; companion 40; PWA status 45; dialogs 50; toast 80; skip link 100. This records the actual source, including status and accessibility layers.
+
+Login is a separate entry composition. At widths of 900px and above, a centered frame (maximum 1440px) pairs countryside and sign-in panel in a 1.08:1 grid, with a 380px maximum action/content column. The page has 24px safe-area-aware outer spacing; desktop heights of 720px or less reduce that spacing to 16px and shrink the mascot from 180px to 120px.
+
+Below 900px, the countryside becomes a scenic header (30svh, constrained to 240–340px) above a panel inset 16px and overlapping by 24px. Scenic branding/caption are hidden; the mascot reduces to 124px. At heights of 740px or less, the scene reduces to 24svh with a 160px minimum and the mascot to 92px. At widths 640–899px and heights up to 540px, a compact 0.8:1.15 landscape split restores the scene alongside the panel, uses 12px outer spacing and a 64px mascot, and hides the footer. The primary action remains the first-viewport priority. Six light/dark desktop, portrait and landscape captures were reviewed in `.impeccable/review/login/`.
 
 ## Elevation & Depth
 
@@ -151,11 +159,19 @@ Cards combine tonal separation with soft shadows; the dark theme uses neutral bl
 
 Use the observed role-based radius scale: compact controls, softer panels, larger feature panels and pill badges. Input and navigation corners share the control radius; buttons have their own nearly matching radius. Companion and dialog shells have larger corners. Circular avatars and mascot orbits are established exceptions.
 
+Login adds surface-specific roles: a 28px desktop outer frame, 24px top corners on the inset portrait panel, a 24px compact landscape frame and a 14px Google control. The stacked mobile outer frame and landscape panel are square where they meet their container. These roles preserve the shared workspace radius scale.
+
 ## Components
 
 ### Buttons
 
 Primary uses paired primary tokens; secondary uses paired secondary tokens. Outline and ghost variants provide lower emphasis. Controls have a 44px minimum height, subtle color feedback, a 0.98 press scale and visible focus. Disabled controls lose emphasis and block pointer action. Lucide is the existing icon family; navigation uses a restrained stroke.
+
+### Login action and artwork
+
+A single outlined Google action spans the content column with a 54px minimum height, paired card/foreground tokens, input border and selected-state shadow. Hover uses secondary fill and the focus token for its border; pending/session restoration disables repeat activation and announces feedback through a polite live region. Back and theme controls retain the established 44px touch minimum.
+
+Reuse the exact unchanged `public/mascot.png` with crisp pixel rendering. The owner approved countryside detail restoration on 25 October 2026: login now uses `public/welcome-countryside-4k.webp`, a 3840 × 2160 export from an AI-enhanced 1672 × 941 source. Preserve the established scene, composition and character identities. Original countryside remains `public/welcome-countryside.webp` for rollback; the landing artwork is unchanged. Provenance and resolution limits are in `design/login/countryside-enhancement.md`. The countryside stays static; mascot motion moves the unchanged PNG as described below.
 
 ### Chips
 
@@ -176,6 +192,8 @@ Active destinations use mint inset highlights and stronger paired text. Hover us
 ### Motion and companion
 
 Route entry uses a spring (stiffness 340, damping 32) with a short vertical settle. Shared navigation and segmented state motion preserve spatial continuity. The greeting mascot moves briefly, then rests. System reduced motion and the explicit setting disable spatial movement through component checks and MotionConfig. CSS also suppresses animation and transitions. Keep the exact approved PNG; do not generate a replacement mascot.
+
+Login entry uses a spring (stiffness 230, damping 28) with short staggered arrivals; the action acknowledges press with a 0.98 scale spring (420/28). The mascot performs one 3.8-second vertical greeting after a 0.35-second delay, then rests. System or saved reduced motion removes spatial entrance, greeting and press movement; shared CSS suppresses animation/transitions.
 
 ## Do's and Don'ts
 

@@ -1,0 +1,31 @@
+[
+  {
+    "file": "public/mascot.png",
+    "origin": "assets/mascot/ohmi-pixel-front.png (unchanged approved PNG)",
+    "sha256": "815ad3dff06433ed9081ef1a73fac2f97d7943d760e95a9ac11660d11ad39382"
+  },
+  {
+    "file": "public/welcome-countryside.webp",
+    "origin": "website/src/assets/countryside-1672.webp on codex/ohmi-website at 5335d05 (exact reused WebP)",
+    "sha256": "9e59d4f97565f2ea6a0ccb423c4dc5c72af293fb4673b47b6d1562aa3aca178a"
+  },
+  {
+    "file": "public/google-g.svg",
+    "origin": "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg",
+    "sha256": "cbe9772630b9b72daf7c14eab28c6c86f88e07da9cb08487544e022e385ede1f"
+  },
+  {
+    "file": "design/login/countryside-enhanced-source.png",
+    "origin": "Built-in ImageGen detail restoration; prompt and dimensions in countryside-enhancement.md",
+    "width": 1672,
+    "height": 941,
+    "sha256": "a3f87db508535ad548f9c6953be436d8b399f10cc665aafbd9470ce2abd6dac4"
+  },
+  {
+    "file": "public/welcome-countryside-4k.webp",
+    "origin": "AI-enhanced source exported with Sharp Lanczos3, WebP quality92; not native4K generation",
+    "width": 3840,
+    "height": 2160,
+    "sha256": "4b9b5bcd09020b3bd3c3420439d57d08ae0b614e4079574b7d355a8907a50692"
+  }
+]

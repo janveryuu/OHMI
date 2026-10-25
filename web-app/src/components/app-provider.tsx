@@ -14,6 +14,7 @@ import { backendClient } from "@/lib/backend/client";
 import {
   accountEpoch,
   selectActiveConversation,
+  safeReturnPath,
 } from "@/lib/backend/guards.mjs";
 import {
   workspaceData,
@@ -40,7 +41,7 @@ type State = {
     completed: number[];
   }[];
   refresh: () => Promise<void>;
-  signIn: () => Promise<void>;
+  signIn: (next?: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveProfile: (value: { name?: string; language?: string }) => Promise<void>;
   uploadFile: (file: File) => Promise<string>;
@@ -195,9 +196,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (next) void refresh();
     };
     void client.auth.getUser().then(({ data, error }) => {
-      if (error && error.status && error.status >= 500)
+      if (error && (error.status === 0 || (error.status ?? 0) >= 500))
         setError("Account services are temporarily unavailable.");
       if (authRevision === 0) accept(data.user);
+    }).catch(() => {
+      if (mounted && authRevision === 0) {
+        setError("Account services are temporarily unavailable.");
+        accept(null);
+      }
     });
     const {
       data: { subscription },
@@ -259,16 +265,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       generation: epoch.current.capture(),
     };
   }
-  async function signIn() {
+  async function signIn(next = "/app/") {
     if (!client) throw new Error("Account services are not configured.");
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL || "https://meetohmi.vercel.app";
+    // Keep the registered OAuth callback exact; validate this route again on return.
+    document.cookie = `ohmi-web-return=${safeReturnPath(next)}; Path=/app/; Max-Age=600; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
     const result = await client.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: origin + "/app/auth/callback/" },
     });
-    if (result.error)
+    if (result.error) {
+      document.cookie = "ohmi-web-return=; Path=/app/; Max-Age=0; SameSite=Lax";
       throw new Error("Google sign-in could not be started. Try again.");
+    }
   }
   async function signOut() {
     if (!client) return;
@@ -277,6 +287,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearPrivate();
     currentUser.current = null;
     setUser(null);
+    window.location.replace("/app/login/");
   }
   async function saveProfile(value: { name?: string; language?: string }) {
     const { client, owner, generation } = await requireAccount();

@@ -1,0 +1,14 @@
+{
+  "scores": {
+    "performance": 89.0,
+    "accessibility": 100.0,
+    "best-practices": 100.0
+  },
+  "metrics": {
+    "largest-contentful-paint": "3.7 s",
+    "cumulative-layout-shift": "0",
+    "total-blocking-time": "130 ms"
+  },
+  "fetchedAt": "2026-10-25T06:26:49.315Z",
+  "environment": "Local production build; Lighthouse mobile simulation; one run, not field data"
+}

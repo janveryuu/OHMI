@@ -1,10 +1,13 @@
+import { startAuthFixture, seedSession } from "./auth-fixture.mjs";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+const fixture = await startAuthFixture();
 const browser = await chromium.launch(),
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+await seedSession(page.context());
 page.on("dialog", (d) => d.accept());
 try {
-  await page.goto("http://127.0.0.1:3120/app/playground/");
+  await page.goto("http://127.0.0.1:3115/app/playground/");
   await page.locator(".playground[data-ready=true]").waitFor();
   const board = page.getByRole("region", { name: "Circuit workbench" });
   await page
@@ -85,4 +88,5 @@ try {
   );
 } finally {
   await browser.close();
+  await fixture.close();
 }

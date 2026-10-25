@@ -682,7 +682,10 @@
       background-color 0.16s ease-out,
       border-color 0.16s ease-out;
   }
-  .pg-feedback {
+  .pg-result-lit,
+  .pg-result-unsafe,
+  .pg-result-open,
+  .pg-result-unsupported {
     animation: pg-feedback-in 0.18s ease-out;
   }
   @keyframes pg-feedback-in {

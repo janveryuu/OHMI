@@ -1,0 +1,59 @@
+{
+  "master": "3840x2160",
+  "pixelRatio": 2,
+  "results": [
+    {
+      "name": "desktop",
+      "theme": "light",
+      "delivered": "3840x2160",
+      "requiredWidth": 2845
+    },
+    {
+      "name": "desktop",
+      "theme": "dark",
+      "delivered": "3840x2160",
+      "requiredWidth": 2845
+    },
+    {
+      "name": "tablet",
+      "theme": "light",
+      "delivered": "1920x1080",
+      "requiredWidth": 1536
+    },
+    {
+      "name": "tablet",
+      "theme": "dark",
+      "delivered": "1920x1080",
+      "requiredWidth": 1536
+    },
+    {
+      "name": "mobile",
+      "theme": "light",
+      "delivered": "1200x675",
+      "requiredWidth": 901
+    },
+    {
+      "name": "mobile",
+      "theme": "dark",
+      "delivered": "1200x675",
+      "requiredWidth": 901
+    },
+    {
+      "name": "landscape",
+      "theme": "light",
+      "delivered": "1920x1080",
+      "requiredWidth": 1302
+    },
+    {
+      "name": "landscape",
+      "theme": "dark",
+      "delivered": "1920x1080",
+      "requiredWidth": 1302
+    }
+  ],
+  "generator": "Built-in ImageGen; native output1672x941; 3840x2160 Sharp Lanczos3 export, not native4K generation",
+  "build": "pass, including TypeScript; existing unpdf warning",
+  "approval": "Owner explicitly requested image enhancement and GitHub/Vercel deployment",
+  "rollback": "Prior production source982fe98; original public/welcome-countryside.webp retained",
+  "scope": "Artwork, login image sizing/quality, image-quality allowlist and supporting evidence only; authentication and backend not retested in this asset change"
+}

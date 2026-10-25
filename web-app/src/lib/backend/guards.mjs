@@ -7,6 +7,8 @@
   };
 }
 export function safeReturnPath(value) {
+  if (typeof value !== "string" || /[%?#\\\s\x00-\x1f]/.test(value)) return "/app/";
+  const path = value.endsWith("/") ? value : value + "/";
   return [
     "/app/",
     "/app/ask/",
@@ -17,8 +19,8 @@ export function safeReturnPath(value) {
     "/app/guide/",
     "/app/progress/",
     "/app/settings/",
-  ].includes(value)
-    ? value
+  ].includes(path) || /^\/app\/library\/[a-z0-9-]+\/$/.test(path)
+    ? path
     : "/app/";
 }
 export function requireUuid(value) {

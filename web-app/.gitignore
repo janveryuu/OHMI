@@ -4,6 +4,7 @@ out/
 *.tsbuildinfo
 test-results/
 playwright-report/
+.impeccable/review/
 .vercel/
 .env*
 !.env.example

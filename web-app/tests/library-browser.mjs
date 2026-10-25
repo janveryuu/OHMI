@@ -1,16 +1,20 @@
+import { startAuthFixture, seedSession } from "./auth-fixture.mjs";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3123/app";
+const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3115/app";
 const entries = JSON.parse(await readFile(new URL("../src/lib/library.json", import.meta.url), "utf8"));
 const output = new URL("../test-results/library/", import.meta.url);
 await mkdir(output, { recursive: true });
+assert.equal(new URL(base).origin, "http://127.0.0.1:3115", "Use the isolated local auth test environment.");
+const fixture = await startAuthFixture();
 const browser = await chromium.launch({ headless: true });
 const errors = [], results = [], violations = [];
 try {
   const context = await browser.newContext({ reducedMotion: "reduce" });
+  await seedSession(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   for (const size of [{width:1440,height:1000},{width:768,height:1024},{width:390,height:844},{width:320,height:640}]) {
@@ -97,6 +101,7 @@ try {
   assert.equal(await page.evaluate(()=>document.activeElement?.textContent),"All components");
   results.push("All 20 detail routes and illustration decodes pass; multiword search and invalid-category fallback pass; keyboard flow passes");
   const failureContext=await browser.newContext();
+  await seedSession(failureContext);
   const failurePage=await failureContext.newPage();
   await failurePage.route(/_next\/image.*(?:led|resistor)/,(route)=>route.abort());
   await failurePage.goto(base+"/library/led/");
@@ -108,4 +113,4 @@ try {
   assert.deepEqual(violations,[]);
   await writeFile(new URL("report.json",output),JSON.stringify({results,errors,violations},null,2));
   console.log(results.join("\n"));
-} finally { await browser.close(); }
+} finally { await browser.close(); await fixture.close(); }

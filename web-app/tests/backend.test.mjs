@@ -28,6 +28,10 @@ test("OAuth return paths stay within the app and reject encoded/open redirects",
   ])
     assert.equal(safeReturnPath(value), "/app/");
   assert.equal(safeReturnPath("/app/assignments/"), "/app/assignments/");
+  assert.equal(safeReturnPath("/app/ask"), "/app/ask/");
+  assert.equal(safeReturnPath("/app/library/resistor/"), "/app/library/resistor/");
+  assert.equal(safeReturnPath("/app/login/"), "/app/");
+  assert.equal(safeReturnPath("/app/library/../../admin/"), "/app/");
 });
 test("upload metadata bounds do not trust MIME alone or traversal filenames", () => {
   assert.equal(

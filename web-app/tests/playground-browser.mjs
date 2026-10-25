@@ -1,10 +1,12 @@
+import { startAuthFixture, seedSession } from "./auth-fixture.mjs";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3120/app",
-  out = "docs/screenshots/playground";
+const base = process.env.OHMI_TEST_URL || "http://127.0.0.1:3115/app",
+  out = "test-results/playground";
 await mkdir(out, { recursive: true });
+const fixture = await startAuthFixture();
 const browser = await chromium.launch(),
   results = [],
   errors = [],
@@ -13,6 +15,7 @@ const browser = await chromium.launch(),
     reducedMotion: "reduce",
   }),
   page = await context.newPage();
+await seedSession(context);
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("dialog", (d) => d.accept());
 const check = () =>
@@ -157,7 +160,7 @@ try {
     }
   }
   await writeFile(
-    "docs/playground-browser.json",
+    "test-results/playground/report.json",
     JSON.stringify({ results, errors }, null, 2),
   );
   console.log(JSON.stringify(results, null, 2));
@@ -174,6 +177,7 @@ try {
       reducedMotion: "reduce",
     }),
     tp = await touch.newPage();
+  await seedSession(touch);
   tp.on("dialog", (d) => d.accept());
   await tp.goto(base + "/playground/");
   await tp.locator(".playground[data-ready=true]").waitFor();
@@ -206,4 +210,5 @@ try {
   );
 } finally {
   await browser.close();
+  await fixture.close();
 }

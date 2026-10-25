@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   House,
@@ -33,9 +33,21 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "./ui/dialog";
-import { Companion } from "./companion";
+import dynamic from "next/dynamic";
+const Companion = dynamic(
+  () => import("./companion").then((m) => m.Companion),
+  {
+    loading: () => (
+      <Button variant="outline" className="launch-button">
+        Launch Floating OHMI
+        <ArrowUpRight size={15} />
+      </Button>
+    ),
+  }
+);
 import { AuthStatus, AccountNotice } from "./auth-status";
 import { PwaControls } from "./pwa-controls";
+import { safeReturnPath } from "@/lib/backend/guards.mjs";
 
 const icons = {
   House,
@@ -49,6 +61,7 @@ const icons = {
   Settings2,
 };
 export function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname().replace(/\/$/, "") || "/",
     app = useApp(),
     systemReduced = useReducedMotion();
@@ -57,6 +70,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     [more, setMore] = useState(false),
     [search, setSearch] = useState(false),
     [query, setQuery] = useState("");
+  const login = pathname === "/login";
+  useEffect(() => {
+    if (!login && !app.loading && !app.user) {
+      const next = safeReturnPath("/app" + (pathname === "/" ? "/" : pathname + "/"));
+      router.replace("/login/" + (next === "/app/" ? "" : "?next=" + encodeURIComponent(next)));
+    }
+  }, [login, app.loading, app.user, pathname, router]);
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
@@ -117,6 +137,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         );
       });
+  if (login) return children;
+  if (!app.user)
+    return <main id="main" className="login-opening" role="status"><Image src="/app/mascot.png" alt="" width={80} height={80} /><p>Opening your workspace…</p></main>;
   return (
     <div className={`app-layout ${collapsed ? "compact" : ""}`}>
       <a href="#main" className="skip">
