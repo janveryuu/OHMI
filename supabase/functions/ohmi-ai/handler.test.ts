@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleAiRequest } from './handler.ts';
 import { verifyPageCitation } from './pdf.ts';
 
@@ -1245,7 +1245,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, init] = mockFetch.mock.calls[0];
       expect(url).not.toContain('?key=');
-      expect(url).toContain('gemini-3.8-flash:generateContent');
+      expect(url).toContain('gemini-3.5-flash-lite:generateContent');
       expect(init.headers['x-goog-api-key']).toBe('test-gemini-key');
 
       const body = JSON.parse(init.body);

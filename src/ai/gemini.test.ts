@@ -135,7 +135,7 @@ describe('Gemini Provider Client', () => {
     const calledUrl = callArgs[0] as string;
     const calledInit = callArgs[1] as RequestInit;
     expect(calledUrl).not.toContain('?key=');
-    expect(calledUrl).toContain('gemini-3.8-flash:generateContent');
+    expect(calledUrl).toContain('gemini-3.5-flash-lite:generateContent');
     expect((calledInit.headers as Record<string, string>)['x-goog-api-key']).toBe(dummyKey);
 
     const sentBody = JSON.parse(calledInit.body as string);

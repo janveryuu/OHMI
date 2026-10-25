@@ -1,4 +1,4 @@
-// OHMI AI Provider Policy & Route Resolver
+﻿// OHMI AI Provider Policy & Route Resolver
 // Enforces workflow-based provider routing:
 // - GroqCloud: text-only conversational Ask OHMI & Playground help (openai/gpt-oss-120b)
 // - Google Gemini: multimodal PDF, image, tutorial & circuit review (gemini-3.8-flash)
@@ -7,7 +7,7 @@
 export type AiProvider = 'groq' | 'gemini';
 export type AiWorkflow = 'chat' | 'pdf' | 'image' | 'tutorial' | 'circuit_check' | 'analysis_followup';
 
-export const GEMINI_PRODUCTION_MODEL = 'gemini-3.8-flash';
+export const GEMINI_PRODUCTION_MODEL = 'gemini-3.5-flash-lite';
 export const DEFAULT_GROQ_CHAT_MODEL = 'openai/gpt-oss-120b';
 export const ALLOWED_GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'] as const;
 

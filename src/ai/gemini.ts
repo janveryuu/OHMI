@@ -1,5 +1,5 @@
-/**
- * Single-provider client for Google Gemini (gemini-3.8-flash).
+﻿/**
+ * Single-provider client for Google Gemini (gemini-3.5-flash-lite).
  * Enforces:
  * - 0 automatic retries
  * - 20s maximum generation timeout
@@ -9,7 +9,7 @@
  * - Thinking config: LOW thinkingLevel, includeThoughts: false
  */
 
-export const DEFAULT_MODEL = 'gemini-3.8-flash';
+export const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 export const MAX_RESPONSE_BYTES = 64 * 1024; // 64 KiB
 export const DEFAULT_TIMEOUT_MS = 20_000;    // 20 seconds
 

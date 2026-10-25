@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import {
   resolveAiRoute,
   checkRouteReadiness,
@@ -9,7 +9,7 @@ import {
 
 describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
   describe('resolveAiRoute', () => {
-    it('routes PDF operations to Gemini with gemini-3.8-flash', () => {
+    it('routes PDF operations to Gemini with gemini-3.5-flash-lite', () => {
       const route = resolveAiRoute('pdf');
       expect(route).toEqual({
         provider: 'gemini',
@@ -18,7 +18,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       });
     });
 
-    it('routes Image operations to Gemini with gemini-3.8-flash', () => {
+    it('routes Image operations to Gemini with gemini-3.5-flash-lite', () => {
       const route = resolveAiRoute('image');
       expect(route).toEqual({
         provider: 'gemini',
@@ -27,7 +27,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       });
     });
 
-    it('routes Tutorial operations to Gemini with gemini-3.8-flash', () => {
+    it('routes Tutorial operations to Gemini with gemini-3.5-flash-lite', () => {
       const route = resolveAiRoute('tutorial');
       expect(route).toEqual({
         provider: 'gemini',
@@ -36,7 +36,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       });
     });
 
-    it('routes Circuit Check V2 operations to Gemini with gemini-3.8-flash', () => {
+    it('routes Circuit Check V2 operations to Gemini with gemini-3.5-flash-lite', () => {
       const route = resolveAiRoute('circuit_check');
       expect(route).toEqual({
         provider: 'gemini',
