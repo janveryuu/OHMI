@@ -25,3 +25,11 @@ Do not claim physical-device/Safari/screen-reader, signed-in PWA, extension-inst
 The canonical landing source is `website/src` on **`codex/ohmi-website`**. All landing releases must include reviewed changes on that branch before publishing. A manual promotion from another branch is not a replacement for integration. Keep this branch's complete approved website features together. Retain the build assertions if changing unrelated artwork or motion; deliberately revise them only when the owner approves a new Explore design.
 
 Push every intended landing source, asset, test, configuration and documentation change. Keep credentials, `.vercel`, dependencies, generated `dist`, caches and unrelated work in other checkouts excluded. Never force-push or replace the entire website with an older review branch. The separate PWA production branch, Supabase and student data are outside this fix.
+
+## Production confirmation
+
+Commit `898defe3890e735f5d7fd980ac2d041e954cb266` was pushed and remote-confirmed on `codex/ohmi-website`. Its automatic Git deployment `dpl_zEDfrQV9fG1EPhZ3KZGofWgsAUSd` is READY. Vercel metadata confirms this exact commit and branch, eliminating the prior divergence.
+
+Public https://meetohmi.vercel.app/ now serves the restored artwork and both installation buttons while retaining the breakdance element. Seven deployed files (HTML/CSS/JS, three WebPs and dance WebM) match source hashes, with text line endings normalized. Seven PWA entry/feature/Library/Playground/manifest paths return 200, with expected sign-in redirects where required. Official-origin Chromium at 1440px and 390px renders the three images and both actions without page errors. Evidence: `production-restoration.json`, `live-restored-1440.png`, `live-restored-390.png`.
+
+Rollback, if required, should use an ordinary revert on the canonical production branch. Avoid restoring `67f64ab` wholesale: it intentionally reproduces the old-artwork defect. Retain both approved artwork and animation when addressing later unrelated issues.
