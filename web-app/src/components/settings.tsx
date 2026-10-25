@@ -75,6 +75,10 @@ export function Settings() {
           Edit profile
         </Button>
       </section>
+      <section className="panel tour-help" aria-label="Workspace help">
+        <div><h2>Find your way around</h2><p className="muted">A short introduction to OHMI’s learning tools.</p></div>
+        <Button variant="outline" disabled={!app.user || app.loading} onClick={() => window.dispatchEvent(new Event("ohmi-start-tour"))}>Take a Tour</Button>
+      </section>
       {error && (
         <p className="error" role="alert">
           {error}

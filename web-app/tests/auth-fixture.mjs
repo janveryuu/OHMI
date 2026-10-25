@@ -9,6 +9,8 @@ export const testUser = {
   user_metadata: { full_name: "Test Learner A" }, created_at: "2026-01-01T00:00:00Z",
 };
 export const otherUser = { ...testUser, id: "33333333-3333-4333-8333-333333333333", email: "learner-b@example.test", user_metadata: { full_name: "Test Learner B" } };
+export const newUser = { ...testUser, id: "44444444-4444-4444-8444-444444444444", email: "new-learner@example.test", created_at: "2099-01-01T00:00:00Z" };
+export const anotherNewUser = { ...newUser, id: "55555555-5555-4555-8555-555555555555", email: "another-new-learner@example.test" };
 const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
 export function testSession(user = testUser, expired = false) {
   const expiresAt = Math.floor(Date.now() / 1000) + (expired ? -60 : 3600);
@@ -24,7 +26,8 @@ export async function seedSession(context, user = testUser, expired = false) {
 
 // Isolated local Auth/Data API double. App code keeps its real Supabase verification path.
 export async function startAuthFixture() {
-  const state = { mode: "success", authorizations: 0, exchanges: 0, refreshes: 0, challenge: "" };
+  const state = { mode: "success", authorizations: 0, exchanges: 0, refreshes: 0, challenge: "", onboardingClaims: 0, onboardingFail: false };
+  const invited = new Set();
   const profiles = new Map();
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, "http://127.0.0.1:54329");
@@ -42,7 +45,7 @@ export async function startAuthFixture() {
     let user;
     try {
       const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url"));
-      if (token.endsWith(".test-signature")) user = [testUser, otherUser].find((u) => u.id === payload.sub);
+      if (token.endsWith(".test-signature")) user = [testUser, otherUser, newUser, anotherNewUser].find((u) => u.id === payload.sub);
     } catch {}
     if (url.pathname === "/auth/v1/authorize") {
       state.authorizations++;
@@ -68,6 +71,14 @@ export async function startAuthFixture() {
     if (url.pathname === "/auth/v1/user") return user ? send(200, user) : send(401, { message: "Invalid session", code: "bad_jwt" });
     if (url.pathname === "/auth/v1/logout") return send(204);
     if (!user) return send(401, { message: "Sign in required" });
+    if (url.pathname === "/rest/v1/rpc/ohmi_claim_onboarding") {
+      state.onboardingClaims++;
+      if (state.onboardingFail) return send(503, { message: "Status unavailable" });
+      const eligible = Date.parse(user.created_at) >= Date.parse("2026-10-25T00:00:00Z");
+      const claim = eligible && !invited.has(user.id);
+      if (claim) invited.add(user.id);
+      return send(200, claim);
+    }
     if (url.pathname === "/rest/v1/ohmi_profiles") {
       const profile = profiles.get(user.id) || { id: user.id, display_name: user.user_metadata.full_name, language: "english" };
       if (request.method === "PATCH") { profiles.set(user.id, { ...profile, ...body }); return send(200, { id: user.id }); }

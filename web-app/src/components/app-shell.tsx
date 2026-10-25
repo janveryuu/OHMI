@@ -34,6 +34,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import dynamic from "next/dynamic";
+import { Onboarding } from "./onboarding";
 const Companion = dynamic(
   () => import("./companion").then((m) => m.Companion),
   {
@@ -258,6 +259,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span>More</span>
         </button>
       </nav>
+      <Onboarding />
       <Dialog open={more} onOpenChange={setMore}>
         <DialogContent className="more-sheet">
           <DialogTitle>Your workspace</DialogTitle>

@@ -322,6 +322,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ohmi_claim_onboarding: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
       ohmi_save_tutorial_progress: {
         Args: {
           p_analysis_id: string
