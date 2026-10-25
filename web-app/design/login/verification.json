@@ -3,7 +3,7 @@
   "branch": "codex/ohmi-premium-login",
   "source": "7d9b1b1",
   "productionMergedThrough": "a8c59a4",
-  "release": "GitHub review branch only; no Vercel deployment",
+  "release": "Vercel production READY",
   "typecheck": "pass",
   "unitTests": 39,
   "productionBuild": "pass; existing unpdf import.meta warning",
@@ -94,5 +94,13 @@
     "Physical devices, Safari, native PWA installation and screen readers not qualified by these Chromium checks.",
     "No hosted writes, migration, credentials/provider changes or production deployment."
   ],
-  "reviewer": "ship: both scoped loading fixes resolved; no whole-surface/live-consent claim"
+  "reviewer": "ship: both scoped loading fixes resolved; no whole-surface/live-consent claim",
+  "deployedCommit": "6326da8dc6ac263d1503621b27b8447dd72c6ec7",
+  "deployment": {
+    "project": "ohmi-workspace",
+    "state": "READY",
+    "id": "dpl_BxidvNdRhHcHQJwYZ8NTUnGu47kg",
+    "alias": "https://ohmi-workspace.vercel.app",
+    "canonical": "https://meetohmi.vercel.app/app/"
+  }
 }

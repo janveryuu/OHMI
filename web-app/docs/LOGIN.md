@@ -1,6 +1,6 @@
 # OHMI welcome and authentication
 
-The owner approved the frontend and non-destructive integration on 25 October 2026, then explicitly requested a GitHub push. Production deployment requires the owner's review of the completed experience. Work is isolated on `codex/ohmi-premium-login`, based on production source `426ab8a` and merged with incoming Playground work through `a8c59a4` before final verification.
+The owner approved the frontend, reviewed the completed experience, and explicitly requested GitHub and Vercel deployment on 25 October 2026. The verified build is live from `codex/ohmi-web-app-pwa` at `6326da8dc6ac263d1503621b27b8447dd72c6ec7`; production alias `https://ohmi-workspace.vercel.app` and official app route `https://meetohmi.vercel.app/app/`. Work began from `426ab8a` and merged incoming Playground work through `a8c59a4` before final verification.
 
 ## Surface contract
 
@@ -59,4 +59,4 @@ One local Lighthouse mobile simulation improved performance from 79 to 89 after 
 
 Automatic approval review blocked an additional real-config OAuth-start URL inspection with only “blocked by policy.” That operation was not retried. Actual Google-account consent remains unverified for this change; controlled local PKCE checks passed.
 
-Screenshots and the final verification record are under `design/login/`. Production remains unchanged by this task. To roll back a future release, restore its preceding production deployment and revert the login changes through normal Git history; retain the separately shipped Playground work. No database rollback is required.
+Screenshots and the final verification record are under `design/login/`. Vercel deployment `dpl_BxidvNdRhHcHQJwYZ8NTUnGu47kg` is READY and bound to the production alias. To roll back, restore the prior production deployment `dpl_2njRsHikbdx5MwFdngTnXURAq3r6`, then revert through normal Git history. Preserve the separately shipped Playground changes. No database rollback is required.
