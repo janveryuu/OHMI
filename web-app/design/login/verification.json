@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-25",
+  "branch": "codex/ohmi-premium-login",
+  "source": "7d9b1b1",
+  "productionMergedThrough": "a8c59a4",
+  "release": "GitHub review branch only; no Vercel deployment",
+  "typecheck": "pass",
+  "unitTests": 39,
+  "productionBuild": "pass; existing unpdf import.meta warning",
+  "login": {
+    "results": [
+      "desktop: both themes, responsive layout, touch targets and axe",
+      "tablet: both themes, responsive layout, touch targets and axe",
+      "mobile: both themes, responsive layout, touch targets and axe",
+      "small: both themes, responsive layout, touch targets and axe",
+      "landscape: both themes, responsive layout, touch targets and axe",
+      "ultrawide: both themes, responsive layout, touch targets and axe",
+      "Light default, saved theme without flash, reduced motion and keyboard focus",
+      "All private routes redirect before rendering and preserve safe intended destinations",
+      "Public library art stays reachable; forged session cookies fail server verification",
+      "Real Supabase SDK OAuth start, PKCE challenge/verifier exchange, cookie session and safe return (local Auth double)",
+      "Existing session restoration, authenticated login bypass, logout and protected reload",
+      "Consent cancellation, failed callback and offline recovery use clear retry states",
+      "Open redirects rejected; expired session refresh and synthetic account isolation pass"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  "pwa": {
+    "base": "http://127.0.0.1:3115/app",
+    "verifiedAt": "2026-10-25T06:25:31.296Z",
+    "results": [
+      "Routes and navigation fit 1440x1000",
+      "Account profile target works at 1440px",
+      "Routes and navigation fit 1024x768",
+      "Account profile target works at 1024px",
+      "Routes and navigation fit 768x1024",
+      "Account profile target works at 768px",
+      "Routes and navigation fit 390x844",
+      "Account profile target works at 390px",
+      "Routes and navigation fit 320x640",
+      "Account profile target works at 320px",
+      "Routes and navigation fit 844x390",
+      "Account profile target works at 844px",
+      "Dark mobile navigation dialog matches charcoal surfaces and passes axe",
+      "Authenticated language selector and valid/empty send states work",
+      "Signed-out private APIs reject access; foreign origins rejected; no demo answer",
+      "Authenticated local crop preview works after the route guard",
+      "Authenticated Ask OHMI submits through its existing chat payload; touch selector and send, pending, and completion states work",
+      "Saved theme and accessibility preferences survive refresh",
+      "Manifest, worker scope, public-only cache and offline fallback pass"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  "library": {
+    "results": [
+      "1440px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "1440px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "768px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "768px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "390px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "390px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "320px light: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "320px dark: search, categories, URL restore, details, empty state, accessibility and navigation",
+      "All 20 detail routes and illustration decodes pass; multiword search and invalid-category fallback pass; keyboard flow passes",
+      "Image failure keeps the full guide usable"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  "playground": {
+    "browser": "pass: six sizes, both themes, axe, missions and touch",
+    "interactions": "pass: drag/drop, pointer movement, keyboard placement, native-control wiring, clear/undo"
+  },
+  "performance": {
+    "scores": {
+      "performance": 89.0,
+      "accessibility": 100.0,
+      "best-practices": 100.0
+    },
+    "metrics": {
+      "largest-contentful-paint": "3.7 s",
+      "cumulative-layout-shift": "0",
+      "total-blocking-time": "130 ms"
+    },
+    "fetchedAt": "2026-10-25T06:26:49.315Z",
+    "environment": "Local production build; Lighthouse mobile simulation; one run, not field data"
+  },
+  "limitations": [
+    "Google consent with an actual account was not performed for this login change. Real SDK PKCE was exercised against a local Auth service double.",
+    "Automatic approval review blocked an additional real-config OAuth-start URL inspection with only: blocked by policy. It was not retried.",
+    "Lighthouse is a single local mobile simulation; LCP3.7s remains above2.5s, not field evidence.",
+    "Physical devices, Safari, native PWA installation and screen readers not qualified by these Chromium checks.",
+    "No hosted writes, migration, credentials/provider changes or production deployment."
+  ],
+  "reviewer": "ship: both scoped loading fixes resolved; no whole-surface/live-consent claim"
+}

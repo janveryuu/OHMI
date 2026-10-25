@@ -1,6 +1,6 @@
 # OHMI welcome and authentication
 
-The owner approved the frontend and non-destructive integration on 25 October 2026. Production deployment requires the owner's review of the completed experience. Work is isolated on `codex/ohmi-premium-login`, based on production source `426ab8a` and merged with incoming Playground source `a6f6699` before final verification.
+The owner approved the frontend and non-destructive integration on 25 October 2026, then explicitly requested a GitHub push. Production deployment requires the owner's review of the completed experience. Work is isolated on `codex/ohmi-premium-login`, based on production source `426ab8a` and merged with incoming Playground work through `a8c59a4` before final verification.
 
 ## Surface contract
 
@@ -53,4 +53,10 @@ node tests/playground-interactions.mjs
 
 Live Google consent with an actual Google account and production proxy delivery require the owner's review/release step. Local mocks do not establish those results. Physical devices, Safari, native installation and screen readers are outside the automated browser evidence.
 
-Screenshots and the final verification record are under `design/login/`. A rollback can revert the login commit; production remains on the existing release until approved.
+Final checks passed: 39 unit tests, typecheck, production build, six login sizes in both themes, authenticated PWA navigation/interactions, all 20 Library detail pages, and Playground browser/interaction regressions. Automated Chromium accessibility scans reported no violations. The existing `unpdf` build warning remains.
+
+One local Lighthouse mobile simulation improved performance from 79 to 89 after deferring workspace code and prioritizing the countryside image, together with the incoming production font/loading improvements. Accessibility and best practices scored 100; CLS was 0, TBT fell from 250 ms to 130 ms, and LCP fell from 4.0 s to 3.7 s. LCP remains above 2.5 s. These are local simulated results, not field data or proof of production delivery.
+
+Automatic approval review blocked an additional real-config OAuth-start URL inspection with only “blocked by policy.” That operation was not retried. Actual Google-account consent remains unverified for this change; controlled local PKCE checks passed.
+
+Screenshots and the final verification record are under `design/login/`. Production remains unchanged by this task. To roll back a future release, restore its preceding production deployment and revert the login changes through normal Git history; retain the separately shipped Playground work. No database rollback is required.
