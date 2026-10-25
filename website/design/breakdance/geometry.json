@@ -1,0 +1,282 @@
+{
+  "320": {
+    "boxes": {
+      "#explore": {
+        "x": 22,
+        "y": 1273.234375,
+        "width": 276,
+        "height": 665.625
+      },
+      ".meet-art": {
+        "x": 37.5,
+        "y": 1338.234375,
+        "width": 245,
+        "height": 245
+      },
+      ".meet-art img": {
+        "x": 55.875,
+        "y": 1356.609375,
+        "width": 208.25,
+        "height": 208.25
+      },
+      "#explore > div:last-child": {
+        "x": 22,
+        "y": 1621.234375,
+        "width": 276,
+        "height": 252.625
+      },
+      "#meet-title": {
+        "x": 22,
+        "y": 1621.234375,
+        "width": 276,
+        "height": 71.65625
+      },
+      "#explore p": {
+        "x": 22,
+        "y": 1716.890625,
+        "width": 276,
+        "height": 102.375
+      },
+      "#explore .text-link": {
+        "x": 22,
+        "y": 1843.265625,
+        "width": 213.078125,
+        "height": 30.59375
+      }
+    },
+    "text": "A little buddy.A brighter build.Electronics makes more sense with someone by your side. OHMI helps you ask questions, explore ideas, and learn one connection at a time.Try the learning preview ↗",
+    "images": [
+      "assets/countryside-1672.webp",
+      "assets/ohmi-64.webp",
+      "assets/ask-preview.webp",
+      "assets/check-preview.webp",
+      "assets/build-preview.webp",
+      "assets/ohmi-480.webp",
+      "assets/ohmi-64.webp"
+    ]
+  },
+  "390": {
+    "boxes": {
+      "#explore": {
+        "x": 22,
+        "y": 1256.828125,
+        "width": 346,
+        "height": 665.625
+      },
+      ".meet-art": {
+        "x": 72.5,
+        "y": 1321.828125,
+        "width": 245,
+        "height": 245
+      },
+      ".meet-art img": {
+        "x": 90.875,
+        "y": 1340.203125,
+        "width": 208.25,
+        "height": 208.25
+      },
+      "#explore > div:last-child": {
+        "x": 22,
+        "y": 1604.828125,
+        "width": 346,
+        "height": 252.625
+      },
+      "#meet-title": {
+        "x": 22,
+        "y": 1604.828125,
+        "width": 346,
+        "height": 71.65625
+      },
+      "#explore p": {
+        "x": 22,
+        "y": 1700.484375,
+        "width": 346,
+        "height": 102.375
+      },
+      "#explore .text-link": {
+        "x": 22,
+        "y": 1826.859375,
+        "width": 213.078125,
+        "height": 30.59375
+      }
+    },
+    "text": "A little buddy.A brighter build.Electronics makes more sense with someone by your side. OHMI helps you ask questions, explore ideas, and learn one connection at a time.Try the learning preview ↗",
+    "images": [
+      "assets/countryside-1672.webp",
+      "assets/ohmi-64.webp",
+      "assets/ask-preview.webp",
+      "assets/check-preview.webp",
+      "assets/build-preview.webp",
+      "assets/ohmi-480.webp",
+      "assets/ohmi-64.webp"
+    ]
+  },
+  "768": {
+    "boxes": {
+      "#explore": {
+        "x": 22,
+        "y": 1327.0625,
+        "width": 724,
+        "height": 415.75
+      },
+      ".meet-art": {
+        "x": 22,
+        "y": 1392.0625,
+        "width": 285.75,
+        "height": 285.75
+      },
+      ".meet-art img": {
+        "x": 43.4375,
+        "y": 1413.5,
+        "width": 242.875,
+        "height": 242.875
+      },
+      "#explore > div:last-child": {
+        "x": 337.75,
+        "y": 1421.421875,
+        "width": 408.25,
+        "height": 227.03125
+      },
+      "#meet-title": {
+        "x": 337.75,
+        "y": 1421.421875,
+        "width": 408.25,
+        "height": 71.65625
+      },
+      "#explore p": {
+        "x": 337.75,
+        "y": 1517.078125,
+        "width": 408.25,
+        "height": 76.78125
+      },
+      "#explore .text-link": {
+        "x": 337.75,
+        "y": 1617.859375,
+        "width": 213.078125,
+        "height": 30.59375
+      }
+    },
+    "text": "A little buddy.A brighter build.Electronics makes more sense with someone by your side. OHMI helps you ask questions, explore ideas, and learn one connection at a time.Try the learning preview ↗",
+    "images": [
+      "assets/countryside-1672.webp",
+      "assets/ohmi-64.webp",
+      "assets/ask-preview.webp",
+      "assets/check-preview.webp",
+      "assets/build-preview.webp",
+      "assets/ohmi-480.webp",
+      "assets/ohmi-64.webp"
+    ]
+  },
+  "1024": {
+    "boxes": {
+      "#explore": {
+        "x": 32,
+        "y": 1174.359375,
+        "width": 960,
+        "height": 580
+      },
+      ".meet-art": {
+        "x": 32,
+        "y": 1274.359375,
+        "width": 380,
+        "height": 380
+      },
+      ".meet-art img": {
+        "x": 60.5,
+        "y": 1302.859375,
+        "width": 323,
+        "height": 323
+      },
+      "#explore > div:last-child": {
+        "x": 494.25,
+        "y": 1346.4375,
+        "width": 497.75,
+        "height": 235.84375
+      },
+      "#meet-title": {
+        "x": 494.25,
+        "y": 1346.4375,
+        "width": 497.75,
+        "height": 75.6875
+      },
+      "#explore p": {
+        "x": 494.25,
+        "y": 1446.125,
+        "width": 461.15625,
+        "height": 81.5625
+      },
+      "#explore .text-link": {
+        "x": 494.25,
+        "y": 1551.6875,
+        "width": 213.078125,
+        "height": 30.59375
+      }
+    },
+    "text": "A little buddy.A brighter build.Electronics makes more sense with someone by your side. OHMI helps you ask questions, explore ideas, and learn one connection at a time.Try the learning preview ↗",
+    "images": [
+      "assets/countryside-1672.webp",
+      "assets/ohmi-64.webp",
+      "assets/ask-preview.webp",
+      "assets/check-preview.webp",
+      "assets/build-preview.webp",
+      "assets/ohmi-480.webp",
+      "assets/ohmi-64.webp"
+    ]
+  },
+  "1440": {
+    "boxes": {
+      "#explore": {
+        "x": 130,
+        "y": 1273.296875,
+        "width": 1180,
+        "height": 580
+      },
+      ".meet-art": {
+        "x": 130,
+        "y": 1373.296875,
+        "width": 380,
+        "height": 380
+      },
+      ".meet-art img": {
+        "x": 158.5,
+        "y": 1401.796875,
+        "width": 323,
+        "height": 323
+      },
+      "#explore > div:last-child": {
+        "x": 716,
+        "y": 1430.015625,
+        "width": 594,
+        "height": 266.5625
+      },
+      "#meet-title": {
+        "x": 716,
+        "y": 1430.015625,
+        "width": 594,
+        "height": 106.40625
+      },
+      "#explore p": {
+        "x": 716,
+        "y": 1560.421875,
+        "width": 461.15625,
+        "height": 81.5625
+      },
+      "#explore .text-link": {
+        "x": 716,
+        "y": 1665.984375,
+        "width": 213.078125,
+        "height": 30.59375
+      }
+    },
+    "text": "A little buddy.A brighter build.Electronics makes more sense with someone by your side. OHMI helps you ask questions, explore ideas, and learn one connection at a time.Try the learning preview ↗",
+    "images": [
+      "assets/countryside-1672.webp",
+      "assets/ohmi-64.webp",
+      "assets/ask-preview.webp",
+      "assets/check-preview.webp",
+      "assets/build-preview.webp",
+      "assets/ohmi-480.webp",
+      "assets/ohmi-64.webp"
+    ]
+  }
+}

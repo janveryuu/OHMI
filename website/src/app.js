@@ -69,3 +69,35 @@ document.querySelectorAll('[data-question]').forEach(button => button.addEventLi
 }));
 
 createScene(document.querySelector('#scene-motion'), document.querySelector('#scene-poster'), document.querySelector('#motion-toggle'));
+
+const dance = document.querySelector('#meet-dance');
+if (dance) {
+  const art = dance.parentElement;
+  let visible = false, failed = false;
+  dance.muted = dance.defaultMuted = true;
+  const fallback = () => { art.dataset.playing = 'false'; dance.pause(); };
+  const syncDance = () => {
+    if (reduce.matches || document.hidden || !visible || failed) return fallback();
+    if (!dance.getAttribute('src')) dance.src = dance.dataset.src;
+    dance.play().catch(fallback);
+  };
+  dance.addEventListener('playing', () => {
+    try {
+      // A supported codec may still decode WebM without its alpha plane.
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext('2d');
+      context.drawImage(dance, 0, 0);
+      if (context.getImageData(0, 0, 1, 1).data[3] !== 0) throw new Error('Opaque video decoder');
+      art.dataset.playing = 'true';
+    } catch { failed = true; fallback(); }
+  });
+  dance.addEventListener('error', () => { failed = true; fallback(); });
+  dance.addEventListener('volumechange', () => { if (!dance.muted) dance.muted = true; });
+  reduce.addEventListener('change', syncDance);
+  document.addEventListener('visibilitychange', syncDance);
+  new IntersectionObserver(entries => {
+    visible = entries[0].isIntersecting;
+    syncDance();
+  }).observe(art);
+}
