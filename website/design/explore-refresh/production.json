@@ -1,0 +1,78 @@
+{
+  "url": "https://meetohmi.vercel.app/",
+  "deployment": "dpl_Czw6C37LmLUSWBotqY5MJr7DNAdL",
+  "sourceCommit": "f16b73f9d6cbe37ee53bff8fc8fc92727ac81541",
+  "checks": [
+    {
+      "name": "index.html",
+      "status": 200,
+      "bytes": 10516,
+      "sha256": "89ea4dd2a774c30ddc6166729447513b885d38a13f5b0dd50969108409476668"
+    },
+    {
+      "name": "styles.css",
+      "status": 200,
+      "bytes": 21040,
+      "sha256": "5cfd359f21a7e93db075c78aae6efed6d4282f2f14498c6cae457a03353dd664"
+    },
+    {
+      "name": "app.js",
+      "status": 200,
+      "bytes": 4344,
+      "sha256": "85b9ec197d80e5390cc2f86be070e5ce6259ccdd3c3dc16d1208976fe22fc5e3"
+    },
+    {
+      "name": "assets/ask-workshop.webp",
+      "status": 200,
+      "bytes": 232982,
+      "sha256": "ccf5eb2d3223ed2d2eae33507883ef28e9fda5ce0164a37e2ea573f4ca30a369"
+    },
+    {
+      "name": "assets/check-workshop.webp",
+      "status": 200,
+      "bytes": 249098,
+      "sha256": "8e6091254ff238c00d2e4cc58f5e688372c227c9a29d47fc29329c64879a1a9a"
+    },
+    {
+      "name": "assets/build-workshop.webp",
+      "status": 200,
+      "bytes": 245924,
+      "sha256": "5707f92c62c0283186143adeca4d89b2bc644e0ba7f206da1406d3e87cf93df3"
+    },
+    {
+      "route": "app/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/"
+    },
+    {
+      "route": "app/ask/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/?next=%2Fapp%2Fask%2F"
+    },
+    {
+      "route": "app/checker/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/?next=%2Fapp%2Fchecker%2F"
+    },
+    {
+      "route": "app/guide/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/?next=%2Fapp%2Fguide%2F"
+    },
+    {
+      "route": "app/library/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/?next=%2Fapp%2Flibrary%2F"
+    },
+    {
+      "route": "app/playground/",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/login/?next=%2Fapp%2Fplayground%2F"
+    },
+    {
+      "route": "app/manifest.webmanifest",
+      "status": 200,
+      "finalUrl": "https://meetohmi.vercel.app/app/manifest.webmanifest"
+    }
+  ]
+}
