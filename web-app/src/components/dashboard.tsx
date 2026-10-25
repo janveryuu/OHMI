@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -20,12 +20,22 @@ import { Button } from "./ui/button";
 import { useApp } from "./app-provider";
 import { lessonProgress } from "@/lib/demo.mjs";
 
-const MotionImage = motion.create(Image);
 export function Dashboard() {
   const app = useApp(),
-    reduced = useReducedMotion(),
     progress = lessonProgress(app.completed);
   const count = app.completed.filter(Boolean).length;
+  const [reduced, setReduced] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const animateMascot = reduced === false && !app.reduceMotion && !failed;
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(preference.matches);
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+  useEffect(() => { setPlaying(false); }, [animateMascot]);
   return (
     <div className="dashboard">
       <div className="page-heading between">
@@ -63,19 +73,38 @@ export function Dashboard() {
           <span className="float-symbol symbol-two">
             <Zap size={23} />
           </span>
-          <MotionImage
-            src="/app/mascot.png"
-            sizes="(max-width: 767px) 178px, 220px"
-            priority
-            fetchPriority="high"
-            width="240"
-            height="275"
-            className="mascot welcome-mascot"
-            alt=""
-            initial={false}
-            animate={reduced || app.reduceMotion ? {} : { y: [0, -8, 0] }}
-            transition={{ duration: 2.8, repeat: 1, ease: "easeInOut" }}
-          />
+          <span className="welcome-mascot dashboard-mascot" data-playing={animateMascot && playing}>
+            <Image
+              src="/app/mascot.png"
+              sizes="(max-width: 767px) 178px, 220px"
+              priority
+              fetchPriority="high"
+              width="240"
+              height="275"
+              className="mascot"
+              alt=""
+            />
+            {animateMascot && <video
+              src="/app/animations/dashboard-ohmi.webm"
+              autoPlay loop muted playsInline preload="auto"
+              disablePictureInPicture disableRemotePlayback
+              tabIndex={-1}
+              ref={(video) => { if (video) video.defaultMuted = true; }}
+              onPlaying={(event) => {
+                try {
+                  // Codec support alone cannot prove that a browser preserves WebM alpha.
+                  const canvas = document.createElement("canvas");
+                  canvas.width = canvas.height = 1;
+                  const context = canvas.getContext("2d");
+                  if (!context) { setFailed(true); return; }
+                  context.drawImage(event.currentTarget, 0, 0);
+                  if (context.getImageData(0, 0, 1, 1).data[3] !== 0) setFailed(true);
+                  else setPlaying(true);
+                } catch { setFailed(true); }
+              }}
+              onError={() => setFailed(true)}
+            />}
+          </span>
           <span className="hello-note">
             <span>Hey, builder!</span>
           </span>
