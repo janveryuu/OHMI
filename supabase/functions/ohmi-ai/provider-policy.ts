@@ -1,7 +1,7 @@
-﻿// OHMI AI Provider Policy & Route Resolver
+// OHMI AI Provider Policy & Route Resolver
 // Enforces workflow-based provider routing:
 // - GroqCloud: text-only conversational Ask OHMI & Playground help (openai/gpt-oss-120b)
-// - Google Gemini: multimodal PDF, image, tutorial & circuit review (gemini-3.8-flash)
+// - Google Gemini: multimodal PDF, image, tutorial & circuit review (gemini-3.5-flash-lite)
 // Zero client model/provider overrides. Zero cross-provider fallback.
 
 export type AiProvider = 'groq' | 'gemini';
@@ -81,6 +81,8 @@ export function checkRouteReadiness(
     OHMI_GEMINI_MULTIMODAL_ENABLED?: string;
     GROQ_API_KEY?: string;
     GEMINI_API_KEY?: string;
+    GEMINI_FREE_TIER_CONFIRMED?: string;
+    GROQ_FREE_TIER_CONFIRMED?: string;
   }
 ): RouteReadiness {
   // Master kill-switch check
@@ -89,6 +91,7 @@ export function checkRouteReadiness(
   }
 
   if (route.provider === 'groq') {
+    if (env.GROQ_FREE_TIER_CONFIRMED !== 'true') return { enabled: false, reason: 'Groq free-only readiness is unconfirmed.' };
     if (env.OHMI_GROQ_CHAT_ENABLED !== 'true') {
       return { enabled: false, reason: 'Conversational Ask OHMI is paused (OHMI_GROQ_CHAT_ENABLED != true).' };
     }
@@ -99,6 +102,7 @@ export function checkRouteReadiness(
   }
 
   if (route.provider === 'gemini') {
+    if (env.GEMINI_FREE_TIER_CONFIRMED !== 'true') return { enabled: false, reason: 'Gemini free-only readiness is unconfirmed.' };
     if (env.OHMI_GEMINI_MULTIMODAL_ENABLED !== 'true') {
       return { enabled: false, reason: 'Multimodal circuit analysis is paused (OHMI_GEMINI_MULTIMODAL_ENABLED != true).' };
     }

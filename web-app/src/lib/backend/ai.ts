@@ -1,34 +1,37 @@
-﻿import { isTerminalAiCode } from "./guards.mjs";
-export async function askBackend(
-  payload: Record<string, unknown>,
-  signal?: AbortSignal,
-) {
-  const response = await fetch("/app/api/ai/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal,
+import { isTerminalAiCode } from "./guards.mjs";
+
+function failure(data: Record<string, any>) {
+  return Object.assign(new Error(typeof data.error === 'string' ? data.error : 'OHMI could not confirm a saved result. Check this request again before starting a new one.'), {
+    terminal: isTerminalAiCode(data.code), code: data.code, retryAfterSeconds: data.retryAfterSeconds,
   });
-  const data = await response.json().catch(() => ({
-    error:
-      "OHMI returned an unreadable response. Refresh your history before retrying.",
-  }));
-  if (!response.ok)
-    throw Object.assign(
-      new Error(
-        typeof data.error === "string"
-          ? data.error
-          : "OHMI could not complete the request.",
-      ),
-      {
-        terminal: isTerminalAiCode(data.code),
-        code: data.code,
-        retryAfterSeconds: data.retryAfterSeconds,
-      },
-    );
-  if (!data.ok || !data.result)
-    throw new Error(
-      "OHMI did not confirm a saved result. Refresh your history before retrying.",
-    );
-  return data;
+}
+
+// Recovery is read-only. A POST is sent only when this UUID has no existing request.
+export async function askBackend(payload: Record<string, unknown>, signal?: AbortSignal) {
+  const lookup = async () => {
+    const response = await fetch(`/app/api/ai/requests/${encodeURIComponent(String(payload.requestId))}/`, { cache: 'no-store', signal });
+    if (response.status === 404) return null;
+    const data = await response.json();
+    if (!response.ok) throw failure(data);
+    if (!data.ok || data.requestId !== payload.requestId) throw failure({});
+    if (data.status === 'completed' && data.result) return data;
+    if (data.status === 'expired') throw failure({ code: 'failed', error: 'The request lease expired without a saved result. You can submit a new attempt when ready.' });
+    if (data.status === 'failed') throw failure({ code: 'failed', error: 'This request failed. You can submit a new attempt when ready.' });
+    throw failure({ code: 'in_progress', error: 'This request is still being processed. Check it again before starting a new one.', retryAfterSeconds: 10 });
+  };
+  const saved = await lookup();
+  if (saved) return saved;
+  try {
+    const response = await fetch('/app/api/ai/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal });
+    const data = await response.json();
+    if (!response.ok) throw failure(data);
+    if (!data.ok || !data.result || data.requestId !== payload.requestId) throw failure({});
+    return data;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    const recovered = await lookup();
+    if (recovered) return recovered;
+    // A proxy/network failure does not prove the provider request failed.
+    throw error;
+  }
 }

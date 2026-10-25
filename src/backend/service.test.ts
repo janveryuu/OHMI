@@ -232,7 +232,7 @@ describe('worker failure handling', () => {
 
   it('handles ai.request.get with result recovery and unavailable state', async () => {
     const { handleRequest } = await service();
-    // 1. Request found and completed, analysis found
+    // 1. Immutable request snapshot survives later analysis changes
     mock.query.maybeSingle
       .mockResolvedValueOnce({
         data: {
@@ -243,16 +243,10 @@ describe('worker failure handling', () => {
           model: 'gemini-3.5-flash-lite',
           language: 'english',
           result_id: 'res-1',
+          result_payload: { schemaVersion: 2, status: 'reviewed', summary: 'All good' },
           created_at: '2026-10-16T12:00:00Z',
           finished_at: '2026-10-16T12:00:05Z',
           error_code: null
-        },
-        error: null
-      })
-      .mockResolvedValueOnce({
-        data: {
-          id: 'res-1',
-          payload: { schemaVersion: 2, status: 'reviewed', summary: 'All good' }
         },
         error: null
       });
@@ -307,6 +301,17 @@ describe('worker failure handling', () => {
       status: 'unavailable',
       result: null
     }));
+  });
+
+  it('recovers legacy request-owned chat messages and unique circuit artifacts', async () => {
+    const { handleRequest } = await service();
+    mock.query.maybeSingle.mockResolvedValueOnce({data:{id:'chat',status:'completed',operation:'chat',result_id:'message'},error:null})
+      .mockResolvedValueOnce({data:{content:'Saved chat answer',structured_result:null},error:null});
+    expect(await handleRequest({action:'ai.request.get',payload:{accountId:'owner',requestId:'chat'}})).toEqual(expect.objectContaining({status:'completed',result:{status:'answer',answer:'Saved chat answer'}}));
+    mock.query.maybeSingle.mockResolvedValueOnce({data:{id:'check',status:'completed',operation:'circuit_check',result_id:'artifact'},error:null})
+      .mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:{payload:{schemaVersion:2,summary:'Original circuit check'}},error:null});
+    expect(await handleRequest({action:'ai.request.get',payload:{accountId:'owner',requestId:'check'}})).toEqual(expect.objectContaining({status:'completed',result:{schemaVersion:2,summary:'Original circuit check'}}));
+    expect(mock.query.eq).toHaveBeenCalledWith('user_id','owner');
   });
 
   it('rejects on session read error rather than interpreting as signed out', async () => {

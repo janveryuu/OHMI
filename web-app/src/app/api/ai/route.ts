@@ -86,7 +86,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(40_000)]),
+        signal: AbortSignal.any([request.signal, AbortSignal.timeout(55_000)]),
         cache: "no-store",
       },
     );
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
         body: response.body,
         duplex: "half",
       } as RequestInit),
-      128 * 1024,
+      256 * 1024,
     );
     let result;
     try {
@@ -106,9 +106,12 @@ export async function POST(request: Request) {
         "The request returned an unreadable response. Refresh history before retrying.",
       );
     }
+    const resultHeaders = new Headers(PRIVATE_HEADERS);
+    const timing = response.headers.get("server-timing");
+    if (timing) resultHeaders.set("Server-Timing", timing);
     if (!response.ok || !result.ok) {
       const failure = edgeFailure(result);
-      const headers = new Headers(PRIVATE_HEADERS);
+      const headers = resultHeaders;
       const retryHeader = response.headers.get("retry-after");
       if (retryHeader) {
         headers.set("Retry-After", retryHeader);
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
       throw new Error(
         "The request returned a mismatched account or request. Refresh your workspace.",
       );
-    return Response.json(result, { headers: PRIVATE_HEADERS });
+    return Response.json(result, { headers: resultHeaders });
   } catch (error) {
     return privateError(error);
   }

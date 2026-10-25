@@ -628,5 +628,7 @@ export function validateEvidenceReference(ref: unknown, evidence: CircuitEvidenc
     return { kind: 'prior_check', findingId: r.findingId };
   }
 
-  throw new Error(`Unsupported evidence reference kind: "${r.kind}".`);
+  throw new Error(typeof r.kind === 'string'
+    ? 'Evidence reference kind must be image, code, requirement, simulation, or prior_check.'
+    : 'Evidence reference is missing its kind (image, code, requirement, simulation, or prior_check).');
 }

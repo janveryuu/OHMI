@@ -87,7 +87,7 @@ export function Chat() {
       );
     }
   }
-  async function send(event?: FormEvent, text = draft) {
+  async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>) {
     event?.preventDefault();
     const value = text.trim();
     if (!value || pending) return;
@@ -117,8 +117,8 @@ export function Chat() {
         );
       const id = conversation.id || (await app.newConversation(value));
       if (current !== sequence.current) return;
-      let assignmentId: string | undefined;
-      if (attachment) {
+      let assignmentId = typeof continuation?.assignmentId === "string" ? continuation.assignmentId : undefined;
+      if (attachment && !continuation) {
         if (uploaded.current?.file === attachment)
           assignmentId = uploaded.current.id;
         else {
@@ -127,7 +127,7 @@ export function Chat() {
         }
       }
       if (current !== sequence.current) return;
-      const operation = attachment
+      const operation = continuation ? continuation.operation : attachment
         ? attachment.type === "application/pdf"
           ? "pdf"
           : "image"
@@ -140,6 +140,7 @@ export function Chat() {
         conversationId: id,
         historyThroughPosition: conversation.messages.at(-1)?.position || 0,
         ...(assignmentId ? { assignmentId } : {}),
+        ...(typeof continuation?.circuitAnalysisId === "string" ? { circuitAnalysisId: continuation.circuitAnalysisId } : {}),
       };
       const key = JSON.stringify(payload);
       const requestId =
@@ -152,9 +153,11 @@ export function Chat() {
       await app.refreshConversation(id);
       await app.refresh();
       if (current !== sequence.current) return;
-      setDraft("");
-      setAttachment(null);
-      uploaded.current = null;
+      if (!continuation) {
+        setDraft("");
+        setAttachment(null);
+        uploaded.current = null;
+      }
       retry.current = null;
     } catch (cause) {
       if (
@@ -262,6 +265,11 @@ export function Chat() {
                   <RichText text={message.text} />
                 ) : (
                   <p className="user-text">{message.text}</p>
+                )}
+                {message.role === "assistant" && message.id === conversation.messages.at(-1)?.id && message.structured?.incomplete === true && (
+                  <Button variant="outline" disabled={pending} onClick={() => void send(undefined, "Continue the incomplete answer from where it stopped. Avoid repeating completed sections; use the original attached material when present.", message.structured?.continuation as Record<string, unknown>)}>
+                    Continue answer
+                  </Button>
                 )}
                 {message.attachment && (
                   <span className="message-attachment">

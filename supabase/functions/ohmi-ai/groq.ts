@@ -1,12 +1,12 @@
 // Supabase Edge Function: GroqCloud Chat Completions Transport Adapter
 // Bounded text-only transport for conversational Ask OHMI
 // Fixed endpoint: https://api.groq.com/openai/v1/chat/completions
-// Strict Free Tier controls: reasoning_effort 'low', include_reasoning false, max 64 KiB body
+// Strict Free Tier controls: reasoning_effort 'low', include_reasoning false, max 128 KiB body
 
 import { sanitizeErrorMessage } from './provider-policy.ts';
 
 export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-export const MAX_GROQ_RESPONSE_BYTES = 64 * 1024; // 64 KiB
+export const MAX_GROQ_RESPONSE_BYTES = 128 * 1024; // bounded provider envelope
 
 export interface GroqChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -44,35 +44,37 @@ export interface GroqErrorResponse {
 
 export type GroqResponse = GroqSuccessResponse | GroqErrorResponse;
 
-export async function readBoundedBody(response: Response, maxBytes = MAX_GROQ_RESPONSE_BYTES): Promise<string> {
-  if (!response.body) {
-    return '';
-  }
+export class ResponseSizeError extends Error {}
+
+// Race even transports/streams that ignore abort, without leaving an unhandled rejection.
+export async function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted();
+  let cancel!: () => void;
+  const aborted = new Promise<never>((_, reject) => {
+    cancel = () => reject(signal.reason);
+    signal.addEventListener('abort', cancel, { once: true });
+  });
+  try { return await Promise.race([work, aborted]); }
+  finally { signal.removeEventListener('abort', cancel); }
+}
+
+export async function readBoundedBody(response: Response, maxBytes = MAX_GROQ_RESPONSE_BYTES, signal?: AbortSignal): Promise<string> {
+  if (!response.body) return '';
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let totalBytes = 0;
-  let text = '';
-
+  let totalBytes = 0, text = '';
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await (signal ? abortable(reader.read(), signal) : reader.read());
       if (done) break;
-      if (value) {
-        totalBytes += value.byteLength;
-        if (totalBytes > maxBytes) {
-          try {
-            await reader.cancel();
-          } catch {
-            // ignore cancel errors
-          }
-          throw new Error(`Response body exceeded maximum allowed limit of ${maxBytes} bytes`);
-        }
-        text += decoder.decode(value, { stream: true });
-      }
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) throw new ResponseSizeError('Provider response exceeded its byte limit.');
+      text += decoder.decode(value, { stream: true });
     }
-    text += decoder.decode();
-    return text;
+    return text + decoder.decode();
   } finally {
+    // Cancellation must not extend a timed-out request if the upstream ignores it.
+    void reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }
@@ -114,7 +116,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetchFn(GROQ_ENDPOINT, {
+    const res = await abortable(fetchFn(GROQ_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -122,9 +124,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
-    });
-
-    clearTimeout(timer);
+    }), controller.signal);
 
     // Rate limit / 429
     if (res.status === 429) {
@@ -145,17 +145,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       };
     }
 
-    let responseText = '';
-    try {
-      responseText = await readBoundedBody(res, MAX_GROQ_RESPONSE_BYTES);
-    } catch (readErr) {
-      return {
-        ok: false,
-        status: 502,
-        code: 'payload_too_large',
-        message: sanitizeErrorMessage(readErr instanceof Error ? readErr.message : String(readErr), apiKey)
-      };
-    }
+    const responseText = await readBoundedBody(res, MAX_GROQ_RESPONSE_BYTES, controller.signal);
 
     if (!res.ok) {
       let errorMsg = `Groq upstream error (${res.status})`;
@@ -203,15 +193,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
     }
 
     const finishReason = choice.finish_reason || 'stop';
-    if (finishReason === 'length') {
-      return {
-        ok: false,
-        status: 502,
-        code: 'payload_too_large',
-        message: 'Groq response was truncated (length / max tokens reached).'
-      };
-    }
-    if (finishReason !== 'stop') {
+    if (finishReason !== 'stop' && finishReason !== 'length') {
       return {
         ok: false,
         status: 502,
@@ -230,6 +212,9 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       };
     }
 
+    if (content.length > 17800 || new TextEncoder().encode(content).byteLength > 64 * 1024 - 200) {
+      throw new ResponseSizeError('Visible answer exceeded its supported size.');
+    }
     const usage = json.usage || {};
     const promptChars = options.messages.reduce(
       (acc, m) => acc + (m.content?.length || 0),
@@ -237,12 +222,12 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
     );
     const promptTokens = typeof usage.prompt_tokens === 'number'
       ? usage.prompt_tokens
-      : Math.max(1, Math.ceil(promptChars / 4));
+      : Math.max(1, Math.ceil(promptChars / 2));
     const completionTokens = typeof usage.completion_tokens === 'number'
       ? usage.completion_tokens
-      : Math.max(1, Math.ceil(content.length / 4));
+      : options.maxTokens ?? 1536;
     const totalTokens = typeof usage.total_tokens === 'number'
-      ? usage.total_tokens
+      ? Math.max(usage.total_tokens, promptTokens + completionTokens)
       : promptTokens + completionTokens;
 
     return {
@@ -255,7 +240,6 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       finishReason
     };
   } catch (err: any) {
-    clearTimeout(timer);
     if (err?.name === 'AbortError' || controller.signal.aborted) {
       return {
         ok: false,
@@ -266,9 +250,9 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
     }
     return {
       ok: false,
-      status: 503,
-      code: 'provider_error',
-      message: sanitizeErrorMessage(err instanceof Error ? err.message : String(err), apiKey)
+      status: err instanceof ResponseSizeError ? 502 : 503,
+      code: err instanceof ResponseSizeError ? 'payload_too_large' : 'provider_error',
+      message: err instanceof ResponseSizeError ? err.message : 'Provider connection failed.'
     };
-  }
+  } finally { clearTimeout(timer); }
 }

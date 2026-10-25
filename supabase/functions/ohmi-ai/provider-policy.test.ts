@@ -123,6 +123,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GROQ_CHAT_ENABLED: 'false',
           GROQ_API_KEY: 'gsk_valid'
         }).enabled
@@ -132,6 +133,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GROQ_CHAT_ENABLED: 'true',
           GROQ_API_KEY: ''
         }).enabled
@@ -141,6 +143,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GROQ_CHAT_ENABLED: 'true',
           GROQ_API_KEY: 'gsk_valid'
         }).enabled
@@ -153,6 +156,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GEMINI_MULTIMODAL_ENABLED: 'false',
           GEMINI_API_KEY: 'AIzaSyValid'
         }).enabled
@@ -162,6 +166,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GEMINI_MULTIMODAL_ENABLED: 'true',
           GEMINI_API_KEY: ''
         }).enabled
@@ -171,6 +176,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       expect(
         checkRouteReadiness(route, {
           OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
           OHMI_GEMINI_MULTIMODAL_ENABLED: 'true',
           GEMINI_API_KEY: 'AIzaSyValid'
         }).enabled
@@ -181,6 +187,7 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
       const groqRoute = resolveAiRoute('chat');
       const readiness = checkRouteReadiness(groqRoute, {
         OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
         OHMI_GROQ_CHAT_ENABLED: 'true',
         GROQ_API_KEY: 'gsk_valid',
         OHMI_GEMINI_MULTIMODAL_ENABLED: 'false',

@@ -617,11 +617,22 @@ export function validateEvidenceReference(ref: unknown, evidence: CircuitEvidenc
     return { kind: 'prior_check', findingId: r.findingId };
   }
 
-  throw new Error(`Unsupported evidence reference kind: "${r.kind}".`);
+  throw new Error(typeof r.kind === 'string'
+    ? 'Evidence reference kind must be image, code, requirement, simulation, or prior_check.'
+    : 'Evidence reference is missing its kind (image, code, requirement, simulation, or prior_check).');
 }
 
 export function buildCircuitPrompt(req: CircuitRequestV2, evidence: CircuitEvidence): { systemInstruction: string; userPrompt: string } {
   const systemInstruction = `${buildCircuitCheckSystemInstruction(req.language)}
+
+Every evidenceReference MUST include a kind discriminator and the fields for that kind:
+- {"kind": "image", "imageId": "overview", "location": "precise visible location, 1-160 chars"}; only supplied image IDs: ${JSON.stringify(evidence.imageIds)}.
+- {"kind": "code", "startLine": 1, "endLine": 1}; only when code supplied, within ${evidence.codeLineCount || 0} lines, range difference <=20.
+- {"kind": "requirement", "requirementId": "supplied ID"}; only IDs ${JSON.stringify(evidence.requirementIds || [])}.
+- {"kind": "simulation", "excerpt": "exact supplied substring, 1-160 chars"}; only when simulation supplied.
+- {"kind": "prior_check", "findingId": "supplied prior finding ID"}; only IDs ${JSON.stringify(evidence.priorFindingIds || [])}.
+Never invent a source, omit kind, or infer electrical verification from an image. Use empty evidence with explicit uncertainty where appropriate.
+Keep explanations concise and the entire JSON complete within the output budget.
 
 CircuitCheckResult schema:
 {

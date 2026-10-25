@@ -10,6 +10,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
     GEMINI_API_KEY: 'test-gemini-key',
     GROQ_API_KEY: 'test-groq-key',
     OHMI_AI_ENABLED: 'true',
+    GEMINI_FREE_TIER_CONFIRMED: 'true', GROQ_FREE_TIER_CONFIRMED: 'true',
     OHMI_GROQ_CHAT_ENABLED: 'true',
     OHMI_GEMINI_MULTIMODAL_ENABLED: 'true'
   };
@@ -249,7 +250,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
     expect(data.code).toBe('conflict');
   });
 
-  it('regression 4: non_stop_and_invalid_tutorial_are_rejected', async () => {
+  it('regression 4: partial plain answers are labeled; invalid tutorials are rejected', async () => {
     // A: finish_reason !== 'stop' on Groq chat (e.g. length / truncated)
     mockFetch.mockResolvedValueOnce(
       new Response(
@@ -280,10 +281,11 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       fetch: mockFetch
     });
 
-    expect(res1.status).toBe(502);
+    expect(res1.status).toBe(200);
     const data1 = await res1.json();
-    expect(data1.ok).toBe(false);
-    expect(mockRpc).toHaveBeenCalledWith('ohmi_fail_ai', expect.objectContaining({ p_error_code: 'truncated' }));
+    expect(data1.result.incomplete).toBe(true);
+    expect(data1.result.answer).toContain('Answer incomplete');
+    expect(mockRpc).toHaveBeenCalledWith('ohmi_complete_ai', expect.objectContaining({ p_output: expect.objectContaining({ incomplete: true, continuation: { operation: 'chat' } }), p_accounted_tokens: 2148 }));
 
     // B: Invalid tutorial result (malformed / missing required fields) must be rejected, not fabricated
     mockFetch.mockResolvedValueOnce(
@@ -1539,4 +1541,63 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(data.result.answer).toContain('voltage drop');
     });
   });
+  describe('reliability safeguards', () => {
+    const body = { version: 1, requestId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', operation: 'chat', language: 'english', message: 'Explain a resistor' };
+    it.each([
+      { OHMI_GROQ_CHAT_ENABLED: 'false' }, { GROQ_API_KEY: '' }, { GROQ_FREE_TIER_CONFIRMED: 'false' }
+    ])('rejects disabled/unconfigured text route before admission: %j', async (env) => {
+      const response = await handleAiRequest(createRequest(body), { env: { ...defaultEnv, ...env }, createClient: createMockClientFactory(), fetch: mockFetch });
+      expect(response.status).toBe(503); expect(mockRpc).not.toHaveBeenCalled(); expect(mockFetch).not.toHaveBeenCalled();
+    });
+    it('rejects disabled structured route before media or reservation', async () => {
+      const response = await handleAiRequest(createRequest({ ...body, operation: 'tutorial' }), { env: { ...defaultEnv, OHMI_GEMINI_MULTIMODAL_ENABLED: 'false' }, createClient: createMockClientFactory(), fetch: mockFetch });
+      expect(response.status).toBe(503); expect(mockRpc).not.toHaveBeenCalled(); expect(mockStorage.from).not.toHaveBeenCalled(); expect(mockFetch).not.toHaveBeenCalled();
+    });
+    it('accepts a complete 30-second tutorial with a schema and persistence reserve', async () => {
+      vi.useFakeTimers();
+      try {
+        mockFetch.mockImplementationOnce(async (_url, init) => {
+          const sent = JSON.parse(init.body);
+          expect(sent.generationConfig.maxOutputTokens).toBe(4096);
+          expect(sent.generationConfig.responseJsonSchema.properties.steps).toBeDefined();
+          await new Promise(resolve => setTimeout(resolve, 30_000));
+          return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ status: 'tutorial', title: 'LED circuit', components: [{ name: 'LED', quantity: 1 }], steps: [{ step: 1, instruction: 'Gather the rated parts.', why: 'Match the supplied requirements.', check: 'Confirm the resistor rating before power.' }] }) }] } }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 200, thoughtsTokenCount: 50, totalTokenCount: 350 } }));
+        });
+        const pending = handleAiRequest(createRequest({ ...body, operation: 'tutorial' }), { env: defaultEnv, createClient: createMockClientFactory(), fetch: mockFetch });
+        await vi.waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+        await vi.advanceTimersByTimeAsync(30_010);
+        const response = await pending;
+        expect(response.status).toBe(200);
+        expect(response.headers.get('server-timing')).toContain('provider;dur=30000');
+        expect(mockRpc).toHaveBeenCalledWith('ohmi_complete_ai', expect.objectContaining({ p_accounted_tokens: 350 }));
+      } finally { vi.useRealTimers(); }
+    });
+    it('rejects a token-limited structured tutorial and accounts its hidden usage', async () => {
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{"status":"tutorial",' }] } }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 200, thoughtsTokenCount: 500, totalTokenCount: 800 } })));
+      const response = await handleAiRequest(createRequest({ ...body, operation: 'tutorial' }), { env: defaultEnv, createClient: createMockClientFactory(), fetch: mockFetch });
+      expect(response.status).toBe(502); expect((await response.json()).code).toBe('truncated');
+      expect(mockRpc).toHaveBeenCalledWith('ohmi_fail_ai', expect.objectContaining({ p_error_code: 'truncated', p_accounted_tokens: 800 }));
+      expect(mockRpc.mock.calls.some(c => c[0] === 'ohmi_complete_ai')).toBe(false);
+    });
+    it('prefers the immutable snapshot over a later mutable analysis', async () => {
+      mockRpc.mockResolvedValueOnce({ data: { fresh: false, status: 'completed', result_id: 'later-analysis', result_payload: { status: 'answer', answer: 'Original answer' } }, error: null });
+      const response = await handleAiRequest(createRequest(body), { env: defaultEnv, createClient: createMockClientFactory(), fetch: mockFetch });
+      expect((await response.json()).result.answer).toBe('Original answer'); expect(mockFetch).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
+    });
+    it('does not fabricate success when an old saved result has disappeared', async () => {
+      mockRpc.mockResolvedValueOnce({ data: { fresh: false, status: 'completed', result_id: 'gone' }, error: null });
+      const response = await handleAiRequest(createRequest(body), { env: defaultEnv, createClient: createMockClientFactory(), fetch: mockFetch });
+      expect(response.status).toBe(404); expect((await response.json()).code).toBe('result_unavailable'); expect(mockFetch).not.toHaveBeenCalled();
+    });
+    it('ends a stalled auth stage without calling a provider', async () => {
+      vi.useFakeTimers();
+      try {
+        const pending = handleAiRequest(createRequest(body), { env: defaultEnv, createClient: (() => ({ auth: { getUser: () => new Promise(() => {}) } })) as any, fetch: mockFetch });
+        await vi.advanceTimersByTimeAsync(50_001);
+        const response = await pending;
+        expect(response.status).toBe(504); expect((await response.json()).code).toBe('request_uncertain'); expect(mockFetch).not.toHaveBeenCalled();
+      } finally { vi.useRealTimers(); }
+    });
+  });
+
 });

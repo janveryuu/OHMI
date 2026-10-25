@@ -256,6 +256,7 @@ export type Database = {
           language: string
           model: string
           status: 'pending' | 'completed' | 'failed'
+          result_payload: Json | null
           result_id: string | null
           reserved_tokens: number
           input_tokens: number | null
@@ -277,6 +278,7 @@ export type Database = {
           language: string
           model?: string
           status?: 'pending' | 'completed' | 'failed'
+          result_payload?: Json | null
           result_id?: string | null
           reserved_tokens: number
           input_tokens?: number | null
@@ -298,6 +300,7 @@ export type Database = {
           language?: string
           model?: string
           status?: 'pending' | 'completed' | 'failed'
+          result_payload?: Json | null
           result_id?: string | null
           reserved_tokens?: number
           input_tokens?: number | null

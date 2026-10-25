@@ -322,7 +322,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
     const edgeUrl = `${backend!.config.url}/functions/v1/ohmi-ai`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 28000);
+    const timer = setTimeout(() => controller.abort(), 55000);
 
     try {
       const res = await fetch(edgeUrl, {
@@ -365,7 +365,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
       return data;
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        throw new Error('AI response timed out after 28 seconds. Try again.');
+        throw new Error('AI response is taking longer than expected. Check the original request before retrying.');
       }
       throw err;
     } finally {
@@ -382,7 +382,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
     const edgeUrl = `${backend!.config.url}/functions/v1/ohmi-ai`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 28000);
+    const timer = setTimeout(() => controller.abort(), 55000);
 
     try {
       const res = await fetch(edgeUrl, {
@@ -412,7 +412,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
       return data;
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        throw new Error('Circuit check timed out after 28 seconds. Try again.');
+        throw new Error('Circuit check is taking longer than expected. Check the original request before retrying.');
       }
       throw err;
     } finally {
@@ -423,7 +423,7 @@ export async function handleRequest(request: Request): Promise<unknown> {
     const requestId = String(payload.requestId);
     const reqRes = await client
       .from('ohmi_ai_requests')
-      .select('id, user_id, status, operation, model, language, result_id, created_at, finished_at, error_code')
+      .select('id, user_id, status, operation, model, language, result_id, result_payload, created_at, finished_at, error_code')
       .eq('id', requestId)
       .eq('user_id', user.id)
       .maybeSingle();
@@ -432,26 +432,26 @@ export async function handleRequest(request: Request): Promise<unknown> {
       return null;
     }
     const reqData = reqRes.data;
-    let result: unknown = null;
+    let result: unknown = reqData.result_payload;
     let isUnavailable = false;
-    if (reqData.status === 'completed' && reqData.result_id) {
-      const analysisRes = await client
-        .from('ohmi_analyses')
-        .select('id, payload, schema_version, artifact_kind, title, created_at')
-        .eq('id', reqData.result_id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      fail(analysisRes.error);
-      if (analysisRes.data) {
-        result = analysisRes.data.payload;
-      } else {
-        isUnavailable = true;
+    if (reqData.status === 'completed' && !result) {
+      const messageRes = await client.from('ohmi_messages').select('content, structured_result')
+        .eq('request_id', requestId).eq('user_id', user.id).eq('role', 'assistant').maybeSingle();
+      fail(messageRes.error);
+      result = messageRes.data?.structured_result || (messageRes.data?.content ? { status: 'answer', answer: messageRes.data.content } : null);
+      if (!result && reqData.operation === 'circuit_check' && reqData.result_id) {
+        const analysisRes = await client.from('ohmi_analyses').select('payload')
+          .eq('id', reqData.result_id).eq('user_id', user.id).eq('artifact_kind', 'circuit_check').maybeSingle();
+        fail(analysisRes.error);
+        result = analysisRes.data?.payload || null;
       }
+      isUnavailable = !result;
     }
+
     return {
       requestId: reqData.id,
       accountId: user.id,
-      status: isUnavailable ? 'unavailable' : reqData.status,
+      status: isUnavailable ? 'unavailable' : reqData.status === 'pending' && Date.now() - Date.parse(reqData.created_at) > 60_000 ? 'failed' : reqData.status,
       operation: reqData.operation,
       model: reqData.model,
       language: reqData.language,

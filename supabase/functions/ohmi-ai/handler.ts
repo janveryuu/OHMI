@@ -1,5 +1,5 @@
 // Supabase Edge Function: ohmi-ai production request handler
-// Single provider: Google Gemini (gemini-3.5-flash-lite)
+// Approved routes: Gemini multimodal/structured, Groq conversational text.
 // Zero automatic retries, bounded memory/execution, strict Auth verification.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -17,6 +17,7 @@ import { validateArduinoSketch, type SketchValidationResult } from './arduino.ts
 import { validateCircuitImage } from './image.ts';
 import { validatePdfDocument, verifyPageCitation } from './pdf.ts';
 import { validateTutorialResult, extractTutorialJson } from './tutorial.ts';
+import { circuitResponseSchema, tutorialResponseSchema } from './schemas.ts';
 import { validateCircuitRequest, validateCircuitResult, buildCircuitPrompt } from './circuit.ts';
 import {
   OHMI_TUTOR_VERSION,
@@ -31,7 +32,7 @@ export const MAX_BODY_BYTES_V1 = 32 * 1024; // 32 KiB
 export const MAX_BODY_BYTES_V2 = 6 * 1024 * 1024; // 6 MiB
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MiB
 export const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MiB
-export const DEFAULT_TIMEOUT_MS = 24_000; // 24 seconds (under 25s total server deadline)
+export const DEFAULT_TIMEOUT_MS = 24_000; // text route; structured/media routes have a 40s ceiling
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,7 +72,7 @@ export async function sha256Hex(data: string): Promise<string> {
 }
 
 export async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
-  const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
+  const hashBuf = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
   const hashArr = Array.from(new Uint8Array(hashBuf));
   return hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -86,7 +87,7 @@ import {
   type ResolvedRoute,
   type AiProvider
 } from './provider-policy.ts';
-import { callGroqChatCompletions } from './groq.ts';
+import { abortable, readBoundedBody, ResponseSizeError, callGroqChatCompletions } from './groq.ts';
 
 export interface AiHandlerDependencies {
   env?: {
@@ -94,6 +95,8 @@ export interface AiHandlerDependencies {
     SUPABASE_ANON_KEY?: string;
     SUPABASE_SERVICE_ROLE_KEY?: string;
     GEMINI_API_KEY?: string;
+    GEMINI_FREE_TIER_CONFIRMED?: string;
+    GROQ_FREE_TIER_CONFIRMED?: string;
     GROQ_API_KEY?: string;
     GROQ_CHAT_MODEL?: string;
     GEMINI_MODEL?: string;
@@ -105,6 +108,8 @@ export interface AiHandlerDependencies {
   createClient?: typeof createClient;
   fetch?: typeof fetch;
   now?: () => number;
+  deadline?: number;
+  timings?: { last: number; stages: string[] };
 }
 
 const getEnv = (key: string, deps?: AiHandlerDependencies): string => {
@@ -131,6 +136,7 @@ export interface AiTransportRequest {
   maxTokens: number;
   temperature?: number;
   responseFormat?: 'text' | 'json_object';
+  responseSchema?: Record<string, unknown>;
   geminiApiKey?: string;
   groqApiKey?: string;
   timeoutMs?: number;
@@ -153,9 +159,12 @@ export interface AiTransportError {
   provider: 'gemini' | 'groq';
   model: string;
   status: number;
-  code: 'timeout' | 'rate_limit' | 'unavailable' | 'safety' | 'payload_too_large' | 'invalid_json' | 'quota_exhausted' | 'empty_answer' | 'provider_error';
+  code: 'timeout' | 'rate_limit' | 'unavailable' | 'safety' | 'payload_too_large' | 'invalid_json' | 'quota_exhausted' | 'empty_answer' | 'provider_error' | 'truncated';
   message: string;
   retryAfterSeconds?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
 }
 
 export type AiTransportResult = AiTransportResponse | AiTransportError;
@@ -212,6 +221,9 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
       };
     }
 
+    if (req.responseFormat === 'json_object' && groqRes.finishReason === 'length') {
+      return { ok: false, provider: 'groq', model: req.model, status: 502, code: 'truncated', promptTokens: groqRes.promptTokens, completionTokens: groqRes.completionTokens, totalTokens: groqRes.totalTokens, message: 'Structured answer reached its token limit; no incomplete guide was saved.' };
+    }
     return {
       ok: true,
       provider: 'groq',
@@ -275,7 +287,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
   let providerRes: Response;
   let responseText: string;
   try {
-    providerRes = await fetchFn(endpoint, {
+    providerRes = await abortable(fetchFn(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -290,26 +302,20 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
             thinkingLevel: 'LOW',
             includeThoughts: false
           },
-          ...(req.responseFormat === 'json_object' ? { responseMimeType: 'application/json' } : {})
+          ...(req.responseFormat === 'json_object' ? { responseMimeType: 'application/json' } : {}),
+          ...(req.responseSchema ? { responseJsonSchema: req.responseSchema } : {})
         }
       }),
       signal: controller.signal
-    });
-
-    if (providerRes.ok) {
-      responseText = await providerRes.text();
-    } else {
-      responseText = await providerRes.text().catch(() => '');
-    }
-  } catch (_err: unknown) {
-    clearTimeout(timer);
+    }), controller.signal);
+    responseText = await readBoundedBody(providerRes, 128 * 1024, controller.signal);
+  } catch (err: unknown) {
+    const timedOut = controller.signal.aborted;
     return {
-      ok: false,
-      provider: 'gemini',
-      model: req.model,
-      status: 504,
-      code: 'timeout',
-      message: 'Request timed out after 24 seconds.'
+      ok: false, provider: 'gemini', model: req.model,
+      status: timedOut ? 504 : 502,
+      code: timedOut ? 'timeout' : err instanceof ResponseSizeError ? 'payload_too_large' : 'provider_error',
+      message: timedOut ? `AI provider timed out after ${timeoutMs / 1000} seconds.` : err instanceof ResponseSizeError ? err.message : 'Provider connection failed.'
     };
   } finally {
     clearTimeout(timer);
@@ -356,17 +362,6 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     };
   }
 
-  if (responseText.length > 64 * 1024) {
-    return {
-      ok: false,
-      provider: 'gemini',
-      model: req.model,
-      status: 502,
-      code: 'payload_too_large',
-      message: 'Provider response exceeded 64 KiB.'
-    };
-  }
-
   let data: any;
   try {
     data = JSON.parse(responseText);
@@ -384,8 +379,9 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
   const promptTokens = data.usageMetadata?.promptTokenCount;
   const candidateTokens = data.usageMetadata?.candidatesTokenCount;
   const hasUsage = typeof promptTokens === 'number' && typeof candidateTokens === 'number';
-  const inputTokens = hasUsage ? promptTokens : Math.floor(req.maxTokens / 2);
-  const outputTokens = hasUsage ? candidateTokens : Math.ceil(req.maxTokens / 2);
+  const estimatedInput = Math.ceil(new TextEncoder().encode(req.systemInstruction + req.promptText + (req.history || []).map(m => m.content).join('')).byteLength / 2) + (req.images?.length || 0) * 4096 + (req.pdf ? 14048 : 0);
+  const inputTokens = hasUsage ? promptTokens : Math.max(1, estimatedInput);
+  const outputTokens = hasUsage ? candidateTokens : req.maxTokens;
 
   const candidate = data.candidates?.[0];
   const finishReason = candidate?.finishReason;
@@ -401,18 +397,13 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     };
   }
 
-  if (finishReason === 'MAX_TOKENS') {
-    return {
-      ok: false,
-      provider: 'gemini',
-      model: req.model,
-      status: 502,
-      code: 'payload_too_large',
-      message: 'Provider response was truncated (MAX_TOKENS).'
-    };
+  if (finishReason === 'MAX_TOKENS' && req.responseFormat === 'json_object') {
+    return { ok: false, provider: 'gemini', model: req.model, status: 502, code: 'truncated',
+      promptTokens: inputTokens, completionTokens: outputTokens, totalTokens: Math.max(inputTokens + outputTokens + (Number(data.usageMetadata?.thoughtsTokenCount) || 0), Number(data.usageMetadata?.totalTokenCount) || 0),
+      message: 'Structured answer reached its token limit; no incomplete guide or review was saved.' };
   }
 
-  if (finishReason && finishReason !== 'STOP') {
+  if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
     return {
       ok: false,
       provider: 'gemini',
@@ -445,6 +436,9 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     };
   }
 
+  if (answerText.length > 17800 || new TextEncoder().encode(answerText).byteLength > 64 * 1024 - 200) {
+    return { ok: false, provider: 'gemini', model: req.model, status: 502, code: 'payload_too_large', message: 'Visible answer exceeded its supported size.' };
+  }
   return {
     ok: true,
     provider: 'gemini',
@@ -452,12 +446,58 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     text: answerText,
     promptTokens: inputTokens,
     completionTokens: outputTokens,
-    totalTokens: inputTokens + outputTokens,
-    finishReason: 'STOP'
+    totalTokens: Math.max(inputTokens + outputTokens + (Number(data.usageMetadata?.thoughtsTokenCount) || 0), Number(data.usageMetadata?.totalTokenCount) || 0),
+    finishReason: finishReason || 'STOP'
   };
 }
 
 export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies): Promise<Response> {
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 50_000);
+  const backendFetch: typeof fetch = (input, init) => abortable(fetch(input, {
+    ...init, signal: AbortSignal.any([controller.signal, ...(init?.signal ? [init.signal] : [])])
+  }), controller.signal);
+  const timings = { last: started, stages: [] as string[] };
+  try {
+    const response = await abortable(handleAiRequestWithinBudget(req, { ...deps, deadline: started + 50_000,
+      timings,
+      createClient: deps?.createClient || ((url, key, options) => createClient(url, key, { ...options,
+        global: { ...options?.global, fetch: backendFetch } })) as typeof createClient
+    }), controller.signal);
+    response.headers.set('Server-Timing', [...timings.stages, `total;dur=${Date.now() - started}`].join(', '));
+    return response;
+  } catch (error) {
+    if (error instanceof ResponseSizeError) return errorResponse('payload_too_large', 'Request body exceeds its supported byte limit.', 413);
+    // A lost database acknowledgement is ambiguous: retain the UUID and recover, never regenerate.
+    return errorResponse('request_uncertain', 'OHMI could not confirm completion. Check this request again before starting a new one.', 504);
+  } finally { clearTimeout(timer); }
+}
+
+function markStage(deps: AiHandlerDependencies | undefined, name: string) {
+  if (!deps?.timings) return;
+  const now = Date.now();
+  deps.timings.stages.push(`${name};dur=${now - deps.timings.last}`);
+  deps.timings.last = now;
+}
+
+function routeReadiness(route: ResolvedRoute, deps?: AiHandlerDependencies): Response | undefined {
+  const readiness = checkRouteReadiness(route, {
+    OHMI_AI_ENABLED: getEnv('OHMI_AI_ENABLED', deps),
+    GEMINI_FREE_TIER_CONFIRMED: getEnv('GEMINI_FREE_TIER_CONFIRMED', deps),
+    GROQ_FREE_TIER_CONFIRMED: getEnv('GROQ_FREE_TIER_CONFIRMED', deps),
+    OHMI_GROQ_CHAT_ENABLED: getEnv('OHMI_GROQ_CHAT_ENABLED', deps),
+    OHMI_GEMINI_MULTIMODAL_ENABLED: getEnv('OHMI_GEMINI_MULTIMODAL_ENABLED', deps),
+    GROQ_API_KEY: getEnv('GROQ_API_KEY', deps), GEMINI_API_KEY: getEnv('GEMINI_API_KEY', deps)
+  });
+  if (!readiness.enabled) return errorResponse('unavailable', 'This AI route is paused or its credentials are unavailable. No generation was started.', 503);
+}
+
+function providerTimeout(structuredOrMedia: boolean, deps?: AiHandlerDependencies): number {
+  return Math.max(1, Math.min(structuredOrMedia ? 40_000 : DEFAULT_TIMEOUT_MS, (deps?.deadline ?? Date.now() + 50_000) - Date.now() - 5_000));
+}
+
+async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDependencies): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -502,6 +542,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('auth_error', 'Sign in to use the AI assistant.', 401);
   }
 
+  markStage(deps, 'auth');
+
   // Service role client for atomic reservation & quota accounting
   const adminClient = clientFactory(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false, autoRefreshToken: false }
@@ -513,7 +555,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('payload_too_large', 'Request body exceeds 6 MiB limit.', 413);
   }
 
-  const rawBody = await req.text();
+  const rawBody = await readBoundedBody(new Response(req.body), MAX_BODY_BYTES_V2);
   if (rawBody.length > MAX_BODY_BYTES_V2) {
     return errorResponse('payload_too_large', 'Request body exceeds 6 MiB limit.', 413);
   }
@@ -529,6 +571,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('invalid_request', 'Client model/provider override is prohibited.', 400);
   }
 
+  markStage(deps, 'body');
   if (body?.version === 2) {
     return handleCircuitCheckRequest(body, rawBody, user, token, adminClient, userClient, deps);
   }
@@ -573,6 +616,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     circuitAnalysisId,
     hasArtifactReference: Boolean(circuitAnalysisId)
   }, getEnv('GROQ_CHAT_MODEL', deps));
+  const notReady = routeReadiness(route, deps);
+  if (notReady) return notReady;
 
   if (!['chat', 'image', 'pdf', 'tutorial'].includes(operation)) {
     return errorResponse('invalid_request', 'Invalid operation.', 400);
@@ -691,19 +736,21 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     }
   }
 
+  markStage(deps, 'media');
+
   // 4. Deterministic calculations and Arduino checks
   let calculationResult: CalculationResult | undefined;
   if (calculation && typeof calculation === 'object') {
     const calcType = calculation.type as CalculationType;
     const ops = calculation.operands || {};
     if (calcType === 'led_resistor') {
-      calculationResult = calculateLedResistor(ops);
+      calculationResult = calculateLedResistor({ supplyVoltage: ops.supplyVoltage, forwardVoltage: ops.forwardVoltage, targetCurrent: ops.targetCurrent });
     } else if (calcType === 'ohms_law') {
       calculationResult = calculateOhmsLaw(ops);
     } else if (calcType === 'series_resistance') {
-      calculationResult = calculateSeriesResistance(ops);
+      calculationResult = calculateSeriesResistance({ resistors: ops.resistors });
     } else if (calcType === 'parallel_resistance') {
-      calculationResult = calculateParallelResistance(ops);
+      calculationResult = calculateParallelResistance({ resistors: ops.resistors });
     } else if (calcType === 'resistor_power') {
       calculationResult = calculateResistorPower(ops);
     }
@@ -763,12 +810,10 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
         const recentSubset: typeof chronological = [];
         for (let i = chronological.length - 1; i >= 0 && recentSubset.length < 8; i--) {
           const item = chronological[i];
-          const textLen = (item.content || '').length;
-          if (totalChars + textLen > 4000) {
-            break;
-          }
-          totalChars += textLen;
-          recentSubset.unshift(item);
+          const content = item.role === 'assistant' ? (item.content || '').slice(-2000) : (item.content || '').slice(0, 2000);
+          if (totalChars + content.length > 4000) break;
+          totalChars += content.length;
+          recentSubset.unshift({ ...item, content });
         }
 
         if (recentSubset.length > 0 && recentSubset[0].role === 'assistant') {
@@ -779,7 +824,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
           if (m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') {
             canonicalHistory.push({
               role: m.role,
-              content: m.content.slice(0, 1000)
+              content: m.content
             });
           }
         }
@@ -798,6 +843,8 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
       }
     }
   }
+
+  markStage(deps, 'context');
 
   // Canonical input hash including conversationId and history snapshot (P4-7 / F3)
   const inputHash = await sha256Hex(JSON.stringify({
@@ -819,18 +866,23 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
 
   // 5. Atomic Quota and In-flight Reservation
   const targetId = assignmentId || conversationId || null;
+  const systemInstruction = operation === 'tutorial'
+    ? buildTutorialSystemInstruction(language)
+    : buildAskSystemInstruction(language, operation);
+  const maxTokens = operation === 'tutorial' ? 4096 : operation === 'pdf' ? 3072 : operation === 'image' ? 2048 : 1536;
+  const estimatedTokens = Math.min(64000, maxTokens + Math.ceil(new TextEncoder().encode(systemInstruction + message + (code || '') + canonicalHistory.map(m => m.content).join('')).byteLength / 2) + (inlineMediaPart ? (extractedPdfPages.length ? Math.ceil(new TextEncoder().encode(extractedPdfPages.join('')).byteLength / 2) + 2048 : 4096) : 0));
   const reserveKind = (operation === 'tutorial' && !assignmentId) ? 'chat' : operation;
   const reserveResult = await adminClient.rpc('ohmi_reserve_ai', {
     p_user_id: user.id,
     p_request_id: requestId,
     p_kind: reserveKind,
+    p_estimated_tokens: estimatedTokens,
     p_target: targetId,
     p_hash: inputHash,
     p_language: language,
     p_model: route.model,
     p_conversation_id: conversationId || null
   });
-
   if (reserveResult.error) {
     const msg = reserveResult.error.message || 'AI request reservation failed.';
     if (/cooldown/i.test(msg)) {
@@ -848,14 +900,15 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
     return errorResponse('invalid_request', msg, 400);
   }
 
+  markStage(deps, 'reservation');
   const reservation = reserveResult.data;
   if (!reservation.fresh) {
     // Replay of existing request
     if (reservation.status === 'completed') {
       // P4-3 / P4-7: Restore exact original structured result
-      let replayedResult: any = null;
+      let replayedResult: any = reservation.result_payload || null;
 
-      if (reservation.conversation_id) {
+      if (!replayedResult && reservation.conversation_id) {
         const { data: msg } = await adminClient
           .from('ohmi_messages')
           .select('content, structured_result')
@@ -873,26 +926,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
         }
       }
 
-      if (!replayedResult && reservation.result_id) {
-        const { data: analysis } = await adminClient
-          .from('ohmi_analyses')
-          .select('payload')
-          .eq('id', reservation.result_id)
-          .maybeSingle();
-
-        if (analysis?.payload) {
-          replayedResult = analysis.payload;
-        }
-      }
-
-      if (!replayedResult) {
-        replayedResult = {
-          status: 'answer',
-          answer: 'Previously completed response.',
-          ...(calculationResult ? { calculation: calculationResult } : {}),
-          ...(arduinoValidation ? { arduinoValidation } : {})
-        };
-      }
+      if (!replayedResult) return errorResponse('result_unavailable', 'The saved result is no longer available. No new generation was started.', 404);
 
       return jsonResponse({
         ok: true,
@@ -913,9 +947,7 @@ export async function handleAiRequest(req: Request, deps?: AiHandlerDependencies
   }
 
     // 6. Build prompt & invoke AI provider (zero automatic retries)
-  const systemInstruction = operation === 'tutorial'
-    ? buildTutorialSystemInstruction(language)
-    : buildAskSystemInstruction(language, operation);
+
 
   const historyList = canonicalHistory;
 
@@ -983,7 +1015,7 @@ Respond with a JSON object formatted as:
   "notes": "Explanation of any assumptions, clarifications, or component guidance"
 }
 If requirements, supply voltage, or component values are missing or contradictory, set "status": "needs_clarification", ask specific clarification questions in "clarificationQuestions", explain in "notes", and leave "steps" empty.
-For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24.`;
+For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24. Use concise instruction/why/check text, avoid repeating the sketch in individual steps, and finish the complete JSON and any required sketch within the output budget.`;
   }
 
   let mediaImage: { mimeType: string; data: string } | undefined;
@@ -1012,14 +1044,16 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     history: historyList,
     images: mediaImage ? [mediaImage] : undefined,
     pdf: mediaPdf,
-    maxTokens: operation === 'tutorial' ? 2048 : 1536,
+    maxTokens,
     responseFormat: operation === 'tutorial' ? 'json_object' : 'text',
+    responseSchema: operation === 'tutorial' ? tutorialResponseSchema : undefined,
     geminiApiKey,
     groqApiKey,
-    timeoutMs: DEFAULT_TIMEOUT_MS,
+    timeoutMs: providerTimeout(operation !== 'chat' || !!circuitAnalysisId, deps),
     fetchFn: deps?.fetch || fetch
   });
 
+  markStage(deps, 'provider');
   if (!transportRes.ok) {
     const errCode = transportRes.code === 'payload_too_large' && transportRes.message.includes('truncated')
       ? 'truncated'
@@ -1028,30 +1062,29 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: requestId,
       p_error_code: errCode,
+      ...(transportRes.totalTokens !== undefined ? { p_input_tokens: transportRes.promptTokens, p_output_tokens: transportRes.completionTokens, p_accounted_tokens: transportRes.totalTokens } : {}),
       p_error_message: transportRes.message.slice(0, 200),
       p_model: route.model
     });
 
-    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
+    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
         p_model: route.model,
         p_retry_after: transportRes.retryAfterSeconds || 60
       });
       return errorResponse(
         transportRes.code,
-        'AI provider is temporarily busy or rate limited. Try again in a minute.',
-        transportRes.status,
+        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. No fallback was used.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
         transportRes.retryAfterSeconds || 60
       );
     }
 
     if (transportRes.code === 'timeout') {
-      return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
+      return errorResponse('timeout', transportRes.message, 504);
     }
 
-    if (transportRes.code === 'quota_exhausted') {
-      return errorResponse('unavailable', 'AI provider free quota is exhausted or expired.', 503);
-    }
+    if (transportRes.code === 'truncated') return errorResponse('truncated', transportRes.message, 502);
 
     if (transportRes.code === 'payload_too_large') {
       return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
@@ -1072,7 +1105,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     return errorResponse('provider_error', 'AI provider returned an error.', 502);
   }
 
-  const answerText = transportRes.text;
+  const incomplete = ['MAX_TOKENS', 'length'].includes(transportRes.finishReason);
+  const answerText = transportRes.text + (incomplete ? '\n\n[Answer incomplete: the output token limit was reached. Continue the answer to see the remaining explanation.]' : '');
   const inputTokens = transportRes.promptTokens;
   const outputTokens = transportRes.completionTokens;
 
@@ -1080,6 +1114,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
   let resultPayload: any = {
     status: 'answer',
     answer: answerText,
+    ...(incomplete ? { incomplete: true, continuation: { operation, ...(assignmentId ? { assignmentId } : {}), ...(circuitAnalysisId ? { circuitAnalysisId } : {}) } } : {}),
     ...(calculationResult ? { calculation: calculationResult } : {}),
     ...(arduinoValidation ? { arduinoValidation } : {})
   };
@@ -1090,6 +1125,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
       await adminClient.rpc('ohmi_fail_ai', {
         p_request_id: requestId,
         p_error_code: 'invalid_tutorial',
+        p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
         p_error_message: 'Failed to extract JSON from tutorial response.',
         p_model: MODEL
       });
@@ -1101,6 +1137,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
       await adminClient.rpc('ohmi_fail_ai', {
         p_request_id: requestId,
         p_error_code: 'invalid_tutorial',
+        p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
         p_error_message: tutVal.error || 'Tutorial validation failed.',
         p_model: route.model
       });
@@ -1129,29 +1166,22 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     }
   }
 
+  markStage(deps, 'validation');
   const completeRes = await adminClient.rpc('ohmi_complete_ai', {
     p_request_id: requestId,
     p_output: {
+      ...resultPayload,
       message,
-      answer: (resultPayload as any).answer || answerText,
       prompt_version: OHMI_TUTOR_VERSION,
-      ...(resultPayload.title ? { title: resultPayload.title } : {}),
-      ...(resultPayload.objective ? { objective: resultPayload.objective } : {}),
-      ...(resultPayload.components ? { components: resultPayload.components } : {}),
-      ...(resultPayload.steps ? { steps: resultPayload.steps } : {}),
-      ...(resultPayload.code ? { code: resultPayload.code } : {}),
-      ...(resultPayload.clarificationQuestions ? { clarificationQuestions: resultPayload.clarificationQuestions } : {}),
-      ...(resultPayload.notes ? { notes: resultPayload.notes } : {}),
-      ...(resultPayload.status ? { status: resultPayload.status } : {}),
-      ...(calculationResult ? { calculation: calculationResult } : {}),
-      ...(resultPayload.arduinoValidation ? { arduinoValidation: resultPayload.arduinoValidation } : {}),
       ...(fileHash ? { source_hash: fileHash } : {})
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
+    p_accounted_tokens: transportRes.totalTokens,
     p_model: route.model
   });
 
+  markStage(deps, 'persistence');
   if (completeRes.error) {
     return errorResponse('server_error', 'Failed to save completed AI response.', 500);
   }
@@ -1184,6 +1214,8 @@ export async function handleCircuitCheckRequest(
 
   const geminiApiKey = getEnv('GEMINI_API_KEY', deps);
   const route = resolveAiRoute('circuit_check');
+  const notReady = routeReadiness(route, deps);
+  if (notReady) return notReady;
 
   // 1. Validate V2 Request schema and semantic bounds
   let reqV2: CircuitRequestV2;
@@ -1248,7 +1280,7 @@ export async function handleCircuitCheckRequest(
           text: r.text,
           kind: r.kind || 'requirement'
         }));
-      requirementIds = requirements.map(r => r.id);
+      requirementIds = (requirements || []).map(r => r.id);
     }
   }
 
@@ -1264,7 +1296,7 @@ export async function handleCircuitCheckRequest(
       text,
       kind: 'behavior'
     }));
-    requirementIds = requirements.map(r => r.id);
+    requirementIds = (requirements || []).map(r => r.id);
   }
 
   // If follow-up on prior check
@@ -1301,10 +1333,10 @@ export async function handleCircuitCheckRequest(
   if (reqV2.calculation && typeof reqV2.calculation === 'object') {
     const calcType = reqV2.calculation.type;
     const ops = reqV2.calculation.operands || {};
-    if (calcType === 'led_resistor') calculationResult = calculateLedResistor(ops);
+    if (calcType === 'led_resistor') calculationResult = calculateLedResistor({ supplyVoltage: ops.supplyVoltage, forwardVoltage: ops.forwardVoltage, targetCurrent: ops.targetCurrent });
     else if (calcType === 'ohms_law') calculationResult = calculateOhmsLaw(ops);
-    else if (calcType === 'series_resistance') calculationResult = calculateSeriesResistance(ops);
-    else if (calcType === 'parallel_resistance') calculationResult = calculateParallelResistance(ops);
+    else if (calcType === 'series_resistance') calculationResult = calculateSeriesResistance({ resistors: ops.resistors });
+    else if (calcType === 'parallel_resistance') calculationResult = calculateParallelResistance({ resistors: ops.resistors });
     else if (calcType === 'resistor_power') calculationResult = calculateResistorPower(ops);
   }
 
@@ -1346,6 +1378,7 @@ export async function handleCircuitCheckRequest(
     p_user_id: user.id,
     p_request_id: reqV2.requestId,
     p_kind: 'circuit_check',
+    p_estimated_tokens: Math.min(64000, 5120 + reqV2.message.length + (reqV2.code?.length || 0) + (reqV2.simulation?.length || 0) + reqV2.images.length * 4096),
     p_target: targetId,
     p_hash: inputHash,
     p_language: reqV2.language,
@@ -1370,12 +1403,13 @@ export async function handleCircuitCheckRequest(
     return errorResponse('invalid_request', msg, 400);
   }
 
+  markStage(deps, 'reservation');
   const reservation = reserveResult.data;
   if (!reservation.fresh) {
     if (reservation.status === 'completed') {
-      let replayedResult: any = null;
+      let replayedResult: any = reservation.result_payload || null;
 
-      if (reservation.conversation_id) {
+      if (!replayedResult && reservation.conversation_id) {
         const { data: msg } = await adminClient
           .from('ohmi_messages')
           .select('content, structured_result')
@@ -1441,11 +1475,13 @@ export async function handleCircuitCheckRequest(
     images: reqV2.images.map((img: any) => ({ mimeType: img.mimeType, data: img.data })),
     maxTokens: 3072,
     responseFormat: 'json_object',
+    responseSchema: circuitResponseSchema(evidence),
     geminiApiKey,
-    timeoutMs: DEFAULT_TIMEOUT_MS,
+    timeoutMs: providerTimeout(true, deps),
     fetchFn: deps?.fetch || fetch
   });
 
+  markStage(deps, 'provider');
   if (!transportRes.ok) {
     const errCode = transportRes.code === 'payload_too_large' && transportRes.message.includes('truncated')
       ? 'truncated'
@@ -1454,30 +1490,29 @@ export async function handleCircuitCheckRequest(
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: reqV2.requestId,
       p_error_code: errCode,
+      ...(transportRes.totalTokens !== undefined ? { p_input_tokens: transportRes.promptTokens, p_output_tokens: transportRes.completionTokens, p_accounted_tokens: transportRes.totalTokens } : {}),
       p_error_message: transportRes.message.slice(0, 200),
       p_model: route.model
     });
 
-    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable') {
+    if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
       await adminClient.rpc('ohmi_defer_ai_provider', {
         p_model: route.model,
         p_retry_after: transportRes.retryAfterSeconds || 60
       });
       return errorResponse(
         transportRes.code,
-        'AI provider is temporarily busy or rate limited. Try again in a minute.',
-        transportRes.status,
+        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. No fallback was used.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
         transportRes.retryAfterSeconds || 60
       );
     }
 
     if (transportRes.code === 'timeout') {
-      return errorResponse('timeout', 'AI provider timed out after 24 seconds.', 504);
+      return errorResponse('timeout', transportRes.message, 504);
     }
 
-    if (transportRes.code === 'quota_exhausted') {
-      return errorResponse('unavailable', 'AI provider free quota is exhausted or expired.', 503);
-    }
+    if (transportRes.code === 'truncated') return errorResponse('truncated', transportRes.message, 502);
 
     if (transportRes.code === 'payload_too_large') {
       return errorResponse('payload_too_large', 'AI response exceeded maximum allowed size.', 502);
@@ -1510,6 +1545,7 @@ export async function handleCircuitCheckRequest(
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
+      p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
       p_error_message: 'Failed to parse JSON from circuit check response.',
       p_model: route.model
     });
@@ -1524,6 +1560,7 @@ export async function handleCircuitCheckRequest(
     await adminClient.rpc('ohmi_fail_ai', {
       p_request_id: reqV2.requestId,
       p_error_code: 'invalid_circuit_check',
+      p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
       p_error_message: valErr.slice(0, 200),
       p_model: route.model
     });
@@ -1531,6 +1568,7 @@ export async function handleCircuitCheckRequest(
   }
 
   // 8. Atomically complete the AI request via ohmi_complete_ai
+  markStage(deps, 'validation');
   const completeRes = await adminClient.rpc('ohmi_complete_ai', {
     p_request_id: reqV2.requestId,
     p_output: {
@@ -1543,9 +1581,11 @@ export async function handleCircuitCheckRequest(
     },
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
+    p_accounted_tokens: transportRes.totalTokens,
     p_model: route.model
   });
 
+  markStage(deps, 'persistence');
   if (completeRes.error) {
     return errorResponse('server_error', 'Failed to save completed AI response.', 500);
   }

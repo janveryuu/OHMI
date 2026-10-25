@@ -27,6 +27,7 @@ export async function seedSession(context, user = testUser, expired = false) {
 // Isolated local Auth/Data API double. App code keeps its real Supabase verification path.
 export async function startAuthFixture() {
   const state = { mode: "success", authorizations: 0, exchanges: 0, refreshes: 0, challenge: "", onboardingClaims: 0, onboardingFail: false };
+  state.ai = null;
   const invited = new Set();
   const profiles = new Map();
   const server = createServer(async (request, response) => {
@@ -83,6 +84,22 @@ export async function startAuthFixture() {
       const profile = profiles.get(user.id) || { id: user.id, display_name: user.user_metadata.full_name, language: "english" };
       if (request.method === "PATCH") { profiles.set(user.id, { ...profile, ...body }); return send(200, { id: user.id }); }
       return request.method === "GET" ? send(200, profile) : send(204);
+    }
+    if (state.ai) {
+      const ai=state.ai;
+      if (url.pathname === '/rest/v1/ohmi_conversations') return send(200,[{id:ai.conversationId,user_id:user.id,title:'Synthetic PDF conversation'}]);
+      if (url.pathname === '/rest/v1/ohmi_messages') return send(200,ai.messages.filter(m=>m.user_id===user.id).sort((a,b)=>b.position-a.position));
+      if (url.pathname === '/rest/v1/ohmi_ai_requests') {
+        const id=(url.searchParams.get('id')||'').replace('eq.','');
+        return send(200,ai.jobs.filter(j=>j.id===id&&j.user_id===user.id));
+      }
+      if (url.pathname === '/functions/v1/ohmi-web') {
+        ai.posts.push(body);
+        const result={status:'answer',answer:'Continued explanation from the original PDF.'};
+        ai.jobs.push({id:body.requestId,user_id:user.id,status:'completed',operation:body.operation,language:body.language,model:'synthetic',result_payload:result,conversation_id:ai.conversationId,created_at:new Date().toISOString()});
+        ai.messages.push({id:crypto.randomUUID(),user_id:user.id,role:'user',content:body.message,position:3}, {id:crypto.randomUUID(),user_id:user.id,role:'assistant',content:result.answer,structured_result:result,position:4});
+        return send(200,{ok:true,requestId:body.requestId,accountId:user.id,result});
+      }
     }
     if (url.pathname.startsWith("/rest/v1/")) return send(200, []);
     send(404, { message: "Fixture route not found" });

@@ -19,6 +19,11 @@ const context = await browser.newContext({
   reducedMotion: "reduce",
   hasTouch: true,
 });
+// The development toolbar overlaps mobile account controls; page errors remain asserted below.
+await context.addInitScript(() => {
+  const hide = () => { if (!document.head) return; const style = document.createElement('style'); style.textContent = 'nextjs-portal { pointer-events: none !important; }'; document.head.append(style); };
+  if (document.head) hide(); else document.addEventListener('DOMContentLoaded', hide, {once:true});
+});
 await seedSession(context);
 const page = await context.newPage(),
   errors = [],
@@ -440,6 +445,7 @@ try {
       (resolve) => (markAiRequestReceived = resolve),
     );
     await interactionPage.route("**/app/api/ai/**", async (route) => {
+        if (route.request().url().includes('/api/ai/requests/')) return route.fulfill({ status:404, contentType:'application/json', body:'{}' });
         if (route.request().method() === "GET")
           return route.fulfill({
             status: 200,
@@ -452,7 +458,7 @@ try {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ ok: true, result: { text: "Mocked reply." } }),
+          body: JSON.stringify({ ok: true, requestId: receivedPayload.requestId, result: { text: "Mocked reply." } }),
         });
     });
     await interactionPage.goto(base + "/ask/");
@@ -528,7 +534,9 @@ try {
   assert.equal(manifest.start_url, "/app/");
   assert.equal(manifest.display, "standalone");
   await page.evaluate(async () => {
-    const r = await navigator.serviceWorker.ready;
+    // Development skips automatic worker registration; test the shipped worker explicitly.
+    if (!(await navigator.serviceWorker.getRegistration('/app/'))) await navigator.serviceWorker.register('/app/sw.js', {scope:'/app/'});
+    const r = await Promise.race([navigator.serviceWorker.ready, new Promise((_,reject)=>setTimeout(()=>reject(new Error('Worker not ready')),10000))]);
     if (new URL(r.scope).pathname !== "/app/")
       throw Error("Worker scope escaped app");
   });

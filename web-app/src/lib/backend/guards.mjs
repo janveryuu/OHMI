@@ -92,6 +92,8 @@ export function selectActiveConversation(current, conversations) {
 export function isTerminalAiCode(code) {
   return [
     "failed",
+    "truncated",
+    "result_unavailable",
     "unavailable",
     "provider_error",
     "timeout",

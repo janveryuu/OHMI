@@ -123,8 +123,8 @@ describe('GroqCloud Transport Adapter (groq.ts)', () => {
     }
   });
 
-  it('bounds response body reads to 64 KiB and returns payload_too_large', async () => {
-    const largeChunk = 'x'.repeat(70 * 1024); // 70 KiB
+  it('bounds response body reads to 128 KiB and returns payload_too_large', async () => {
+    const largeChunk = 'x'.repeat(129 * 1024); // 70 KiB
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(largeChunk));
@@ -150,7 +150,7 @@ describe('GroqCloud Transport Adapter (groq.ts)', () => {
     if (!res.ok) {
       expect(res.code).toBe('payload_too_large');
       expect(res.status).toBe(502);
-      expect(res.message).toContain('exceeded maximum allowed limit');
+      expect(res.message).toContain('exceeded its byte limit');
     }
   });
 
