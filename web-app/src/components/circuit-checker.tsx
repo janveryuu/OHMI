@@ -176,11 +176,28 @@ export function CircuitChecker() {
         throw new Error(
           "Choose an image up to 3 MB and 4 megapixels, or apply a smaller crop.",
         );
+      let uploadBlob = blob;
+      if (img.naturalWidth > 1920 || img.naturalHeight > 1920) {
+        const scale = 1920 / Math.max(img.naturalWidth, img.naturalHeight);
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const scaled = await new Promise<Blob | null>((res) =>
+            canvas.toBlob(res, blob.type === "image/jpeg" ? "image/jpeg" : "image/png"),
+          );
+          if (scaled) uploadBlob = scaled;
+        }
+      }
       const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result).split(",")[1]);
         reader.onerror = () => reject(new Error("Image could not be read."));
-        reader.readAsDataURL(blob);
+        reader.readAsDataURL(uploadBlob);
       });
       if (current !== generation.current) return;
 

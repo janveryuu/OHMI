@@ -37,5 +37,78 @@ describe('AI reliability failure reproductions',()=>{
   const result=await callAiProviderTransport({provider:'gemini',model:'gemini-3.5-flash-lite',systemInstruction:'Explain',promptText:'test',maxTokens:50,geminiApiKey:'mock-key',fetchFn:async()=>new Response(JSON.stringify({candidates:[{finishReason:'MAX_TOKENS',content:{parts:[{text:'private reasoning',thought:true},{text:'Visible answer'}]}}]}))});
   expect(result.ok).toBe(true);if(result.ok)expect(result.text).toBe('Visible answer');
  });
+ it('serializes maxOutputTokens when images are present in Gemini request', async () => {
+  let capturedBody: any;
+  await callAiProviderTransport({
+    provider: 'gemini',
+    model: 'gemini-3.8-flash',
+    systemInstruction: 'Check circuit',
+    promptText: 'Analyze',
+    maxTokens: 3072,
+    geminiApiKey: 'mock-key',
+    images: [{ mimeType: 'image/png', data: 'iVBORw0KGgo=' }],
+    fetchFn: async (_url, init) => {
+      capturedBody = JSON.parse(init?.body as string);
+      return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"status":"reviewed"}' }] } }] }));
+    }
+  });
+  expect(capturedBody.generationConfig?.maxOutputTokens).toBe(3072);
+ });
+ it('serializes maxOutputTokens when pdf is present in Gemini request', async () => {
+  let capturedBody: any;
+  await callAiProviderTransport({
+    provider: 'gemini',
+    model: 'gemini-3.8-flash',
+    systemInstruction: 'Tutorial',
+    promptText: 'Guide',
+    maxTokens: 4096,
+    geminiApiKey: 'mock-key',
+    pdf: { mimeType: 'application/pdf', data: 'JVBERi0xLjQ=' },
+    fetchFn: async (_url, init) => {
+      capturedBody = JSON.parse(init?.body as string);
+      return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"status":"tutorial"}' }] } }] }));
+    }
+  });
+  expect(capturedBody.generationConfig?.maxOutputTokens).toBe(4096);
+ });
+ it('preserves HTTP 503 vs 429 status and parses retry-after header', async () => {
+  const rateLimitRes = await callAiProviderTransport({
+    provider: 'gemini',
+    model: 'gemini-3.8-flash',
+    systemInstruction: 'Check',
+    promptText: 'test',
+    maxTokens: 100,
+    geminiApiKey: 'mock-key',
+    fetchFn: async () => new Response(JSON.stringify({ error: { message: 'Resource exhausted' } }), {
+      status: 429,
+      headers: { 'retry-after': '45' }
+    })
+  });
+  expect(rateLimitRes.ok).toBe(false);
+  if (!rateLimitRes.ok) {
+    expect(rateLimitRes.status).toBe(429);
+    expect(rateLimitRes.code).toBe('rate_limit');
+    expect(rateLimitRes.retryAfterSeconds).toBe(45);
+  }
+
+  const unavailRes = await callAiProviderTransport({
+    provider: 'gemini',
+    model: 'gemini-3.8-flash',
+    systemInstruction: 'Check',
+    promptText: 'test',
+    maxTokens: 100,
+    geminiApiKey: 'mock-key',
+    fetchFn: async () => new Response(JSON.stringify({ error: { message: 'Service unavailable' } }), {
+      status: 503,
+      headers: { 'retry-after': '25' }
+    })
+  });
+  expect(unavailRes.ok).toBe(false);
+  if (!unavailRes.ok) {
+    expect(unavailRes.status).toBe(503);
+    expect(unavailRes.code).toBe('unavailable');
+    expect(unavailRes.retryAfterSeconds).toBe(25);
+  }
+ });
 
 });

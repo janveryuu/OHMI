@@ -305,7 +305,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         contents,
         generationConfig: {
           temperature: 0.1,
-          ...(!req.images?.length && !req.pdf ? { maxOutputTokens: req.maxTokens } : {}),
+          ...(req.maxTokens ? { maxOutputTokens: req.maxTokens } : {}),
           thinkingConfig: {
             thinkingLevel: 'LOW',
             includeThoughts: false
@@ -338,6 +338,10 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
     } catch { /* empty */ }
 
     const cleanErr = sanitizeErrorMessage(errMsg, geminiApiKey);
+    const retryHeader = providerRes.headers.get('retry-after');
+    const parsedRetry = retryHeader ? parseInt(retryHeader, 10) : undefined;
+    const retryAfter = Number.isFinite(parsedRetry) && (parsedRetry as number) > 0 ? (parsedRetry as number) : undefined;
+
     if (status === 429) {
       return {
         ok: false,
@@ -346,7 +350,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         status: 429,
         code: 'rate_limit',
         message: cleanErr,
-        retryAfterSeconds: 60
+        retryAfterSeconds: retryAfter || 60
       };
     }
     if (status === 503 || status === 502) {
@@ -357,7 +361,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         status,
         code: 'unavailable',
         message: cleanErr,
-        retryAfterSeconds: 60
+        retryAfterSeconds: retryAfter || 30
       };
     }
     return {
@@ -1015,40 +1019,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
       promptText += '\n\n[Continuation Instruction]: The previous explanation was paused at the output length limit. Continue the explanation directly from the exact formula or sentence where it stopped. Do not repeat previously completed derivations or questions; provide the remaining calculations, units, and solutions clearly.';
     }
   } else if (operation === 'tutorial') {
-    promptText += `\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits.
-Follow this strict pedagogical sequence:
-1. Identify and gather all required parts first (create a complete components list with standard ratings/values).
-2. Locate each part in Tinkercad using the search bar (explain searching the exact component name).
-3. Place and orient components on the workspace/breadboard. (Ask the student to choose and confirm breadboard rows/pins; never invent unseen pin locations or assume unverified board models).
-4. Wire one connection at a time. Explain the purpose of each terminal/pin (e.g. anode vs cathode, 5V vs GND, signal pin).
-5. Check power, polarity, and resistor/component ratings before connecting power.
-6. If Arduino code is needed, explain pin mapping in setup() and loop(), matching the confirmed wiring.
-7. Instruct the student on starting the Tinkercad simulation manually and what observable behavior to expect.
-8. Include single-variable troubleshooting checkpoints.
-
-Respond with a JSON object formatted as:
-{
-  "status": "tutorial" | "needs_clarification",
-  "title": "Title of the tutorial",
-  "objective": "Clear learning objective",
-  "components": [
-    { "name": "Component Name", "quantity": 1, "notes": "e.g. 220 Ω standard E12 resistor" }
-  ],
-  "steps": [
-    {
-      "step": 1,
-      "instruction": "One manageable action describing what to place or wire",
-      "why": "Clear electronics explanation of why this step is required",
-      "check": "Concrete visible checkpoint the student verifies before proceeding",
-      "code": "optional code snippet"
-    }
-  ],
-  "code": "optional complete Arduino sketch if required",
-  "clarificationQuestions": ["Question 1 if status is needs_clarification"],
-  "notes": "Explanation of any assumptions, clarifications, or component guidance"
-}
-If requirements, supply voltage, or component values are missing or contradictory, set "status": "needs_clarification", ask specific clarification questions in "clarificationQuestions", explain in "notes", and leave "steps" empty.
-For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24. Use concise instruction/why/check text, avoid repeating the sketch in individual steps, and finish the complete JSON and any required sketch within the output budget.`;
+    promptText += '\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits according to the tutorial schema and 8-step sequence. For a feasible circuit, set "status": "tutorial" with sequential 1..24 steps (each with instruction, why, check). If requirements are missing or contradictory, set "status": "needs_clarification".';
   }
 
   let mediaImage: { mimeType: string; data: string } | undefined;
@@ -1107,11 +1078,16 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
+      const msg = transportRes.code === 'quota_exhausted'
+        ? 'AI provider free quota is exhausted or expired. Please retry shortly.'
+        : transportRes.code === 'rate_limit'
+          ? 'AI provider rate limit reached. Please wait before retrying.'
+          : 'AI provider is temporarily unavailable. Please try again shortly.';
       return errorResponse(
         transportRes.code,
-        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. Please retry shortly.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        msg,
         transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
-        transportRes.retryAfterSeconds || 60
+        transportRes.retryAfterSeconds || (transportRes.code === 'rate_limit' ? 60 : 30)
       );
     }
 
@@ -1234,12 +1210,16 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     return errorResponse('server_error', 'Failed to save completed AI response.', 500);
   }
 
+  const savedArtifactId = completeRes.data?.id || undefined;
+
   return jsonResponse({
     ok: true,
     requestId,
     accountId: user.id,
     operation,
     language,
+    resultId: savedArtifactId,
+    analysisId: savedArtifactId,
     result: resultPayload,
     model: chatAnswer?.runtimeModel || chatAnswer?.model || route.model,
     provider: chatAnswer?.provider || route.provider,
@@ -1544,11 +1524,16 @@ export async function handleCircuitCheckRequest(
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
+      const msg = transportRes.code === 'quota_exhausted'
+        ? 'AI provider free quota is exhausted or expired. Please retry shortly.'
+        : transportRes.code === 'rate_limit'
+          ? 'AI provider rate limit reached. Please wait before retrying.'
+          : 'AI provider is temporarily unavailable. Please try again shortly.';
       return errorResponse(
         transportRes.code,
-        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. Please retry shortly.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        msg,
         transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
-        transportRes.retryAfterSeconds || 60
+        transportRes.retryAfterSeconds || (transportRes.code === 'rate_limit' ? 60 : 30)
       );
     }
 
@@ -1641,6 +1626,7 @@ export async function handleCircuitCheckRequest(
     operation: 'circuit_check',
     language: reqV2.language,
     resultId: completeRes.data?.id,
+    analysisId: completeRes.data?.id,
     conversationId: reqV2.conversationId || undefined,
     result: validatedResult,
     model: route.model,

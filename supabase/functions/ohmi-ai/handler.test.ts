@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleAiRequest } from './handler.ts';
 import { verifyPageCitation } from './pdf.ts';
 vi.mock('./copilot.ts', async (original) => ({ ...await original<typeof import('./copilot.ts')>(), consumeChatBurst: () => true }));
@@ -1085,6 +1085,8 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.ok).toBe(true);
+      expect(data.analysisId).toBe('11111111-1111-1111-1111-111111111111');
+      expect(data.resultId).toBe('11111111-1111-1111-1111-111111111111');
       expect(data.result.steps).toHaveLength(1);
       expect(data.result.answer).toBe('Here is your step-by-step guide for Blink an LED with 1 steps.');
       expect(data.result.answer.startsWith('{')).toBe(false);
@@ -1255,6 +1257,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
       const body = JSON.parse(init.body);
       expect(body.generationConfig?.temperature).toBe(0.1);
+      expect(body.generationConfig?.maxOutputTokens).toBe(3072);
       expect(body.generationConfig?.thinkingConfig).toEqual({
         thinkingLevel: 'LOW',
         includeThoughts: false

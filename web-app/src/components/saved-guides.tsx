@@ -74,13 +74,10 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
       retry.current = null;
 
       // Find the created analysis id and switch directly to Your Path
+      const resObj = typeof response === "object" && response !== null ? (response as Record<string, unknown>) : null;
       const createdId =
-        (typeof response === "object" &&
-          response !== null &&
-          "analysisId" in response &&
-          typeof (response as Record<string, unknown>).analysisId ===
-            "string" &&
-          ((response as Record<string, unknown>).analysisId as string)) ||
+        (typeof resObj?.analysisId === "string" && resObj.analysisId) ||
+        (typeof resObj?.resultId === "string" && resObj.resultId) ||
         "";
       if (createdId && onCreated) {
         onCreated(createdId);
