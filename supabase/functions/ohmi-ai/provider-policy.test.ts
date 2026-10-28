@@ -1,9 +1,11 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   resolveAiRoute,
   checkRouteReadiness,
   sanitizeErrorMessage,
+  getGeminiCandidateModels,
   GEMINI_PRODUCTION_MODEL,
+  GEMINI_CANDIDATE_MODELS,
   DEFAULT_GROQ_CHAT_MODEL
 } from './provider-policy.ts';
 
@@ -84,6 +86,23 @@ describe('Provider Policy and Route Resolver (provider-policy.ts)', () => {
     it('falls back to default 120b model when unapproved candidate model is configured', () => {
       const route = resolveAiRoute('chat', {}, 'unapproved-groq-model');
       expect(route.model).toBe(DEFAULT_GROQ_CHAT_MODEL);
+    });
+  });
+
+  describe('getGeminiCandidateModels', () => {
+    it('returns candidate models in priority order with production model first', () => {
+      const candidates = getGeminiCandidateModels();
+      expect(candidates[0]).toBe('gemini-3.5-flash-lite');
+      expect(candidates[1]).toBe('gemini-3.6-flash');
+      expect(candidates[2]).toBe('gemini-3.8-flash');
+    });
+
+    it('puts configured valid model first and remaining candidates after', () => {
+      const candidates = getGeminiCandidateModels('gemini-3.6-flash');
+      expect(candidates[0]).toBe('gemini-3.6-flash');
+      expect(candidates).toContain('gemini-3.5-flash-lite');
+      expect(candidates).toContain('gemini-3.8-flash');
+      expect(candidates.length).toBe(3);
     });
   });
 

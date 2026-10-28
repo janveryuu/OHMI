@@ -8,7 +8,7 @@ export type AiProvider = 'groq' | 'gemini';
 export type AiWorkflow = 'chat' | 'pdf' | 'image' | 'tutorial' | 'circuit_check' | 'analysis_followup';
 
 export const GEMINI_PRODUCTION_MODEL = 'gemini-3.5-flash-lite';
-export const GEMINI_CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash'] as const;
+export const GEMINI_CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash'] as const;
 export const DEFAULT_GROQ_CHAT_MODEL = 'openai/gpt-oss-120b';
 export const ALLOWED_GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'] as const;
 

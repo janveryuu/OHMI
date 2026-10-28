@@ -17,15 +17,15 @@ export function circuitResponseSchema(_evidence: CircuitEvidence): Record<string
     excerpt: text,
     findingId: text
   }, ['kind']);
-  const evidenceList = list(evidenceItem, 6);
+  const evidenceList = { type: 'array', items: evidenceItem };
   return object({
     schemaVersion: { type: 'integer', enum: [2] },
     status: choice(['reviewed', 'needs_clarification', 'unsupported']), summary: text,
-    findings: list(object({ id: text, severity: choice(['info', 'warning', 'stop']), certainty: choice(['observed', 'possible']), observation: text, why: text, action: text, evidence: evidenceList }), 6),
+    findings: { type: 'array', items: object({ id: text, severity: choice(['info', 'warning', 'stop']), certainty: choice(['observed', 'possible']), observation: text, why: text, action: text, evidence: evidenceList }) },
     unknowns: list(text, 6), questions: list(text, 3),
-    comparisons: list(object({ requirementId: text, status: choice(['supported', 'possible_mismatch', 'not_observable']), explanation: text, evidence: evidenceList }), 12),
-    steps: list(object({ step: { type: 'integer' }, instruction: text, why: text, check: text, findingId: text }, ['step', 'instruction', 'why', 'check']), 12),
-    codeSuggestion: object({ code: text, explanation: text }), limitations: { ...list(text, 6), minItems: 1 }
+    comparisons: { type: 'array', items: object({ requirementId: text, status: choice(['supported', 'possible_mismatch', 'not_observable']), explanation: text, evidence: evidenceList }) },
+    steps: { type: 'array', items: object({ step: { type: 'integer' }, instruction: text, why: text, check: text, findingId: text }, ['step', 'instruction', 'why', 'check']) },
+    codeSuggestion: object({ code: text, explanation: text }), limitations: { type: 'array', items: text }
   }, ['schemaVersion', 'status', 'summary', 'findings', 'unknowns', 'questions', 'comparisons', 'steps', 'limitations']);
 }
 

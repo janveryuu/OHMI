@@ -307,10 +307,12 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         generationConfig: {
           temperature: 0.1,
           ...(req.maxTokens ? { maxOutputTokens: req.maxTokens } : {}),
-          thinkingConfig: {
-            thinkingLevel: 'LOW',
-            includeThoughts: false
-          },
+          ...(req.model.startsWith('gemini-2') ? {} : {
+            thinkingConfig: {
+              thinkingLevel: 'LOW',
+              includeThoughts: false
+            }
+          }),
           ...(req.responseFormat === 'json_object' ? { responseMimeType: 'application/json' } : {}),
           ...(req.responseSchema ? { responseJsonSchema: req.responseSchema } : {})
         }
