@@ -7,9 +7,18 @@
 export type AiProvider = 'groq' | 'gemini';
 export type AiWorkflow = 'chat' | 'pdf' | 'image' | 'tutorial' | 'circuit_check' | 'analysis_followup';
 
-export const GEMINI_PRODUCTION_MODEL = 'gemini-3.8-flash';
+export const GEMINI_PRODUCTION_MODEL = 'gemini-3.5-flash-lite';
+export const GEMINI_CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash'] as const;
 export const DEFAULT_GROQ_CHAT_MODEL = 'openai/gpt-oss-120b';
 export const ALLOWED_GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'] as const;
+
+export function getGeminiCandidateModels(configured?: string): string[] {
+  const primary = (configured && (GEMINI_CANDIDATE_MODELS as readonly string[]).includes(configured as any))
+    ? configured
+    : GEMINI_PRODUCTION_MODEL;
+  const fallbacks = (GEMINI_CANDIDATE_MODELS as readonly string[]).filter(m => m !== primary);
+  return [primary, ...fallbacks];
+}
 
 export interface ResolvedRoute {
   provider: AiProvider;

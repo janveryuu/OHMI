@@ -84,6 +84,7 @@ import {
   checkRouteReadiness,
   sanitizeErrorMessage,
   GEMINI_PRODUCTION_MODEL,
+  getGeminiCandidateModels,
   DEFAULT_GROQ_CHAT_MODEL,
   ALLOWED_GROQ_MODELS,
   type ResolvedRoute,
@@ -1046,22 +1047,61 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     fetch: deps?.fetch || fetch, deadline: (deps?.deadline ?? Date.now() + 50000) - 5000,
     calculation: calculationResult?.valid ? `Verified calculation: ${Object.entries(calculationResult.formatted).map(([key, value]) => `${key}: ${value}`).join('; ')}` : undefined
   }) : undefined;
-  const transportRes: AiTransportResult = chatAnswer ? { ok: true, provider: chatAnswer.provider === 'gemini' ? 'gemini' : 'groq', model: chatAnswer.model, text: chatAnswer.answer, promptTokens: chatAnswer.promptTokens, completionTokens: chatAnswer.completionTokens, totalTokens: chatAnswer.totalTokens, finishReason: 'STOP' } : await callAiProviderTransport({
-    provider: route.provider,
-    model: route.model,
-    systemInstruction,
-    promptText,
-    history: historyList,
-    images: mediaImage ? [mediaImage] : undefined,
-    pdf: mediaPdf,
-    maxTokens,
-    responseFormat: operation === 'tutorial' ? 'json_object' : 'text',
-    responseSchema: operation === 'tutorial' ? tutorialResponseSchema : undefined,
-    geminiApiKey,
-    groqApiKey,
-    timeoutMs: Math.min(providerTimeout(operation !== 'chat' || !!circuitAnalysisId, deps), ['image', 'pdf'].includes(operation) ? 25000 : 40000),
-    fetchFn: deps?.fetch || fetch
-  });
+
+  let transportRes: AiTransportResult;
+  if (chatAnswer) {
+    transportRes = {
+      ok: true,
+      provider: chatAnswer.provider === 'gemini' ? 'gemini' : 'groq',
+      model: chatAnswer.model,
+      text: chatAnswer.answer,
+      promptTokens: chatAnswer.promptTokens,
+      completionTokens: chatAnswer.completionTokens,
+      totalTokens: chatAnswer.totalTokens,
+      finishReason: 'STOP'
+    };
+  } else {
+    const candidateModels = route.provider === 'gemini'
+      ? getGeminiCandidateModels(getEnv('OHMI_GEMINI_MODEL', deps))
+      : [route.model];
+
+    const totalCeiling = ['image', 'pdf'].includes(operation) ? 25000 : 40000;
+    const baseTimeout = Math.min(providerTimeout(operation !== 'chat' || !!circuitAnalysisId, deps), totalCeiling);
+    transportRes = { ok: false, provider: route.provider, model: route.model, status: 502, code: 'provider_error', message: 'No response' };
+
+    for (let i = 0; i < candidateModels.length; i++) {
+      const candidateModel = candidateModels[i];
+      const remainingMs = (deps?.deadline ?? (Date.now() + 50_000)) - 5000 - Date.now();
+      if (remainingMs < 3000) break;
+      const candidateTimeout = candidateModels.length > 1 ? Math.min(remainingMs, 32000) : baseTimeout;
+
+      transportRes = await callAiProviderTransport({
+        provider: route.provider,
+        model: candidateModel,
+        systemInstruction,
+        promptText,
+        history: historyList,
+        images: mediaImage ? [mediaImage] : undefined,
+        pdf: mediaPdf,
+        maxTokens,
+        responseFormat: operation === 'tutorial' ? 'json_object' : 'text',
+        responseSchema: operation === 'tutorial' ? tutorialResponseSchema : undefined,
+        geminiApiKey,
+        groqApiKey,
+        timeoutMs: candidateTimeout,
+        fetchFn: deps?.fetch || fetch
+      });
+
+      if (transportRes.ok) break;
+
+      if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code)) {
+        break;
+      }
+      if (i < candidateModels.length - 1) {
+        console.warn(`[OHMI Gemini] Model ${candidateModel} failed (${transportRes.code}: ${transportRes.message}). Failing over to candidate ${candidateModels[i + 1]}...`);
+      }
+    }
+  }
 
   markStage(deps, 'provider');
   if (!transportRes.ok) {
@@ -1074,7 +1114,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
       p_error_code: errCode,
       ...(transportRes.totalTokens !== undefined ? { p_input_tokens: transportRes.promptTokens, p_output_tokens: transportRes.completionTokens, p_accounted_tokens: transportRes.totalTokens } : {}),
       p_error_message: transportRes.message.slice(0, 200),
-      p_model: route.model
+      p_model: transportRes.model || route.model
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
@@ -1202,7 +1242,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
     p_accounted_tokens: transportRes.totalTokens,
-    p_model: chatAnswer?.model || route.model
+    p_model: chatAnswer?.model || transportRes.model || route.model
   });
 
   markStage(deps, 'persistence');
@@ -1221,7 +1261,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     resultId: savedArtifactId,
     analysisId: savedArtifactId,
     result: resultPayload,
-    model: chatAnswer?.runtimeModel || chatAnswer?.model || route.model,
+    model: chatAnswer?.runtimeModel || chatAnswer?.model || transportRes.model || route.model,
     provider: chatAnswer?.provider || route.provider,
     ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
   });
@@ -1495,19 +1535,42 @@ export async function handleCircuitCheckRequest(
     promptText += `\n\n[Automated Arduino Checks]:\n${arduinoValidation.warnings.join('\n')}`;
   }
 
-  const transportRes = await callAiProviderTransport({
-    provider: route.provider,
-    model: route.model,
-    systemInstruction,
-    promptText,
-    images: reqV2.images.map((img: any) => ({ mimeType: img.mimeType, data: img.data })),
-    maxTokens: 3072,
-    responseFormat: 'json_object',
-    responseSchema: circuitResponseSchema(evidence),
-    geminiApiKey,
-    timeoutMs: providerTimeout(true, deps),
-    fetchFn: deps?.fetch || fetch
-  });
+  const candidateModels = route.provider === 'gemini'
+    ? getGeminiCandidateModels(getEnv('OHMI_GEMINI_MODEL', deps))
+    : [route.model];
+
+  const baseTimeout = providerTimeout(true, deps);
+  let transportRes: AiTransportResult = { ok: false, provider: route.provider, model: route.model, status: 502, code: 'provider_error', message: 'No response' };
+
+  for (let i = 0; i < candidateModels.length; i++) {
+    const candidateModel = candidateModels[i];
+    const remainingMs = (deps?.deadline ?? (Date.now() + 50_000)) - 5000 - Date.now();
+    if (remainingMs < 3000) break;
+    const candidateTimeout = candidateModels.length > 1 ? Math.min(remainingMs, 32000) : baseTimeout;
+
+    transportRes = await callAiProviderTransport({
+      provider: route.provider,
+      model: candidateModel,
+      systemInstruction,
+      promptText,
+      images: reqV2.images.map((img: any) => ({ mimeType: img.mimeType, data: img.data })),
+      maxTokens: 3072,
+      responseFormat: 'json_object',
+      responseSchema: circuitResponseSchema(evidence),
+      geminiApiKey,
+      timeoutMs: candidateTimeout,
+      fetchFn: deps?.fetch || fetch
+    });
+
+    if (transportRes.ok) break;
+
+    if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code)) {
+      break;
+    }
+    if (i < candidateModels.length - 1) {
+      console.warn(`[OHMI Gemini] Model ${candidateModel} failed (${transportRes.code}: ${transportRes.message}). Failing over to candidate ${candidateModels[i + 1]}...`);
+    }
+  }
 
   markStage(deps, 'provider');
   if (!transportRes.ok) {
@@ -1520,7 +1583,7 @@ export async function handleCircuitCheckRequest(
       p_error_code: errCode,
       ...(transportRes.totalTokens !== undefined ? { p_input_tokens: transportRes.promptTokens, p_output_tokens: transportRes.completionTokens, p_accounted_tokens: transportRes.totalTokens } : {}),
       p_error_message: transportRes.message.slice(0, 200),
-      p_model: route.model
+      p_model: transportRes.model || route.model
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
@@ -1611,7 +1674,7 @@ export async function handleCircuitCheckRequest(
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
     p_accounted_tokens: transportRes.totalTokens,
-    p_model: route.model
+    p_model: transportRes.model || route.model
   });
 
   markStage(deps, 'persistence');
@@ -1629,7 +1692,7 @@ export async function handleCircuitCheckRequest(
     analysisId: completeRes.data?.id,
     conversationId: reqV2.conversationId || undefined,
     result: validatedResult,
-    model: route.model,
+    model: transportRes.model || route.model,
     provider: route.provider,
     ...(calculationResult ? { calculation: calculationResult } : {})
   });

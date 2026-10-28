@@ -1,6 +1,6 @@
 import { describe,it,expect,vi,afterEach } from 'vitest';
 import { buildCircuitPrompt,validateEvidenceReference } from './circuit.ts';
-import { callAiProviderTransport } from './handler.ts';
+import { callAiProviderTransport, handleAiRequest } from './handler.ts';
 describe('AI reliability failure reproductions',()=>{
  afterEach(()=>vi.useRealTimers());
  it('provides the discriminated evidence object the validator requires',()=>{
@@ -110,5 +110,71 @@ describe('AI reliability failure reproductions',()=>{
     expect(unavailRes.retryAfterSeconds).toBe(25);
   }
  });
+  it('fails over multimodal request to fallback candidate when primary model returns 503 high demand', async () => {
+    const attemptedModels: string[] = [];
+    const mockClient = {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: '00000000-0000-0000-0000-000000000001' } }, error: null }) },
+      rpc: vi.fn().mockImplementation((fn: string) => {
+        if (fn === 'ohmi_reserve_ai') return Promise.resolve({ data: { fresh: true, status: 'pending' }, error: null });
+        if (fn === 'ohmi_complete_ai') return Promise.resolve({ data: { id: '11111111-1111-1111-1111-111111111111' }, error: null });
+        return Promise.resolve({ data: null, error: null });
+      }),
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: '22222222-2222-2222-2222-222222222222', user_id: '00000000-0000-0000-0000-000000000001', mime_type: 'image/png', status: 'ready', object_path: 'user/file.png' }, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+      }),
+      storage: {
+        from: vi.fn().mockReturnValue({
+          download: vi.fn().mockResolvedValue({ data: new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])]), error: null })
+        })
+      }
+    };
 
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      const modelName = url.split('/models/')[1]?.split(':')[0];
+      attemptedModels.push(modelName);
+      if (modelName === 'gemini-3.5-flash-lite') {
+        return new Response(JSON.stringify({ error: { message: 'This model is currently experiencing high demand.' } }), { status: 503 });
+      }
+      return new Response(JSON.stringify({
+        candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ status: 'tutorial', title: 'Circuit Guide', steps: [{ step: 1, instruction: 'Gather parts', why: 'Required', check: 'Done' }] }) }] } }],
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 100, totalTokenCount: 200 }
+      }));
+    });
+
+    const req = new Request('https://test.supabase.co/functions/v1/ohmi-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-jwt' },
+      body: JSON.stringify({
+        version: 1,
+        requestId: '00000000-0000-0000-0000-000000000099',
+        operation: 'tutorial',
+        language: 'english',
+        message: 'Build guide'
+      })
+    });
+
+    const res = await handleAiRequest(req, {
+      env: {
+        SUPABASE_URL: 'https://test.supabase.co',
+        GEMINI_API_KEY: 'test-key',
+        OHMI_AI_ENABLED: 'true',
+        GEMINI_FREE_TIER_CONFIRMED: 'true',
+        OHMI_GEMINI_MULTIMODAL_ENABLED: 'true',
+        SUPABASE_ANON_KEY: 'test-anon',
+        SUPABASE_SERVICE_ROLE_KEY: 'test-service'
+      },
+      createClient: () => mockClient as any,
+      fetch: mockFetch
+    });
+
+    expect(res.status).toBe(200);
+    expect(attemptedModels[0]).toBe('gemini-3.5-flash-lite');
+    expect(attemptedModels[1]).toBe('gemini-3.8-flash');
+    const resData = await res.json();
+    expect(resData.ok).toBe(true);
+    expect(resData.model).toBe('gemini-3.8-flash');
+  });
 });
