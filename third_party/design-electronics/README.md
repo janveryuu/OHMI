@@ -1,11 +1,12 @@
 # Pinned local electronics engine
 
-Source: https://github.com/rORrEtboLt/designElectronics, commit `4d9cb373bd06afb2d99b1548e6c3a0c86992bd56` (MIT). `upstream/` is that source archive with four explicit OHMI changes:
+Source: https://github.com/rORrEtboLt/designElectronics, commit `4d9cb373bd06afb2d99b1548e6c3a0c86992bd56` (MIT). `upstream/` is that source archive with these explicit OHMI changes:
 
 - `CMakeLists.txt`: pinned external SDL paths, browser adapter export, exception catching, no dynamic JavaScript execution.
 - `src/web.cpp`: register the live App with the browser adapter.
 - `src/ohmi_web.cpp`: bounded operations using upstream Document, McpSession, Simulator and export code.
 - `src/panels.cpp`: replace three light-only presentation colors with Theme fields.
+- `src/app.h`, `src/app.cpp`, `src/app_history.cpp`: an optional replacement callback for native New/Open/example/history-copy actions. The browser uses it to detach external save identity; native builds leave it unset. Upstream document UID plus replacement generation protects even imports with identical UIDs. Atomic `capture` returns document and session identity together; generation is not persisted in `.dez` or used for authorization.
 
 The engine, Arduino interpreter, catalog, routing and exporters remain upstream. The host does not claim hardware or full Arduino compatibility. The browser build intentionally excludes the desktop localhost MCP server. Its controlled loader ignores URL hash imports and remote design URLs.
 
@@ -19,6 +20,8 @@ Use an isolated directory such as `%USERPROFILE%/.codex/toolchains`; nothing nee
 4. Run `./scripts/build-design-electronics.ps1` from the repository. Optional parameters: `-ToolchainRoot` and `-BuildRoot`. The default build cache is outside the repository.
 
 The script creates the three public runtime artifacts, bundled dependency notices and `engine-manifest.json` with artifact sizes/SHA-256 and patched-source hashes. Only these runtime assets are served, not the vendored source. Rebuild after any native adapter/presentation change. The checked-in build is generated locally from source, not copied from an upstream release.
+
+M2 adds read-only `catalog` metadata to the bridge. After rebuilding, start the isolated local server described below and run `node tests/export-electronics-catalog.mjs` from `web-app`. This derives all 791 catalog entries (349 native types) and the four legacy conversion definitions from that exact runtime. Commit the generated validation metadata with the runtime; do not hand-edit it. The persistence browser test compares catalog metadata with the loaded engine.
 
 FreeType uses its FreeType License, not the alternate GPL option. Public notices retain the MIT, SDL, font, FreeType/dlg, HarfBuzz, PlutoSVG/PlutoVG and CC0 notices. Fonts are Lato and Source Code Pro under OFL 1.1; preserve both their notices and reserved font names.
 
@@ -35,6 +38,8 @@ OHMI_WEB_AI_ENABLED=false
 ```
 
 Run `npx next dev --hostname 127.0.0.1 --port 3140`. Tests use synthetic users/circuits, no real provider requests or student records. Results live in `docs/playground-upgrade/evidence/`. These environment values belong only to this local test process; never deploy them.
+
+M2 verification: `node tests/electronics-persistence-browser.mjs` covers API/UI with the Auth/PostgREST boundary double and actual WASM behavior. Separately run `./scripts/test-electronics-db.ps1` from the repository for real PostgreSQL ownership, provenance, revision, legacy-preservation and additive rollback checks. It uses a pinned disposable container with no network or published ports and removes only its own container. Hosted migration application is not part of either test.
 
 ## Browser contract
 

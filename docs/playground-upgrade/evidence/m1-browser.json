@@ -14,7 +14,8 @@
   "status": {
     "ready": true,
     "catalogCount": 791,
-    "protocol": 1
+    "protocol": 1,
+    "documentId": "b7cd8e24ae7120e7:0"
   },
   "uno-blink": {
     "samples": [
@@ -1560,7 +1561,7 @@
       "  [ ok ] versions are listed newest first",
       "  [ ok ] an old version reads back exactly",
       "  [ ok ] base64 round trip",
-      "  default GitHub location: octocat/electronics-designs / led-with-battery-e90a2c/led-with-battery.dez",
+      "  default GitHub location: octocat/electronics-designs / led-with-battery-d40983/led-with-battery.dez",
       "  [ ok ] each design gets its own folder",
       "Layers",
       "  [ ok ] hidden (per view) and locked are saved and loaded",

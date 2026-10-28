@@ -247,6 +247,7 @@ void App::newDoc() {
         clearCustomParts();
         customEntries.clear();
         newProjectContents(doc);
+        if (onDocumentReplaced) onDocumentReplaced();
         filePath.clear();
         savedRevision = doc.revision;
         undoStack.clear();
@@ -288,6 +289,7 @@ bool App::loadFile(const std::string& path) {
     std::string err;
     std::vector<std::string> before;
     if (!doc.fromJson(j, &err)) { ui.dialog("Could not open file", {err}, {}); return false; }
+    if (onDocumentReplaced) onDocumentReplaced();
     customEntries.clear();
     for (auto& lj : j["library"].items())
         if (isCustomType(lj["type"].str())) customEntries.push_back({lj["type"].str(), lj["title"].str(), "Custom", {}});
@@ -487,6 +489,7 @@ void App::loadExample(size_t i) {
     confirmDiscard([this, i]() {
         doc.clear();
         examples()[i].build(doc);
+        if (onDocumentReplaced) onDocumentReplaced();
         doc.syncWireEnds();
         doc.touch();
         filePath.clear();

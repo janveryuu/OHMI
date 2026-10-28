@@ -1,6 +1,6 @@
 # Playground upgrade: file-level implementation plan
 
-Status: **M0 and approved M1 complete locally; see M1.md for evidence. M2 not approved.** This plan covers the owner's attached major Playground/AI-builder brief. It does not authorize push, deployment, hosted migrations, provider changes or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
+Status: **M0/M1/M2 complete locally; see M1.md and M2.md for evidence. M3 not approved.** This plan covers the owner's attached major Playground/AI-builder brief. It does not authorize push, deployment, hosted migrations, provider changes or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
 
 ## Design and architecture decision
 

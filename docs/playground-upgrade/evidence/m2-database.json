@@ -1,0 +1,35 @@
+{
+  "image": "public.ecr.aws/supabase/postgres@sha256:7374d196da7e301512cc5329e18040e0f7bb856287b323777cdadecccbc6c7e4",
+  "network": "none",
+  "publishedPorts": [],
+  "hostedChanges": false,
+  "result": "PASS",
+  "checks": [
+    "owner CRUD",
+    "cross-account denial",
+    "forged-owner denial",
+    "stale revisions",
+    "valid/invalid source provenance",
+    "anonymous denial",
+    "legacy checksums unchanged",
+    "additive DDL rollback"
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261028181546_electronics_projects.sql",
+      "sha256": "5bccbcec6d1a6cdfc20934dc7671d285fd7c79c952836dd36dc8917c02812f5d"
+    },
+    {
+      "path": "supabase/tests/electronics_projects_rls.sql",
+      "sha256": "03a1f4192871ec3772fb5c564a108f3774a38d5707c1ac863004da492b186f9b"
+    },
+    {
+      "path": "supabase/tests/electronics_projects_rollback.sql",
+      "sha256": "e239b5362d9f5259f9268b8df09a3c203614fea9fb5a9222dd05f2ab6bbb4bdb"
+    },
+    {
+      "path": "scripts/test-electronics-db.ps1",
+      "sha256": "f61e52d2d5ebdc14ccd6c8ef201a9e2e0d1cfc0e13f14dccfaed899aa24ba4f4"
+    }
+  ]
+}

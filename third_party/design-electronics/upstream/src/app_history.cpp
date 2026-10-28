@@ -119,6 +119,7 @@ void App::openVersionCopy(const std::string& text, const std::string& label) {
         if (!d.deserialize(text, &err)) { ui.dialog("Couldn't open that version", {err}, {}); return; }
         doc = std::move(d);
         doc.uid.clear();          // a copy is a new design with its own history
+        if (onDocumentReplaced) onDocumentReplaced();
         doc.git = GitLink();
         doc.title += " (" + label + ")";
         doc.touch();

@@ -36,7 +36,7 @@ $destination = Join-Path $repository 'web-app/public/vendor/design-electronics'
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 $artifacts = @()
 $patches = @()
-foreach ($name in @('CMakeLists.txt', 'src/web.cpp', 'src/ohmi_web.cpp', 'src/panels.cpp')) {
+foreach ($name in @('CMakeLists.txt', 'src/web.cpp', 'src/ohmi_web.cpp', 'src/panels.cpp', 'src/app.h', 'src/app.cpp', 'src/app_history.cpp')) {
     $patches += [ordered]@{ file = $name; sha256 = (Get-FileHash (Join-Path $source $name) -Algorithm SHA256).Hash.ToLower() }
 }
 foreach ($name in @('designElectronics.js', 'designElectronics.wasm', 'designElectronics.data')) {

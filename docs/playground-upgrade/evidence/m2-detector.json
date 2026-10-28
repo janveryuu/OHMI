@@ -1,0 +1,26 @@
+[
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "C:\\Users\\LEGION\\.codex\\worktrees\\ohmi-electronics-workspace\\OHMI - Your Circuit Buddy\\web-app\\src\\components\\electronics-workspace.module.css",
+    "line": 14,
+    "snippet": "font-size: clamp(24px, 3vw, 32px) has fluid endpoints 24px and 32px off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "24px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "C:\\Users\\LEGION\\.codex\\worktrees\\ohmi-electronics-workspace\\OHMI - Your Circuit Buddy\\web-app\\src\\components\\electronics-workspace.module.css",
+    "line": 85,
+    "snippet": "font-size: 18px is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "18px"
+  }
+]

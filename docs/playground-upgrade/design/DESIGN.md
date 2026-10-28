@@ -1,5 +1,5 @@
 ---
-name: OHMI electronics workspace — M1 local preview
+name: OHMI electronics workspace — M1–M2 local preview
 description: A scoped record of the inherited OHMI shell and native editor chrome, not a replacement application design system.
 colors:
   primary: "#08776b"
@@ -44,13 +44,13 @@ components:
     padding: "14px 16px"
 ---
 
-# Design System: OHMI electronics workspace — M1 local preview
+# Design System: OHMI electronics workspace — M1–M2 local preview
 
 ## Overview
 
 **Creative North Star: "Calm mint study workspace"**
 
-This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1 only. The application-wide authority remains `web-app/DESIGN.md`, with product constraints in `web-app/PRODUCT.md` and phase boundaries in `../PLAN.md`.
+This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M2 local implementation only. The application-wide authority remains `web-app/DESIGN.md`, with product constraints in `web-app/PRODUCT.md` and phase boundaries in `../PLAN.md`.
 
 **Key Characteristics:**
 - Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.
@@ -59,7 +59,7 @@ This local preview inherits the existing OHMI Operate interface. A compact React
 
 ## Colors
 
-The React shell uses existing semantic CSS variables. Primary color marks Run and actionable links; secondary surfaces carry the local-save warning. Status copy uses muted foreground; failures use destructive foreground. Dark mode switches the existing application tokens rather than applying an image filter.
+The React shell uses existing semantic CSS variables. Primary color marks Run, Save snapshot and actionable links; secondary surfaces carry the persistence/simulation notice. Status copy uses muted foreground; failures use destructive foreground. Dark mode switches the existing application tokens rather than applying an image filter. The private-project disclosure adds no new palette.
 
 The native chrome receives a separate `Theme` mapping from `src/ohmi_web.cpp`: near-black background, charcoal panels, graphite secondary surfaces and subdued mint accents. These native values are close to, but not identical to, the React tokens. The schematic remains a white technical sheet with its upstream grid and symbol colors.
 
@@ -69,13 +69,13 @@ The native chrome receives a separate `Theme` mapping from `src/ohmi_web.cpp`: n
 
 Self-hosted Geist serves the React shell. Supporting copy uses the body token with a maximum notice/footer measure of 75ch. Labels use the shared Button component. The upstream editor retains its bundled Lato interface and Source Code Pro code font; CSS outside the iframe does not replace them.
 
-The current page heading is a one-off fluid 24–32px, weight 650. It is recorded as an implementation exception, not promoted into OHMI's shared type ramp.
+Page and legacy-copy heading sizes remain local implementation exceptions, not additions to OHMI's shared type ramp.
 
 ## Layout
 
-Header and control groups wrap without horizontal page overflow. The toolbar separates view, simulation/history and file actions. The full-width editor follows the loading/status line. At 640px and below, footer controls stack; the editor remains at least 560px tall. Above that breakpoint, its height is at least 600px or 75dvh. Shared OHMI navigation adapts independently around this surface.
+Header and control groups wrap without horizontal page overflow. A native `details` disclosure for Private projects sits between the persistence notice and circuit toolbar. Thin block borders separate this optional section; its summary has a 44px minimum target. Project rows wrap their name/revision, Open and Delete controls; long names can break rather than overflow. The toolbar separates view, simulation/history and file actions. The full-width editor follows the loading/status line. At 640px and below, footer controls stack; the editor remains at least 560px tall. Above that breakpoint, its height is at least 600px or 75dvh. Shared OHMI navigation adapts independently around this surface.
 
-Desktop, tablet and mobile captures are in `../evidence/m1-*.png`. They show the local preview, not final M4 interaction polish.
+Initial shell captures are in `../evidence/m1-*.png`. M2 ordinary desktop/light, desktop/dark and mobile first viewports are `m2-desktop-light.png`, `m2-desktop-dark.png` and `m2-mobile-light.png`; separately scrolled editor captures are `m2-mobile-editor.png` and `m2-desktop-dark-editor.png`. The replacement-safe capture records the separate-copy notice. These show the local preview, not final M4 interaction polish.
 
 ## Elevation & Depth
 
@@ -87,11 +87,17 @@ Use the shared Button corners and base surface radius for the notice and editor 
 
 ## Components
 
-**The Local Work Rule.** Keep local-only saving explicit: students must download `.dez` before leaving. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.
+**The Captured Work Rule.** Saving records an explicit captured snapshot, not continuous autosave; later edits need another save. Keep `.dez` download available, and require it when private storage is unavailable. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.
 
 Host controls are labeled DOM buttons with shared keyboard focus and disabled states while loading or busy. Status uses `role="status"`, errors use `role="alert"`, and the iframe has a descriptive title. View buttons issue native commands without claiming synchronized selected-state semantics. Reload provides recovery after engine failure.
 
-The native canvas is not a DOM-accessible equivalent of every editor operation. Full keyboard, touch and assistive-technology coverage remains an M4 gate; M1 shell checks are not whole-editor accessibility certification. Cloud persistence and AI building remain later phases.
+Private projects reuses those buttons for Save snapshot, Save separate copy, Refresh, Open, Delete and loading older records. Legacy records have a distinct Create copy action and a visible promise that original saves/progress remain unchanged; the new simulator can differ. Availability, empty lists, save revision, replacement notices and failures are rendered inline rather than implying background autosave.
+
+**The Account and Document Rule.** Account changes clear private project state and the engine runtime. A captured native replacement generation plus UID binds the current private record/revision; replacing a native document creates a separate project even if its UID matches. Ordinary edits can update the same record. This session identity prevents accidental overwrite; it is not an authentication credential. Server authorization remains separate.
+
+The SQL migration is a draft, and hosted storage rollout is separately gated. Where storage is unavailable, the API returns 503, saving stays unavailable and the notice directs students to download `.dez`. Local fixture captures of successful saves do not establish hosted availability. The final M2 review's ship disposition resolves its one native-replacement identity finding only.
+
+The native canvas is not a DOM-accessible equivalent of every editor operation. Full keyboard, touch and assistive-technology coverage remains an M4 gate; shell checks are not whole-editor accessibility certification. M3 AI building and M4 polish are not approved or represented as complete.
 
 ## Do's and Don'ts
 
@@ -99,5 +105,5 @@ The native canvas is not a DOM-accessible equivalent of every editor operation. 
 - **Do** preserve the native technical rendering and disclose simulation limits.
 - **Do** distinguish local-preview verification from production readiness.
 - **Don't** infer full canvas accessibility from the surrounding DOM controls.
-- **Don't** treat the heading exception, upstream canvas geometry or incidental test toasts as new application-wide design rules.
-- **Don't** add replacement mascot art, visual AI controls or cloud-save claims to M1.
+- **Don't** treat local heading exceptions, upstream canvas geometry or incidental test toasts as new application-wide design rules.
+- **Don't** add replacement mascot art, visual AI controls or unverified hosted-save claims to this preview.

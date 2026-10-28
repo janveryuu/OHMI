@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import {handleElectronicsRest} from "./electronics-store-fixture.mjs";
 
 export const testUser = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -108,6 +109,7 @@ export async function startAuthFixture() {
         return send(200,{ok:true,requestId:body.requestId,accountId:user.id,result});
       }
     }
+    if(await handleElectronicsRest({request,url,user,body,state,send}))return;
     if (url.pathname.startsWith("/rest/v1/")) return send(200, []);
     send(404, { message: "Fixture route not found" });
   });

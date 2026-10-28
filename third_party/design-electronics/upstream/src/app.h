@@ -65,6 +65,7 @@ public:
     UI ui;
     Input in;
     Document doc;
+    std::function<void()> onDocumentReplaced;
     Connectivity conn;
     int connRev = -1;
 

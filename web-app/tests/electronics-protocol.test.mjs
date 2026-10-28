@@ -22,6 +22,7 @@ test("engine bridge rejects untrusted commands and oversized structures", () => 
   for (const request of [null, [], {operation:"open_design",path:"/private"}, {operation:"tool",name:"export",arguments:{path:"/private"}}, {operation:"status",path:"/private"}, {operation:"observe",seconds:Infinity}, {operation:"observe",seconds:6}, {operation:"view",view:4}, {operation:"running",running:1}, {operation:"theme",theme:"auto"}, {operation:"export",format:"gerber",view:"invalid"}]) assert.throws(() => validateRequest(request));
   assert.throws(() => boundedJson(JSON.parse('{"__proto__":{}}')));
   assert.throws(() => boundedJson("x".repeat(65537)));
+  assert.throws(() => boundedJson("🙂".repeat(20000)));
   assert.throws(() => boundedJson(Array(60001).fill(1)));
   let deep = {}; for (let i=0;i<26;i++) deep = {child:deep};
   assert.throws(() => boundedJson(deep));

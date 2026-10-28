@@ -10,9 +10,16 @@
 namespace {
 App* app = nullptr;
 std::unique_ptr<McpSession> session;
+unsigned long long documentGeneration = 0;
 constexpr size_t maxBytes = 1024 * 1024;
 
-void replaced() {
+std::string documentIdentity() {
+    history::ensureUid(app->doc);
+    return app->doc.uid + ":" + std::to_string(documentGeneration);
+}
+
+void replaced(bool newDocument = true) {
+    if (newDocument) ++documentGeneration;
     app->simOn = false;
     app->simulator.reset();
     for (auto& camera : app->cam) camera.valid = false;
@@ -53,10 +60,30 @@ Json observe(double seconds) {
 Json dispatch(const Json& request) {
     const std::string operation = request["operation"].str();
     if (operation == "status") {
-        Json result = Json::object(); result.set("ready", app != nullptr); result.set("catalogCount", (int)partLibrary().size()); result.set("protocol", 1); return result;
+        Json result = Json::object(); result.set("ready", app != nullptr); result.set("catalogCount", (int)partLibrary().size()); result.set("protocol", 1);
+        if (app) result.set("documentId", documentIdentity());
+        return result;
     }
     if (!app || !session) throw std::runtime_error("Engine is not ready.");
+    if (operation == "capture") {
+        Json snapshot = Json::object(); snapshot.set("operation", "snapshot");
+        Json result = Json::object(); result.set("document", dispatch(snapshot)); result.set("documentId", documentIdentity()); return result;
+    }
+    if (operation == "catalog") {
+        Json entries = Json::array();
+        for (const auto& entry : partLibrary()) {
+            const auto definition = getPartDef(entry.type, entry.props);
+            if (!definition) throw std::runtime_error("Catalog definition is missing.");
+            Json item = Json::object(), pins = Json::array();
+            item.set("type", entry.type); item.set("title", entry.title);
+            for (const auto& pin : definition->pins) pins.push(pin.id);
+            item.set("pins", pins);
+            entries.push(item);
+        }
+        return entries;
+    }
     if (operation == "snapshot") {
+        history::ensureUid(app->doc);
         app->doc.syncWireEnds();
         const auto result = app->doc.toJson(true);
         if (result.dump().size() > maxBytes) throw std::runtime_error("This document exceeds the 1 MiB bridge limit. Use the native export menu.");
@@ -148,10 +175,11 @@ void ohmiWebRegister(App* value) {
     app = value;
     // No persistent browser autosave is restored across OHMI accounts.
     app->scratchSession = true;
+    app->onDocumentReplaced = [] { ++documentGeneration; };
     session = std::make_unique<McpSession>(&app->doc);
     session->beforeEdit = [] { app->checkpoint(); };
     session->afterEdit = [] { app->doc.syncWireEnds(); app->changed(); app->pruneSelection(); app->drcIssues.clear(); };
-    session->onReplaced = replaced;
+    session->onReplaced = [] { replaced(app->doc.uid.empty()); };
 }
 
 extern "C" EMSCRIPTEN_KEEPALIVE const char* de_ohmi_dispatch(const char* input) {

@@ -9,7 +9,7 @@ export function boundedJson(value, maxBytes = MAX_BYTES) {
     const [item, depth] = pending.pop();
     if (++count > 60000 || depth > 24) throw new Error("Document structure is too large.");
     if (typeof item === "number" && (!Number.isFinite(item) || Math.abs(item) > 10000000)) throw new Error("Invalid number.");
-    if (typeof item === "string" && item.length > 65536) throw new Error("Text is too large.");
+    if (typeof item === "string" && (item.length > 65536 || new TextEncoder().encode(item).length > 65536)) throw new Error("Text is too large.");
     if (item !== null && typeof item === "object") {
       for (const [key, child] of Object.entries(item)) {
         if (["__proto__", "constructor", "prototype"].includes(key)) throw new Error("Invalid object key.");
@@ -26,7 +26,7 @@ export function validateRequest(request) {
   boundedJson(request);
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Invalid bridge request.");
   const fields = {
-    status: [], snapshot: [], undo: [], redo: [],
+    status: [], catalog: [], capture: [], snapshot: [], undo: [], redo: [],
     tool: ["name", "arguments"], open: ["document"], observe: ["seconds"],
     theme: ["theme"], view: ["view"], running: ["running"], export: ["format", "view"],
   };

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T00:00:00Z",
-  "title": "Design System: OHMI electronics workspace — M1 local preview",
+  "generatedAt": "2026-10-28T19:00:56.2693739Z",
+  "title": "Design System: OHMI electronics workspace — M1–M2 local preview",
   "extensions": {
     "motion": [
       { "name": "shared-button-feedback", "value": "background-color 0.18s, color 0.18s, transform 0.15s", "purpose": "Inherited shared Button state feedback; active scale is 0.98 and global reduced-motion rules apply." }
@@ -23,18 +23,18 @@
       "css": ".ds-run{min-height:44px;padding:8px 16px;border:0;border-radius:11px;background:var(--primary);color:var(--primary-foreground);font:500 14px var(--font-geist),sans-serif;transition:background-color .18s,color .18s,transform .15s}.ds-run:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}.ds-run:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.ds-run:active{transform:scale(.98)}.ds-run:disabled{opacity:.5;pointer-events:none}"
     },
     {
-      "name": "Secondary circuit control",
+      "name": "Secondary workspace control",
       "kind": "button",
-      "description": "Shared outline control for views, file actions, Stop and history.",
+      "description": "Shared outline control for views, files, Stop, history and private project actions.",
       "html": "<button class=\"ds-control\">Download .dez</button>",
       "css": ".ds-control{min-height:44px;padding:8px 16px;border:1px solid var(--border);border-radius:11px;background:var(--background);color:var(--foreground);font:500 14px var(--font-geist),sans-serif;transition:background-color .18s,color .18s,transform .15s}.ds-control:hover{background:var(--accent);color:var(--accent-foreground)}.ds-control:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.ds-control:active{transform:scale(.98)}.ds-control:disabled{opacity:.5;pointer-events:none}"
     },
     {
-      "name": "Local saving notice",
+      "name": "Preview persistence notice",
       "kind": "card",
       "refersTo": "local-notice",
-      "description": "A flat secondary surface explains local-only storage and simulation limits.",
-      "html": "<p class=\"ds-notice\">Download your circuit before leaving. Cloud saving and AI building are not connected in this preview.</p>",
+      "description": "A flat secondary surface distinguishes captured private saving from download fallback and states simulation limits.",
+      "html": "<p class=\"ds-notice\">Download your circuit before leaving. Private saving requires the separately approved storage rollout. AI building is not connected in this preview.</p>",
       "css": ".ds-notice{max-width:75ch;padding:14px 16px;background:var(--secondary);color:var(--foreground);border-radius:var(--radius);font:14px/1.6 var(--font-geist),sans-serif}"
     },
     {
@@ -47,14 +47,21 @@
     {
       "name": "Engine status",
       "kind": "custom",
-      "description": "Polite text status names loading, ready and local file outcomes without claiming cloud persistence.",
-      "html": "<p class=\"ds-status\" role=\"status\">Changes stay in this tab until downloaded.</p>",
+      "description": "Polite text status names loading, file and snapshot outcomes; a save is not continuous autosave.",
+      "html": "<p class=\"ds-status\" role=\"status\">Captured circuit saved as revision 1. Later edits need another save.</p>",
       "css": ".ds-status{margin:12px 0;color:var(--muted-foreground);font:14px/1.6 var(--font-geist),sans-serif}"
+    },
+    {
+      "name": "Private projects disclosure",
+      "kind": "custom",
+      "description": "Native details/summary reveals account-scoped project operations without introducing a new palette or card hierarchy.",
+      "html": "<details class=\"ds-projects\"><summary>Private projects</summary><p>Save a private snapshot or download .dez before leaving.</p></details>",
+      "css": ".ds-projects{border-block:1px solid var(--border);padding-block:12px;margin-bottom:20px;color:var(--foreground);font-family:var(--font-geist),sans-serif}.ds-projects summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:600}.ds-projects summary:focus-visible{outline:2px solid var(--ring);outline-offset:3px}.ds-projects p{margin-block:12px;font-size:14px;line-height:1.6}"
     }
   ],
   "narrative": {
     "northStar": "Calm mint study workspace",
-    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1 only. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
+    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M2 local implementation only. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
     "keyCharacteristics": [
       "Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.",
       "Familiar labeled controls, restrained borders and the unchanged canonical OHMI mascot in the shared shell.",
@@ -62,7 +69,8 @@
     ],
     "rules": [
       { "name": "The Technical Canvas Rule", "body": "Theme the surrounding controls without recoloring physical part markings or making schematic symbols unreadable.", "section": "colors" },
-      { "name": "The Local Work Rule", "body": "Keep local-only saving explicit: students must download .dez before leaving. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.", "section": "components" }
+      { "name": "The Captured Work Rule", "body": "Saving records an explicit captured snapshot, not continuous autosave; later edits need another save. Keep .dez download available, and require it when private storage is unavailable. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.", "section": "components" },
+      { "name": "The Account and Document Rule", "body": "Account changes clear private project state and the engine runtime. A captured native replacement generation plus UID binds the current private record/revision; replacing a native document creates a separate project even if its UID matches. Ordinary edits can update the same record. This session identity prevents accidental overwrite; it is not an authentication credential. Server authorization remains separate.", "section": "components" }
     ],
     "dos": [
       "Do reuse the existing semantic tokens, shared Button and exact approved mascot.",
@@ -71,8 +79,8 @@
     ],
     "donts": [
       "Don't infer full canvas accessibility from the surrounding DOM controls.",
-      "Don't treat the heading exception, upstream canvas geometry or incidental test toasts as new application-wide design rules.",
-      "Don't add replacement mascot art, visual AI controls or cloud-save claims to M1."
+      "Don't treat local heading exceptions, upstream canvas geometry or incidental test toasts as new application-wide design rules.",
+      "Don't add replacement mascot art, visual AI controls or unverified hosted-save claims to this preview."
     ]
   }
 }

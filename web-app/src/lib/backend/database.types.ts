@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      ohmi_electronics_projects: {
+        Row: { id:string; user_id:string; name:string; document:Json; engine_commit:string; revision:number; source_legacy_id:string|null; source_legacy_revision:number|null; legacy_snapshot:Json|null; created_at:string; updated_at:string }
+        Insert: { id:string; user_id:string; name:string; document:Json; engine_commit:string; revision?:number; source_legacy_id?:string|null; source_legacy_revision?:number|null; legacy_snapshot?:Json|null; created_at?:string; updated_at?:string }
+        Update: { name?:string; document?:Json; engine_commit?:string; revision?:number; updated_at?:string }
+        Relationships: []
+      }
       ohmi_playground_projects: {
         Row: { id:string; user_id:string; name:string; project:Json; revision:number; created_at:string; updated_at:string }
         Insert: { id:string; user_id:string; name:string; project:Json; revision?:number; created_at?:string; updated_at?:string }

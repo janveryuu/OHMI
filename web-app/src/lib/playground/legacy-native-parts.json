@@ -1,0 +1,1248 @@
+[
+  {
+    "type": "battery",
+    "title": "Battery",
+    "category": "Power",
+    "description": "DC voltage source. Choose the style and set any voltage in the Inspector.",
+    "labelPrefix": "VCC",
+    "valueProp": "voltage",
+    "sim": "battery",
+    "views": [
+      "breadboard",
+      "schematic",
+      "pcb"
+    ],
+    "properties": {
+      "style": "9V block",
+      "voltage": "9V"
+    },
+    "propertyDefs": [
+      {
+        "key": "voltage",
+        "label": "Voltage",
+        "options": [
+          "1.5V",
+          "3V",
+          "3.7V",
+          "4.5V",
+          "5V",
+          "9V",
+          "12V"
+        ]
+      },
+      {
+        "key": "style",
+        "label": "Style",
+        "options": [
+          "9V block",
+          "AA pack",
+          "Coin cell"
+        ]
+      }
+    ],
+    "pins": [
+      {
+        "id": "minus",
+        "name": "−",
+        "breadboard": [
+          0,
+          0
+        ],
+        "schematic": [
+          0,
+          400
+        ],
+        "pcb": [
+          0,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      },
+      {
+        "id": "plus",
+        "name": "+",
+        "breadboard": [
+          100,
+          0
+        ],
+        "schematic": [
+          0,
+          0
+        ],
+        "pcb": [
+          100,
+          0
+        ],
+        "pad": 70,
+        "drill": 38,
+        "square": true
+      }
+    ],
+    "buses": [],
+    "holes": [],
+    "graphics": {
+      "breadboard": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            -330
+          ],
+          "b": [
+            0,
+            0
+          ],
+          "w": 22,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            100,
+            -330
+          ],
+          "b": [
+            100,
+            0
+          ],
+          "w": 22,
+          "stroke": "#d22828"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -250,
+            -1300
+          ],
+          "b": [
+            350,
+            -350
+          ],
+          "r": 30,
+          "w": 8,
+          "stroke": "#0f0f0f",
+          "fill": "#28282d"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -250,
+            -1300
+          ],
+          "b": [
+            350,
+            -1040
+          ],
+          "r": 30,
+          "fill": "#c8a028"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -120,
+            -1360
+          ],
+          "b": [
+            -10,
+            -1290
+          ],
+          "r": 10,
+          "fill": "#c8c8c8"
+        },
+        {
+          "k": "circle",
+          "c": [
+            160,
+            -1325
+          ],
+          "r": 50,
+          "fill": "#c8c8c8"
+        },
+        {
+          "k": "text",
+          "at": [
+            50,
+            -800
+          ],
+          "text": "9V",
+          "size": 150,
+          "align": 1,
+          "fill": "#ffffff"
+        },
+        {
+          "k": "text",
+          "at": [
+            -60,
+            -1170
+          ],
+          "text": "+",
+          "size": 90,
+          "align": 1,
+          "fill": "#282828"
+        },
+        {
+          "k": "text",
+          "at": [
+            160,
+            -1170
+          ],
+          "text": "−",
+          "size": 90,
+          "align": 1,
+          "fill": "#282828"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -15,
+            -40
+          ],
+          "b": [
+            15,
+            10
+          ],
+          "fill": "#a0a0a5"
+        },
+        {
+          "k": "rect",
+          "a": [
+            85,
+            -40
+          ],
+          "b": [
+            115,
+            10
+          ],
+          "fill": "#a0a0a5"
+        }
+      ],
+      "schematic": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0,
+            170
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            -120,
+            170
+          ],
+          "b": [
+            120,
+            170
+          ],
+          "w": 14,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            -60,
+            230
+          ],
+          "b": [
+            60,
+            230
+          ],
+          "w": 22,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            0,
+            230
+          ],
+          "b": [
+            0,
+            400
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "text",
+          "at": [
+            -90,
+            110
+          ],
+          "text": "+",
+          "size": 60,
+          "align": 1,
+          "fill": "#1e1e1e"
+        },
+        {
+          "k": "text",
+          "at": [
+            170,
+            200
+          ],
+          "text": "9V",
+          "size": 55,
+          "align": 0,
+          "fill": "#323232"
+        }
+      ],
+      "pcb": [
+        {
+          "k": "rect",
+          "a": [
+            -100,
+            -90
+          ],
+          "b": [
+            200,
+            90
+          ],
+          "w": 10,
+          "stroke": "#ffffff"
+        },
+        {
+          "k": "text",
+          "at": [
+            100,
+            -150
+          ],
+          "text": "+",
+          "size": 70,
+          "align": 1,
+          "fill": "#ffffff"
+        }
+      ]
+    }
+  },
+  {
+    "type": "resistor",
+    "title": "Resistor",
+    "category": "Core",
+    "description": "A resistor limits current. Edit the resistance in the Inspector; the color bands update automatically.",
+    "labelPrefix": "R",
+    "valueProp": "resistance",
+    "sim": "resistor",
+    "views": [
+      "breadboard",
+      "schematic",
+      "pcb"
+    ],
+    "properties": {
+      "package": "Axial [THT]",
+      "power": "1/4W",
+      "resistance": "220Ω",
+      "tolerance": "±5%"
+    },
+    "propertyDefs": [
+      {
+        "key": "resistance",
+        "label": "Resistance",
+        "options": [
+          "100Ω",
+          "220Ω",
+          "330Ω",
+          "470Ω",
+          "1kΩ",
+          "2.2kΩ",
+          "4.7kΩ",
+          "10kΩ",
+          "47kΩ",
+          "100kΩ",
+          "1MΩ"
+        ]
+      },
+      {
+        "key": "power",
+        "label": "Power",
+        "options": [
+          "1/8W",
+          "1/4W",
+          "1/2W",
+          "1W"
+        ]
+      },
+      {
+        "key": "tolerance",
+        "label": "Tolerance",
+        "options": [
+          "±1%",
+          "±5%",
+          "±10%"
+        ]
+      },
+      {
+        "key": "package",
+        "label": "Package",
+        "options": [
+          "Axial [THT]",
+          "0402 [SMD]",
+          "0603 [SMD]",
+          "0805 [SMD]",
+          "1206 [SMD]",
+          "1210 [SMD]",
+          "2512 [SMD]"
+        ]
+      }
+    ],
+    "pins": [
+      {
+        "id": "pin0",
+        "name": "Pin 0",
+        "breadboard": [
+          0,
+          0
+        ],
+        "schematic": [
+          0,
+          0
+        ],
+        "pcb": [
+          0,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      },
+      {
+        "id": "pin1",
+        "name": "Pin 1",
+        "breadboard": [
+          400,
+          0
+        ],
+        "schematic": [
+          400,
+          0
+        ],
+        "pcb": [
+          400,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      }
+    ],
+    "buses": [],
+    "holes": [],
+    "graphics": {
+      "breadboard": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            110,
+            0
+          ],
+          "w": 18,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "line",
+          "a": [
+            290,
+            0
+          ],
+          "b": [
+            400,
+            0
+          ],
+          "w": 18,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "circle",
+          "c": [
+            115,
+            0
+          ],
+          "r": 46,
+          "w": 6,
+          "stroke": "#aa915f",
+          "fill": "#dec896"
+        },
+        {
+          "k": "circle",
+          "c": [
+            285,
+            0
+          ],
+          "r": 46,
+          "w": 6,
+          "stroke": "#aa915f",
+          "fill": "#dec896"
+        },
+        {
+          "k": "rect",
+          "a": [
+            115,
+            -38
+          ],
+          "b": [
+            285,
+            38
+          ],
+          "fill": "#dec896"
+        },
+        {
+          "k": "line",
+          "a": [
+            115,
+            -38
+          ],
+          "b": [
+            285,
+            -38
+          ],
+          "w": 6,
+          "stroke": "#aa915f"
+        },
+        {
+          "k": "line",
+          "a": [
+            115,
+            38
+          ],
+          "b": [
+            285,
+            38
+          ],
+          "w": 6,
+          "stroke": "#aa915f"
+        },
+        {
+          "k": "rect",
+          "a": [
+            110,
+            -46
+          ],
+          "b": [
+            132,
+            46
+          ],
+          "fill": "#d21e1e"
+        },
+        {
+          "k": "rect",
+          "a": [
+            150,
+            -38
+          ],
+          "b": [
+            172,
+            38
+          ],
+          "fill": "#d21e1e"
+        },
+        {
+          "k": "rect",
+          "a": [
+            190,
+            -38
+          ],
+          "b": [
+            212,
+            38
+          ],
+          "fill": "#78461e"
+        },
+        {
+          "k": "rect",
+          "a": [
+            255,
+            -38
+          ],
+          "b": [
+            277,
+            38
+          ],
+          "fill": "#c8a028"
+        }
+      ],
+      "schematic": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            100,
+            0
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            300,
+            0
+          ],
+          "b": [
+            400,
+            0
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "poly",
+          "pts": [
+            [
+              100,
+              0
+            ],
+            [
+              116.667,
+              -40
+            ],
+            [
+              150,
+              40
+            ],
+            [
+              183.333,
+              -40
+            ],
+            [
+              216.667,
+              40
+            ],
+            [
+              250,
+              -40
+            ],
+            [
+              283.333,
+              40
+            ],
+            [
+              300,
+              0
+            ]
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        }
+      ],
+      "pcb": [
+        {
+          "k": "rect",
+          "a": [
+            70,
+            -45
+          ],
+          "b": [
+            330,
+            45
+          ],
+          "w": 10,
+          "stroke": "#ffffff"
+        }
+      ]
+    }
+  },
+  {
+    "type": "led",
+    "title": "Red LED",
+    "category": "Core",
+    "description": "Light-emitting diode. The longer leg (anode, +) goes to the positive side; always use a series resistor.",
+    "labelPrefix": "LED",
+    "valueProp": "color",
+    "sim": "led",
+    "views": [
+      "breadboard",
+      "schematic",
+      "pcb"
+    ],
+    "properties": {
+      "color": "Red",
+      "package": "5 mm [THT]"
+    },
+    "propertyDefs": [
+      {
+        "key": "color",
+        "label": "Color",
+        "options": [
+          "Red",
+          "Green",
+          "Blue",
+          "Yellow",
+          "White",
+          "Orange"
+        ]
+      },
+      {
+        "key": "package",
+        "label": "Package",
+        "options": [
+          "5 mm [THT]",
+          "3 mm [THT]",
+          "0603 [SMD]",
+          "0805 [SMD]",
+          "1206 [SMD]"
+        ]
+      }
+    ],
+    "pins": [
+      {
+        "id": "cathode",
+        "name": "cathode (−)",
+        "breadboard": [
+          0,
+          0
+        ],
+        "schematic": [
+          300,
+          0
+        ],
+        "pcb": [
+          0,
+          0
+        ],
+        "pad": 70,
+        "drill": 38,
+        "square": true
+      },
+      {
+        "id": "anode",
+        "name": "anode (+)",
+        "breadboard": [
+          100,
+          0
+        ],
+        "schematic": [
+          0,
+          0
+        ],
+        "pcb": [
+          100,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      }
+    ],
+    "buses": [],
+    "holes": [],
+    "graphics": {
+      "breadboard": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            -150
+          ],
+          "b": [
+            0,
+            0
+          ],
+          "w": 16,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "poly",
+          "pts": [
+            [
+              100,
+              -150
+            ],
+            [
+              100,
+              -90
+            ],
+            [
+              135,
+              -60
+            ],
+            [
+              100,
+              -30
+            ],
+            [
+              100,
+              0
+            ]
+          ],
+          "w": 16,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -50,
+            -320
+          ],
+          "b": [
+            150,
+            -150
+          ],
+          "fill": "#eb2828d8",
+          "tag": 1
+        },
+        {
+          "k": "circle",
+          "c": [
+            50,
+            -320
+          ],
+          "r": 100,
+          "fill": "#eb2828d8",
+          "tag": 1
+        },
+        {
+          "k": "rect",
+          "a": [
+            -68,
+            -175
+          ],
+          "b": [
+            168,
+            -149
+          ],
+          "r": 6,
+          "fill": "#a41c1c"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -5,
+            -360
+          ],
+          "b": [
+            20,
+            -240
+          ],
+          "r": 10,
+          "fill": "#ffffff5a"
+        }
+      ],
+      "schematic": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            100,
+            0
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            200,
+            0
+          ],
+          "b": [
+            300,
+            0
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "poly",
+          "pts": [
+            [
+              100,
+              -60
+            ],
+            [
+              100,
+              60
+            ],
+            [
+              200,
+              0
+            ]
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e",
+          "fill": "#ffffff"
+        },
+        {
+          "k": "line",
+          "a": [
+            200,
+            -60
+          ],
+          "b": [
+            200,
+            60
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            130,
+            -80
+          ],
+          "b": [
+            180,
+            -130
+          ],
+          "w": 8,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            170,
+            -70
+          ],
+          "b": [
+            220,
+            -120
+          ],
+          "w": 8,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "poly",
+          "pts": [
+            [
+              185,
+              -135
+            ],
+            [
+              173.333,
+              -104.241
+            ],
+            [
+              154.241,
+              -123.333
+            ]
+          ],
+          "fill": "#1e1e1e"
+        },
+        {
+          "k": "poly",
+          "pts": [
+            [
+              225,
+              -125
+            ],
+            [
+              213.333,
+              -94.2409
+            ],
+            [
+              194.241,
+              -113.333
+            ]
+          ],
+          "fill": "#1e1e1e"
+        }
+      ],
+      "pcb": [
+        {
+          "k": "arc",
+          "c": [
+            50,
+            0
+          ],
+          "r": 120,
+          "a0": 30,
+          "a1": 330,
+          "w": 10,
+          "stroke": "#ffffff"
+        },
+        {
+          "k": "line",
+          "a": [
+            153.92,
+            -60
+          ],
+          "b": [
+            153.92,
+            60
+          ],
+          "w": 10,
+          "stroke": "#ffffff"
+        }
+      ]
+    }
+  },
+  {
+    "type": "switch",
+    "title": "Slide Switch (SPDT)",
+    "category": "Input",
+    "description": "Single-pole double-throw switch. The middle pin is common. Toggle the position in the Inspector or click it while simulating.",
+    "labelPrefix": "S",
+    "sim": "switch",
+    "views": [
+      "breadboard",
+      "schematic",
+      "pcb"
+    ],
+    "properties": {
+      "position": "left"
+    },
+    "propertyDefs": [
+      {
+        "key": "position",
+        "label": "Position",
+        "options": [
+          "left",
+          "right"
+        ]
+      }
+    ],
+    "pins": [
+      {
+        "id": "a",
+        "name": "left (A)",
+        "breadboard": [
+          0,
+          0
+        ],
+        "schematic": [
+          300,
+          -100
+        ],
+        "pcb": [
+          0,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      },
+      {
+        "id": "common",
+        "name": "common",
+        "breadboard": [
+          100,
+          0
+        ],
+        "schematic": [
+          0,
+          0
+        ],
+        "pcb": [
+          100,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      },
+      {
+        "id": "b",
+        "name": "right (B)",
+        "breadboard": [
+          200,
+          0
+        ],
+        "schematic": [
+          300,
+          100
+        ],
+        "pcb": [
+          200,
+          0
+        ],
+        "pad": 70,
+        "drill": 38
+      }
+    ],
+    "buses": [],
+    "holes": [],
+    "graphics": {
+      "breadboard": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            -70
+          ],
+          "b": [
+            0,
+            0
+          ],
+          "w": 14,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "line",
+          "a": [
+            100,
+            -70
+          ],
+          "b": [
+            100,
+            0
+          ],
+          "w": 14,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "line",
+          "a": [
+            200,
+            -70
+          ],
+          "b": [
+            200,
+            0
+          ],
+          "w": 14,
+          "stroke": "#a0a0a5"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -100,
+            -240
+          ],
+          "b": [
+            300,
+            -70
+          ],
+          "r": 12,
+          "w": 6,
+          "stroke": "#464650",
+          "fill": "#6e6e78"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -60,
+            -200
+          ],
+          "b": [
+            260,
+            -110
+          ],
+          "r": 8,
+          "fill": "#28282d"
+        },
+        {
+          "k": "rect",
+          "a": [
+            -50,
+            -215
+          ],
+          "b": [
+            90,
+            -95
+          ],
+          "r": 10,
+          "w": 5,
+          "stroke": "#969696",
+          "fill": "#e6e6eb"
+        }
+      ],
+      "schematic": [
+        {
+          "k": "line",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            100,
+            0
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "circle",
+          "c": [
+            100,
+            0
+          ],
+          "r": 14,
+          "fill": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            200,
+            -100
+          ],
+          "b": [
+            300,
+            -100
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            200,
+            100
+          ],
+          "b": [
+            300,
+            100
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        },
+        {
+          "k": "circle",
+          "c": [
+            200,
+            -100
+          ],
+          "r": 14,
+          "fill": "#1e1e1e"
+        },
+        {
+          "k": "circle",
+          "c": [
+            200,
+            100
+          ],
+          "r": 14,
+          "fill": "#1e1e1e"
+        },
+        {
+          "k": "line",
+          "a": [
+            100,
+            0
+          ],
+          "b": [
+            195,
+            -85
+          ],
+          "w": 10,
+          "stroke": "#1e1e1e"
+        }
+      ],
+      "pcb": [
+        {
+          "k": "rect",
+          "a": [
+            -110,
+            -90
+          ],
+          "b": [
+            310,
+            90
+          ],
+          "w": 10,
+          "stroke": "#ffffff"
+        }
+      ]
+    }
+  }
+]
