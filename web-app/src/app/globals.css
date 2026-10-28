@@ -1761,6 +1761,16 @@ progress::-moz-progress-bar {
   color: var(--muted-foreground);
   font-size: 12px;
   min-height: 48px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.guide-steps button .step-label,
+.guide-steps button span:not(.step-number) {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.4;
 }
 .guide-steps .current {
   background: var(--accent);
@@ -1803,6 +1813,9 @@ progress::-moz-progress-bar {
 }
 .guide-step-content h2 {
   font-size: 28px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.3;
 }
 .guide-detail {
   margin-top: 16px;
@@ -1846,12 +1859,14 @@ progress::-moz-progress-bar {
 .guide-switcher-bar {
   overflow-x: auto;
   padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
 }
 .guide-pills {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: nowrap;
+  min-width: max-content;
 }
 .guide-pill {
   display: inline-flex;
@@ -1866,12 +1881,21 @@ progress::-moz-progress-bar {
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
-.guide-pill:hover {
+.guide-pill:hover:not(:disabled) {
   background: var(--accent);
   color: var(--accent-foreground);
   border-color: var(--primary);
+}
+.guide-pill:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.guide-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .guide-pill.active {
   background: var(--primary);
@@ -1883,9 +1907,19 @@ progress::-moz-progress-bar {
   border-style: dashed;
   color: var(--primary);
 }
-.guide-pill.new-guide-pill:hover,
+.guide-pill.new-guide-pill:hover:not(:disabled) {
+  border-style: solid;
+  color: var(--accent-foreground);
+  background: var(--accent);
+}
 .guide-pill.new-guide-pill.active {
   border-style: solid;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.guide-pill.new-guide-pill.active:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* Guide Generator Card */

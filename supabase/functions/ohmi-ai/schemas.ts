@@ -32,6 +32,6 @@ export function circuitResponseSchema(_evidence: CircuitEvidence): Record<string
 export const tutorialResponseSchema = object({
   status: choice(['tutorial', 'needs_clarification', 'unsupported']), title: text, objective: text,
   components: list(object({ name: text, quantity: { type: 'integer', minimum: 1 }, notes: text }, ['name', 'quantity']), 32),
-  steps: list(object({ step: { type: 'integer', minimum: 1, maximum: 24 }, instruction: text, why: text, check: text, code: text }, ['step', 'instruction', 'why', 'check']), 24),
+  steps: list(object({ step: { type: 'integer', minimum: 1, maximum: 24 }, title: text, instruction: text, why: text, check: text, code: text }, ['step', 'title', 'instruction', 'why', 'check']), 24),
   code: text, clarificationQuestions: list(text, 6), notes: text
 }, ['status', 'steps']);

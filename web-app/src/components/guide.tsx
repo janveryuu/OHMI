@@ -19,12 +19,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { steps as defaultSteps } from "@/lib/content";
-import { lessonProgress } from "@/lib/demo.mjs";
+import {
+  lessonProgress,
+  resolveGuideLabel,
+  resolveStepTitle,
+} from "@/lib/demo.mjs";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
 import { GuideGenerator } from "./saved-guides";
 import { StepVisual } from "./circuit-diagram";
 import { RichText } from "./rich-text";
+
+export { resolveGuideLabel, resolveStepTitle };
 
 export function Guide() {
   const app = useApp(),
@@ -59,6 +65,7 @@ export function Guide() {
     check?: string;
     code?: string;
     task: string;
+    missingInstruction?: boolean;
   }
 
   let guideSteps: GuideStepItem[] = defaultSteps.map((s) => ({
@@ -82,10 +89,7 @@ export function Guide() {
 
   if (!isCuratedLed && activeAnalysis) {
     activePayload = (activeAnalysis.payload || {}) as Record<string, unknown>;
-    title =
-      activeAnalysis.title ||
-      (typeof activePayload.title === "string" ? activePayload.title : "") ||
-      "Assignment Circuit Guide";
+    title = resolveGuideLabel(activeAnalysis, "Assignment Guide");
     subtitle =
       (typeof activePayload.objective === "string"
         ? activePayload.objective
@@ -98,19 +102,32 @@ export function Guide() {
     if (rawSteps.length > 0) {
       guideSteps = rawSteps.map((s: Record<string, unknown>, idx: number) => {
         const stepNum = typeof s.step === "number" ? s.step : idx + 1;
-        const sTitle =
-          typeof s.title === "string" && s.title.trim()
-            ? s.title.trim()
-            : typeof s.instruction === "string" && s.instruction.length > 0
-              ? s.instruction.split(/[.\n]/)[0].slice(0, 45)
-              : `Step ${stepNum}`;
+        const rawTitle = typeof s.title === "string" ? s.title.trim() : "";
+        const rawInstruction =
+          typeof s.instruction === "string" ? s.instruction.trim() : "";
+        const rawWhy = typeof s.why === "string" ? s.why.trim() : "";
+        const rawCheck = typeof s.check === "string" ? s.check.trim() : "";
+        const rawCode = typeof s.code === "string" ? s.code.trim() : "";
+
+        const hasTitle = Boolean(rawTitle);
+        const hasInstruction = Boolean(rawInstruction);
+
+        const stepTitle = hasTitle
+          ? rawTitle
+          : hasInstruction
+            ? rawInstruction
+            : `Step ${stepNum}`;
+
+        const stepDetail = hasInstruction ? rawInstruction : "";
+
         return {
-          title: sTitle,
-          detail: typeof s.instruction === "string" ? s.instruction : "",
-          tip: typeof s.why === "string" ? s.why : "",
-          check: typeof s.check === "string" ? s.check : "",
-          code: typeof s.code === "string" ? s.code : "",
+          title: stepTitle,
+          detail: stepDetail,
+          tip: rawWhy,
+          check: rawCheck,
+          code: rawCode,
           task: `I completed step ${stepNum}.`,
+          missingInstruction: !hasTitle && !hasInstruction,
         };
       });
     }
@@ -139,7 +156,18 @@ export function Guide() {
         : 0;
   }
 
-  const current = guideSteps[step] || guideSteps[0];
+  function getGuideStepCount(id: string): number {
+    if (id === "led") return defaultSteps.length;
+    const target = savedGuides.find((g) => g.id === id);
+    if (target?.payload && typeof target.payload === "object") {
+      const raw = (target.payload as Record<string, unknown>).steps;
+      if (Array.isArray(raw) && raw.length > 0) return raw.length;
+    }
+    return 1;
+  }
+
+  const safeStep = Math.max(0, Math.min(guideSteps.length - 1, step));
+  const current = guideSteps[safeStep] || guideSteps[0];
 
   function move(next: number) {
     setStep(Math.max(0, Math.min(guideSteps.length - 1, next)));
@@ -147,26 +175,25 @@ export function Guide() {
 
   function selectGuide(id: string) {
     setActiveGuideId(id);
+    const destCount = getGuideStepCount(id);
     if (id === "led") {
       setStep(0);
     } else {
       const prog = app.savedProgress.find((p) => p.analysis_id === id);
-      setStep(
-        prog && typeof prog.current_step === "number"
-          ? Math.max(0, Math.min(guideSteps.length - 1, prog.current_step))
-          : 0,
-      );
+      const savedStep =
+        prog && typeof prog.current_step === "number" ? prog.current_step : 0;
+      setStep(Math.max(0, Math.min(Math.max(0, destCount - 1), savedStep)));
     }
     setError("");
   }
 
   const isCurrentStepDone = isCuratedLed
-    ? Boolean(app.completed[step])
+    ? Boolean(app.completed[safeStep])
     : Boolean(
         activeAnalysis &&
           app.savedProgress
             .find((p) => p.analysis_id === activeAnalysis.id)
-            ?.completed.includes(step),
+            ?.completed.includes(safeStep),
       );
 
   return (
@@ -185,12 +212,7 @@ export function Guide() {
           </button>
           {savedGuides.map((g) => {
             const isSelected = activeGuideId === g.id;
-            const shortTitle =
-              g.title ||
-              (g.payload && typeof g.payload.title === "string"
-                ? g.payload.title
-                : "") ||
-              "Assignment Guide";
+            const shortTitle = resolveGuideLabel(g, "Assignment Guide");
             return (
               <button
                 key={g.id}
@@ -199,17 +221,20 @@ export function Guide() {
                 className={`guide-pill ${isSelected ? "active" : ""}`}
                 onClick={() => selectGuide(g.id)}
               >
-                <BookOpen size={14} />
+                <BookOpen size={14} className="shrink-0" />
                 <span>{shortTitle}</span>
               </button>
             );
           })}
           <button
+            id="guide-generator-toggle"
             className={`guide-pill new-guide-pill ${showGenerator ? "active" : ""}`}
             onClick={() => setShowGenerator((v) => !v)}
+            aria-expanded={showGenerator}
+            aria-controls="guide-generator-panel"
             aria-label="Generate new guide from assignment"
           >
-            <Plus size={14} />
+            <Plus size={14} className="shrink-0" />
             <span>Generate Guide</span>
           </button>
         </div>
@@ -217,13 +242,19 @@ export function Guide() {
 
       {/* Collapsible Assignment Guide Generator */}
       {showGenerator && (
-        <GuideGenerator
-          onCreated={(newId) => {
-            setShowGenerator(false);
-            selectGuide(newId);
-          }}
-          onCancel={() => setShowGenerator(false)}
-        />
+        <div
+          id="guide-generator-panel"
+          role="region"
+          aria-labelledby="guide-generator-toggle"
+        >
+          <GuideGenerator
+            onCreated={(newId) => {
+              setShowGenerator(false);
+              selectGuide(newId);
+            }}
+            onCancel={() => setShowGenerator(false)}
+          />
+        </div>
       )}
 
       {/* Page Heading */}
@@ -272,13 +303,13 @@ export function Guide() {
                 <button
                   key={index}
                   onClick={() => move(index)}
-                  className={step === index ? "current" : ""}
-                  aria-current={step === index ? "step" : undefined}
+                  className={safeStep === index ? "current" : ""}
+                  aria-current={safeStep === index ? "step" : undefined}
                 >
                   <span className="step-number">
                     {isDone ? <Check size={16} /> : index + 1}
                   </span>
-                  <span>{item.title}</span>
+                  <span className="step-label">{item.title}</span>
                 </button>
               );
             })}
@@ -304,21 +335,21 @@ export function Guide() {
           onTouchEnd={(e) => {
             if (touch !== null) {
               const delta = e.changedTouches[0].clientX - touch;
-              if (Math.abs(delta) > 100) move(step + (delta < 0 ? 1 : -1));
+              if (Math.abs(delta) > 100) move(safeStep + (delta < 0 ? 1 : -1));
               setTouch(null);
             }
           }}
         >
           <div className="between">
             <span className="badge">
-              Step {step + 1} of {guideSteps.length}
+              Step {safeStep + 1} of {guideSteps.length}
             </span>
             <Zap size={19} className="muted" />
           </div>
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeGuideId}-${step}`}
+              key={`${activeGuideId}-${safeStep}`}
               className="guide-step-content"
               initial={
                 reduced || app.reduceMotion ? false : { opacity: 0, x: 12 }
@@ -330,12 +361,18 @@ export function Guide() {
             >
               <h2>{current.title}</h2>
               <div className="guide-detail">
-                <RichText text={current.detail} />
+                {current.detail ? (
+                  <RichText text={current.detail} />
+                ) : current.missingInstruction ? (
+                  <p className="small muted">
+                    No instruction provided for this step.
+                  </p>
+                ) : null}
               </div>
 
               {/* Dynamic Step Visual (Schematic or Component Illustration) */}
               <StepVisual
-                step={step}
+                step={safeStep}
                 title={current.title}
                 instruction={current.detail}
                 why={current.tip}
@@ -371,7 +408,7 @@ export function Guide() {
                 <div className="guide-code-box">
                   <div className="guide-code-header">
                     <Code size={16} />
-                    <span>Arduino Code (Step {step + 1})</span>
+                    <span>Arduino Code (Step {safeStep + 1})</span>
                   </div>
                   <pre>
                     <code>{current.code}</code>
@@ -407,7 +444,7 @@ export function Guide() {
                     setError("");
                     try {
                       if (isCuratedLed) {
-                        await app.saveGuideStep(step, done);
+                        await app.saveGuideStep(safeStep, done);
                       } else if (activeAnalysis) {
                         const savedProg = app.savedProgress.find(
                           (p) => p.analysis_id === activeAnalysis.id,
@@ -415,11 +452,11 @@ export function Guide() {
                         const completedSet = new Set(
                           savedProg?.completed || [],
                         );
-                        if (done) completedSet.add(step);
-                        else completedSet.delete(step);
+                        if (done) completedSet.add(safeStep);
+                        else completedSet.delete(safeStep);
                         await app.saveProgress(
                           activeAnalysis.id,
-                          step,
+                          safeStep,
                           [...completedSet].sort((a, b) => a - b),
                         );
                       }
@@ -456,13 +493,13 @@ export function Guide() {
           <div className="guide-controls between">
             <Button
               variant="outline"
-              onClick={() => move(step - 1)}
-              disabled={step === 0}
+              onClick={() => move(safeStep - 1)}
+              disabled={safeStep === 0}
             >
               <ArrowLeft size={16} />
               Previous
             </Button>
-            {step === guideSteps.length - 1 ? (
+            {safeStep === guideSteps.length - 1 ? (
               <Button asChild>
                 <Link href="/progress">
                   View progress
@@ -470,7 +507,7 @@ export function Guide() {
                 </Link>
               </Button>
             ) : (
-              <Button onClick={() => move(step + 1)}>
+              <Button onClick={() => move(safeStep + 1)}>
                 Next step
                 <ArrowRight size={16} />
               </Button>

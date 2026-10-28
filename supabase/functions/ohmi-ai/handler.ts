@@ -1022,7 +1022,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
       promptText += '\n\n[Continuation Instruction]: The previous explanation was paused at the output length limit. Continue the explanation directly from the exact formula or sentence where it stopped. Do not repeat previously completed derivations or questions; provide the remaining calculations, units, and solutions clearly.';
     }
   } else if (operation === 'tutorial') {
-    promptText += '\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits according to the tutorial schema and 8-step sequence. For a feasible circuit, set "status": "tutorial" with sequential 1..24 steps (each with instruction, why, check). If requirements are missing or contradictory, set "status": "needs_clarification".';
+    promptText += '\n\nPlease provide an ordered, grounded step-by-step assembly guide for a beginner building this circuit in Tinkercad Circuits according to the tutorial schema and 8-step sequence. For a feasible circuit, set "status": "tutorial" with sequential 1..24 steps (each with a concise action title, instruction, why, check). If requirements are missing or contradictory, set "status": "needs_clarification".';
   }
 
   let mediaImage: { mimeType: string; data: string } | undefined;
@@ -1186,6 +1186,19 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   };
 
   if (operation === 'tutorial') {
+    if (incomplete) {
+      await adminClient.rpc('ohmi_fail_ai', {
+        p_request_id: requestId,
+        p_error_code: 'invalid_tutorial',
+        p_input_tokens: inputTokens,
+        p_output_tokens: outputTokens,
+        p_accounted_tokens: transportRes.totalTokens,
+        p_error_message: 'Tutorial output was truncated before completion.',
+        p_model: transportRes.model || route.model
+      });
+      return errorResponse('unavailable', 'Tutorial generation reached output limit before completing. Please try a simpler circuit description.', 502);
+    }
+
     const rawParsed = extractTutorialJson(answerText);
     if (!rawParsed) {
       await adminClient.rpc('ohmi_fail_ai', {

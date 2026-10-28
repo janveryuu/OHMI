@@ -22,7 +22,8 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
     [feedback, setFeedback] = useState<Record<string, unknown> | null>(null);
   const sequence = useRef(0),
     request = useRef<AbortController | null>(null),
-    retry = useRef<{ key: string; id: string } | null>(null);
+    retry = useRef<{ key: string; id: string } | null>(null),
+    submitting = useRef(false);
 
   useEffect(() => {
     sequence.current++;
@@ -32,6 +33,7 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
     setAssignment("");
     setError("");
     setBusy(false);
+    submitting.current = false;
     retry.current = null;
     return () => {
       sequence.current++;
@@ -40,7 +42,8 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
   }, [app.user?.id]);
 
   async function generate() {
-    if (!app.user || !goal.trim() || busy) return;
+    if (!app.user || !goal.trim() || busy || submitting.current) return;
+    submitting.current = true;
     const current = ++sequence.current,
       controller = new AbortController();
     request.current = controller;
@@ -54,13 +57,15 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
         language: app.language.toLowerCase(),
         ...(assignment ? { assignmentId: assignment } : {}),
       };
-      const key = JSON.stringify(payload),
-        requestId =
-          retry.current?.key === key ? retry.current.id : crypto.randomUUID();
+      const key = JSON.stringify(payload);
+      const fresh = retry.current?.key !== key;
+      const requestId =
+        retry.current?.key === key ? retry.current.id : crypto.randomUUID();
       retry.current = { key, id: requestId };
       const response = await askBackend(
         { ...payload, requestId },
         controller.signal,
+        { fresh },
       );
       if (current !== sequence.current) return;
       if (guideNeedsDetails(response.result)) {
@@ -69,26 +74,23 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
         return;
       }
       setFeedback(null);
-      await app.refresh();
-      setGoal("");
-      retry.current = null;
 
       // Find the created analysis id and switch directly to Your Path
-      const resObj = typeof response === "object" && response !== null ? (response as Record<string, unknown>) : null;
+      const resObj =
+        typeof response === "object" && response !== null
+          ? (response as Record<string, unknown>)
+          : null;
       const createdId =
         (typeof resObj?.analysisId === "string" && resObj.analysisId) ||
         (typeof resObj?.resultId === "string" && resObj.resultId) ||
         "";
+
+      await app.refresh();
+      setGoal("");
+      retry.current = null;
+
       if (createdId && onCreated) {
         onCreated(createdId);
-      } else if (onCreated) {
-        // Fallback: pick the latest created tutorial analysis
-        const latest = app.analyses.find(
-          (a) =>
-            a.artifact_kind === "tutorial" &&
-            a.model !== "ohmi-curated-led-v1",
-        );
-        if (latest) onCreated(latest.id);
       }
     } catch (cause) {
       if (
@@ -105,12 +107,17 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
             : "Guide could not be generated. Check your connection or materials.",
         );
     } finally {
+      submitting.current = false;
       if (current === sequence.current) setBusy(false);
     }
   }
 
   return (
-    <section className="panel stack guide-generator-panel" aria-label="Assignment Guide Generator">
+    <section
+      id="guide-generator-panel"
+      className="panel stack guide-generator-panel"
+      aria-label="Assignment Guide Generator"
+    >
       <div className="between">
         <div className="row">
           <Sparkles size={20} className="text-primary" />

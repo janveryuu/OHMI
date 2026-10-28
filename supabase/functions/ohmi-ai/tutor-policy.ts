@@ -93,7 +93,7 @@ export function buildTutorialSystemInstruction(language: string): string {
 - Tutorial Assembly Output Contract:
   * You must output a strictly valid JSON object matching the tutorial schema.
   * If requirements, supply voltage, or component values are missing or contradictory, set "status": "needs_clarification", ask specific clarification questions in "clarificationQuestions", explain in "notes", and leave "steps" empty.
-  * For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check". Step numbers MUST be sequential 1, 2, 3... up to 24.
+  * For a feasible circuit, set "status": "tutorial". Each step MUST include non-empty "instruction", "why", and "check" details separately, along with a concise "title" (a short, complete action phrase under 40 characters, e.g. "Place the 330 Ω Resistor"). Step numbers MUST be sequential 1, 2, 3... up to 24.
   * Follow the 8-step pedagogical sequence: gather parts, locate in Tinkercad search, place/orient, wire one at a time, check power/polarity, code pin mapping, manual simulation start, and single-variable troubleshooting.`;
 }
 

@@ -29,3 +29,31 @@ export function lessonProgress(steps) {
     ? Math.round((steps.filter(Boolean).length / steps.length) * 100)
     : 0;
 }
+
+export function resolveGuideLabel(guide, fallback = "Assignment Guide") {
+  if (!guide) return fallback;
+  if (typeof guide.title === "string" && guide.title.trim().length > 0) {
+    return guide.title.trim();
+  }
+  if (
+    guide.payload &&
+    typeof guide.payload === "object" &&
+    "title" in guide.payload
+  ) {
+    const raw = guide.payload.title;
+    if (typeof raw === "string" && raw.trim().length > 0) {
+      return raw.trim();
+    }
+  }
+  return fallback;
+}
+
+export function resolveStepTitle(step, index = 0) {
+  const stepNum = typeof step?.step === "number" ? step.step : index + 1;
+  const rawTitle = typeof step?.title === "string" ? step.title.trim() : "";
+  const rawInstruction =
+    typeof step?.instruction === "string" ? step.instruction.trim() : "";
+  if (rawTitle) return rawTitle;
+  if (rawInstruction) return rawInstruction;
+  return `Step ${stepNum}`;
+}

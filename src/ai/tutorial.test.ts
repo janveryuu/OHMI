@@ -123,4 +123,52 @@ Hope this helps!`;
     expect(parsed.status).toBe('needs_clarification');
     expect(parsed.clarificationQuestions[0]).toBe('Question 1?');
   });
+
+  it('rejects steps with explicit blank titles while accepting valid titles', () => {
+    const withBlankTitle = {
+      status: 'tutorial',
+      steps: [
+        { step: 1, title: '   ', instruction: 'Connect wire', why: 'Circuit loop', check: 'Check connection' }
+      ]
+    };
+    const blankRes = validateTutorialResult(withBlankTitle);
+    expect(blankRes.valid).toBe(false);
+    expect(blankRes.error).toContain('blank title');
+
+    const withValidTitle = {
+      status: 'tutorial',
+      steps: [
+        { step: 1, title: 'Place LED', instruction: 'Connect wire', why: 'Circuit loop', check: 'Check connection' }
+      ]
+    };
+    const validRes = validateTutorialResult(withValidTitle);
+    expect(validRes.valid).toBe(true);
+    expect(validRes.result?.steps?.[0].title).toBe('Place LED');
+  });
+
+  it('rejects components with missing or whitespace-only names', () => {
+    const withBlankComp = {
+      status: 'tutorial',
+      components: [{ name: '   ', quantity: 1 }],
+      steps: [
+        { step: 1, instruction: 'Do step', why: 'Why step', check: 'Check step' }
+      ]
+    };
+    const res = validateTutorialResult(withBlankComp);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain('missing a valid name');
+  });
+
+  it('preserves complete instruction without period splitting or length truncation', () => {
+    const fullInstruction = 'Supply 3.3V DC to the breadboard power rail (e.g. from Uno 3.3V pin).\nEnsure polarity is observed.';
+    const raw = {
+      status: 'tutorial',
+      steps: [
+        { step: 1, instruction: fullInstruction, why: 'Powers circuit', check: 'Measure 3.3V with voltmeter' }
+      ]
+    };
+    const res = validateTutorialResult(raw);
+    expect(res.valid).toBe(true);
+    expect(res.result?.steps?.[0].instruction).toBe(fullInstruction);
+  });
 });

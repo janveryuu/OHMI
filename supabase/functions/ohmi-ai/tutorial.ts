@@ -92,9 +92,14 @@ export function validateTutorialResult(data: unknown): { valid: boolean; result?
       return { valid: false, error: `Step numbers must be strictly sequential (expected ${expectedStepNum}, got ${stepNum})` };
     }
 
+    if (typeof s.title === 'string' && !s.title.trim()) {
+      return { valid: false, error: `Step ${expectedStepNum} has a blank title` };
+    }
+    const title = typeof s.title === 'string' && s.title.trim() ? s.title.trim() : undefined;
+
     const instruction = typeof s.instruction === 'string' && s.instruction.trim()
       ? s.instruction.trim()
-      : (typeof s.action === 'string' && s.action.trim() ? s.action.trim() : (typeof s.title === 'string' ? s.title.trim() : ''));
+      : (typeof s.action === 'string' && s.action.trim() ? s.action.trim() : '');
     const why = typeof s.why === 'string' && s.why.trim()
       ? s.why.trim()
       : (typeof s.reason === 'string' && s.reason.trim()
@@ -122,7 +127,7 @@ export function validateTutorialResult(data: unknown): { valid: boolean; result?
 
     validatedSteps.push({
       step: expectedStepNum,
-      title: typeof s.title === 'string' && s.title.trim() ? s.title.trim() : undefined,
+      title,
       instruction,
       why,
       check,
@@ -137,14 +142,20 @@ export function validateTutorialResult(data: unknown): { valid: boolean; result?
   const rawComponents = obj.components;
   const validatedComponents: TutorialComponent[] = [];
   if (Array.isArray(rawComponents)) {
-    for (const c of rawComponents) {
-      if (c && typeof c === 'object' && typeof c.name === 'string' && c.name.trim()) {
-        validatedComponents.push({
-          name: c.name.trim(),
-          quantity: c.quantity !== undefined ? c.quantity : 1,
-          notes: typeof c.notes === 'string' ? c.notes.trim() : undefined
-        });
+    for (let cIdx = 0; cIdx < rawComponents.length; cIdx++) {
+      const c = rawComponents[cIdx];
+      if (!c || typeof c !== 'object') {
+        return { valid: false, error: `Component at index ${cIdx} is not an object` };
       }
+      const name = typeof c.name === 'string' ? c.name.trim() : '';
+      if (!name) {
+        return { valid: false, error: `Component at index ${cIdx} is missing a valid name` };
+      }
+      validatedComponents.push({
+        name,
+        quantity: c.quantity !== undefined ? c.quantity : 1,
+        notes: typeof c.notes === 'string' && c.notes.trim() ? c.notes.trim() : undefined
+      });
     }
   }
 

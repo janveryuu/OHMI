@@ -54,7 +54,8 @@ export function CircuitChecker() {
     [code, setCode] = useState(""),
     [requirements, setRequirements] = useState("");
   const request = useRef<AbortController | null>(null),
-    retry = useRef<{ key: string; id: string } | null>(null);
+    retry = useRef<{ key: string; id: string } | null>(null),
+    submitting = useRef(false);
   const [image, setImage] = useState(""),
     [name, setName] = useState(""),
     [crop, setCrop] = useState(100),
@@ -82,6 +83,7 @@ export function CircuitChecker() {
     request.current?.abort();
     setResult(null);
     retry.current = null;
+    submitting.current = false;
     URL.revokeObjectURL(source.current);
     URL.revokeObjectURL(output.current);
     source.current = "";
@@ -148,16 +150,18 @@ export function CircuitChecker() {
     }
   }
   useEffect(() => {
+    submitting.current = false;
     clear();
     setCode("");
     setRequirements("");
   }, [app.user?.id]);
   async function analyze() {
-    if (!image || status === "checking") return;
+    if (!image || status === "checking" || submitting.current) return;
     if (!app.user) {
       setError("Sign in to review a circuit and save findings.");
       return;
     }
+    submitting.current = true;
     const current = ++generation.current,
       controller = new AbortController();
     request.current = controller;
@@ -202,14 +206,6 @@ export function CircuitChecker() {
       if (current !== generation.current) return;
 
       setStage("validating_evidence");
-      const availability = await fetch("/app/api/ai/", {
-        cache: "no-store",
-        signal: controller.signal,
-      }).then((r) => r.json());
-      if (!availability.enabled)
-        throw new Error(
-          "AI tutoring is paused until free-only provider access is verified.",
-        );
       if (current !== generation.current) return;
 
       setStage("analyzing_circuit");
@@ -227,13 +223,15 @@ export function CircuitChecker() {
           ? { requirementText: requirements.trim() }
           : {}),
       };
-      const key = JSON.stringify(payload),
-        requestId =
-          retry.current?.key === key ? retry.current.id : crypto.randomUUID();
+      const key = JSON.stringify(payload);
+      const fresh = retry.current?.key !== key;
+      const requestId =
+        retry.current?.key === key ? retry.current.id : crypto.randomUUID();
       retry.current = { key, id: requestId };
       const response = await askBackend(
         { ...payload, requestId },
         controller.signal,
+        { fresh },
       );
       if (current !== generation.current) return;
 
@@ -257,6 +255,8 @@ export function CircuitChecker() {
             : "Review did not finish. Check saved results before retrying.",
         );
       }
+    } finally {
+      submitting.current = false;
     }
   }
   return (
