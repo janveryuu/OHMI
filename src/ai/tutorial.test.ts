@@ -143,7 +143,7 @@ Hope this helps!`;
     };
     const validRes = validateTutorialResult(withValidTitle);
     expect(validRes.valid).toBe(true);
-    expect(validRes.result?.steps?.[0].title).toBe('Place LED');
+    expect(validRes.result?.steps?.[0]?.title).toBe('Place LED');
   });
 
   it('rejects components with missing or whitespace-only names', () => {
@@ -169,6 +169,6 @@ Hope this helps!`;
     };
     const res = validateTutorialResult(raw);
     expect(res.valid).toBe(true);
-    expect(res.result?.steps?.[0].instruction).toBe(fullInstruction);
+    expect(res.result?.steps?.[0]?.instruction).toBe(fullInstruction);
   });
 });

@@ -47,10 +47,10 @@ export function Guide() {
     (a) => a.artifact_kind === "tutorial" && a.model !== "ohmi-curated-led-v1",
   );
 
-  const isCuratedLed = activeGuideId === "led";
-  const activeAnalysis = isCuratedLed
-    ? null
-    : savedGuides.find((g) => g.id === activeGuideId) || savedGuides[0] || null;
+  const selectedSavedGuide = savedGuides.find((g) => g.id === activeGuideId);
+  const isCuratedLed = activeGuideId === "led" || !selectedSavedGuide;
+  const activeAnalysis = isCuratedLed ? null : selectedSavedGuide;
+  const currentActiveId = isCuratedLed ? "led" : activeAnalysis?.id;
 
   // Active guide properties
   let title = "A little light. A big first step.";
@@ -101,23 +101,18 @@ export function Guide() {
       : [];
     if (rawSteps.length > 0) {
       guideSteps = rawSteps.map((s: Record<string, unknown>, idx: number) => {
-        const stepNum = typeof s.step === "number" ? s.step : idx + 1;
-        const rawTitle = typeof s.title === "string" ? s.title.trim() : "";
+        const stepNum =
+          typeof s.step === "number" && Number.isFinite(s.step) && s.step > 0
+            ? s.step
+            : idx + 1;
         const rawInstruction =
           typeof s.instruction === "string" ? s.instruction.trim() : "";
         const rawWhy = typeof s.why === "string" ? s.why.trim() : "";
         const rawCheck = typeof s.check === "string" ? s.check.trim() : "";
         const rawCode = typeof s.code === "string" ? s.code.trim() : "";
 
-        const hasTitle = Boolean(rawTitle);
         const hasInstruction = Boolean(rawInstruction);
-
-        const stepTitle = hasTitle
-          ? rawTitle
-          : hasInstruction
-            ? rawInstruction
-            : `Step ${stepNum}`;
-
+        const stepTitle = resolveStepTitle(s, idx);
         const stepDetail = hasInstruction ? rawInstruction : "";
 
         return {
@@ -127,7 +122,7 @@ export function Guide() {
           check: rawCheck,
           code: rawCode,
           task: `I completed step ${stepNum}.`,
-          missingInstruction: !hasTitle && !hasInstruction,
+          missingInstruction: !hasInstruction,
         };
       });
     }
@@ -176,14 +171,16 @@ export function Guide() {
   function selectGuide(id: string) {
     setActiveGuideId(id);
     const destCount = getGuideStepCount(id);
-    if (id === "led") {
-      setStep(0);
-    } else {
-      const prog = app.savedProgress.find((p) => p.analysis_id === id);
-      const savedStep =
-        prog && typeof prog.current_step === "number" ? prog.current_step : 0;
-      setStep(Math.max(0, Math.min(Math.max(0, destCount - 1), savedStep)));
-    }
+    const targetAnalysisId =
+      id === "led"
+        ? app.analyses.find((a) => a.model === "ohmi-curated-led-v1")?.id
+        : id;
+    const prog = targetAnalysisId
+      ? app.savedProgress.find((p) => p.analysis_id === targetAnalysisId)
+      : null;
+    const savedStep =
+      prog && typeof prog.current_step === "number" ? prog.current_step : 0;
+    setStep(Math.max(0, Math.min(Math.max(0, destCount - 1), savedStep)));
     setError("");
   }
 
@@ -200,32 +197,38 @@ export function Guide() {
     <div className="stack">
       {/* Guide Switcher Tabs */}
       <div className="guide-switcher-bar">
-        <div className="guide-pills" role="tablist" aria-label="Available Guides">
-          <button
-            role="tab"
-            aria-selected={isCuratedLed}
-            className={`guide-pill ${isCuratedLed ? "active" : ""}`}
-            onClick={() => selectGuide("led")}
+        <div className="guide-pills">
+          <div
+            role="tablist"
+            aria-label="Available Guides"
+            style={{ display: "contents" }}
           >
-            <span>💡</span>
-            <span>Beginner LED</span>
-          </button>
-          {savedGuides.map((g) => {
-            const isSelected = activeGuideId === g.id;
-            const shortTitle = resolveGuideLabel(g, "Assignment Guide");
-            return (
-              <button
-                key={g.id}
-                role="tab"
-                aria-selected={isSelected}
-                className={`guide-pill ${isSelected ? "active" : ""}`}
-                onClick={() => selectGuide(g.id)}
-              >
-                <BookOpen size={14} className="shrink-0" />
-                <span>{shortTitle}</span>
-              </button>
-            );
-          })}
+            <button
+              role="tab"
+              aria-selected={isCuratedLed}
+              className={`guide-pill ${isCuratedLed ? "active" : ""}`}
+              onClick={() => selectGuide("led")}
+            >
+              <span>💡</span>
+              <span>Beginner LED</span>
+            </button>
+            {savedGuides.map((g) => {
+              const isSelected = currentActiveId === g.id;
+              const shortTitle = resolveGuideLabel(g, "Assignment Guide");
+              return (
+                <button
+                  key={g.id}
+                  role="tab"
+                  aria-selected={isSelected}
+                  className={`guide-pill ${isSelected ? "active" : ""}`}
+                  onClick={() => selectGuide(g.id)}
+                >
+                  <BookOpen size={14} className="shrink-0" />
+                  <span>{shortTitle}</span>
+                </button>
+              );
+            })}
+          </div>
           <button
             id="guide-generator-toggle"
             className={`guide-pill new-guide-pill ${showGenerator ? "active" : ""}`}

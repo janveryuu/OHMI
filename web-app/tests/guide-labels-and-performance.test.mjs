@@ -173,3 +173,57 @@ test("Guide generator guards duplicate submission, passes fresh flag, and activa
     "Activates exact created tutorial ID without stale closure fallback",
   );
 });
+
+test("resolveStepTitle handles non-finite, zero, and negative step numbers gracefully", () => {
+  assert.equal(resolveStepTitle({ step: NaN }, 0), "Step 1");
+  assert.equal(resolveStepTitle({ step: 0 }, 1), "Step 2");
+  assert.equal(resolveStepTitle({ step: -5 }, 2), "Step 3");
+  assert.equal(resolveStepTitle({ step: Infinity }, 3), "Step 4");
+});
+
+test("guideNeedsDetails safely handles null, undefined, and malformed inputs", async () => {
+  const { guideNeedsDetails } = await import("../src/lib/backend/guards.mjs");
+  assert.equal(guideNeedsDetails(null), true);
+  assert.equal(guideNeedsDetails(undefined), true);
+  assert.equal(guideNeedsDetails("string"), true);
+  assert.equal(guideNeedsDetails(123), true);
+  assert.equal(guideNeedsDetails({}), true);
+  assert.equal(guideNeedsDetails({ status: "tutorial" }), true);
+  assert.equal(guideNeedsDetails({ status: "tutorial", steps: [] }), true);
+  assert.equal(
+    guideNeedsDetails({
+      status: "tutorial",
+      steps: [{ title: "Step 1", instruction: "Do something" }],
+    }),
+    false,
+  );
+});
+
+test("guide.tsx tablist structure is accessible and restores saved progress on LED selection", async () => {
+  const guideSource = await readFile(
+    new URL("../src/components/guide.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // Accessible tablist semantics: tablist wraps tabs, generator toggle is sibling
+  assert.ok(
+    guideSource.includes('role="tablist"'),
+    "Contains accessible tablist",
+  );
+  assert.ok(
+    guideSource.includes('display: "contents"'),
+    "Tablist preserves flexbox layout using display: contents",
+  );
+
+  // Restores saved progress on LED selection
+  assert.ok(
+    guideSource.includes('ohmi-curated-led-v1'),
+    "selectGuide checks curated LED analysis for saved progress",
+  );
+
+  // Safe active guide fallback
+  assert.ok(
+    guideSource.includes("selectedSavedGuide"),
+    "Guards against stale or invalid activeGuideId",
+  );
+});

@@ -238,7 +238,11 @@ export function CircuitChecker() {
       setStage("preparing_feedback");
       setResult(response.result);
       setStatus("done");
-      await app.refresh();
+      try {
+        await app.refresh();
+      } catch {
+        // Workspace refresh is background synchronization; the review result is already displayed
+      }
     } catch (cause) {
       if (
         cause &&

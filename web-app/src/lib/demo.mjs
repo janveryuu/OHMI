@@ -49,7 +49,12 @@ export function resolveGuideLabel(guide, fallback = "Assignment Guide") {
 }
 
 export function resolveStepTitle(step, index = 0) {
-  const stepNum = typeof step?.step === "number" ? step.step : index + 1;
+  const stepNum =
+    typeof step?.step === "number" &&
+    Number.isFinite(step.step) &&
+    step.step > 0
+      ? step.step
+      : index + 1;
   const rawTitle = typeof step?.title === "string" ? step.title.trim() : "";
   const rawInstruction =
     typeof step?.instruction === "string" ? step.instruction.trim() : "";

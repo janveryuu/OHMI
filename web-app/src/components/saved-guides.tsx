@@ -80,12 +80,27 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
         typeof response === "object" && response !== null
           ? (response as Record<string, unknown>)
           : null;
-      const createdId =
-        (typeof resObj?.analysisId === "string" && resObj.analysisId) ||
-        (typeof resObj?.resultId === "string" && resObj.resultId) ||
-        "";
+      let createdId = "";
+      if (resObj) {
+        if (typeof resObj.analysisId === "string" && resObj.analysisId) {
+          createdId = resObj.analysisId;
+        } else if (typeof resObj.resultId === "string" && resObj.resultId) {
+          createdId = resObj.resultId;
+        } else if (
+          resObj.result &&
+          typeof resObj.result === "object" &&
+          "id" in resObj.result &&
+          typeof (resObj.result as Record<string, unknown>).id === "string"
+        ) {
+          createdId = (resObj.result as Record<string, unknown>).id as string;
+        }
+      }
 
-      await app.refresh();
+      try {
+        await app.refresh();
+      } catch {
+        // Workspace refresh is background synchronization; the guide is already created
+      }
       setGoal("");
       retry.current = null;
 

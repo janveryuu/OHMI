@@ -1,4 +1,4 @@
-﻿export function accountEpoch() {
+export function accountEpoch() {
   let generation = 0;
   return {
     capture: () => generation,
@@ -131,6 +131,7 @@ export function edgeFailure(result) {
 }
 
 export function guideNeedsDetails(value) {
+  if (!value || typeof value !== "object") return true;
   return (
     value.status !== "tutorial" ||
     !Array.isArray(value.steps) ||

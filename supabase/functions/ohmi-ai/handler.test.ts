@@ -323,6 +323,45 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
     const data2 = await res2.json();
     expect(data2.ok).toBe(false);
     expect(mockRpc).toHaveBeenCalledWith('ohmi_fail_ai', expect.objectContaining({ p_error_code: 'invalid_tutorial' }));
+
+    // C: Token-truncated tutorial (incomplete) must be failed with invalid_tutorial, not partially persisted
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: 'MAX_TOKENS',
+              content: { parts: [{ text: '{"status": "tutorial", "title": "Truncated", "steps": [{"step": 1, "title": "Step 1", "instruction": "Incom' }] }
+            }
+          ],
+          usageMetadata: { promptTokenCount: 150, candidatesTokenCount: 4096 }
+        }),
+        { status: 200 }
+      )
+    );
+
+    const req3 = createRequest({
+      version: 1,
+      requestId: '77777777-7777-7777-7777-777777777777',
+      operation: 'tutorial',
+      language: 'english',
+      message: 'Build a very long complex circuit'
+    });
+
+    const res3 = await handleAiRequest(req3, {
+      env: defaultEnv,
+      createClient: createMockClientFactory(),
+      fetch: mockFetch
+    });
+
+    expect(res3.status).toBe(502);
+    const data3 = await res3.json();
+    expect(data3.ok).toBe(false);
+    expect(data3.error).toContain('limit');
+    expect(mockRpc).toHaveBeenCalledWith('ohmi_fail_ai', expect.objectContaining({
+      p_request_id: '77777777-7777-7777-7777-777777777777',
+      p_error_code: 'truncated'
+    }));
   });
 
   it('regression 5: pdf_requirement_excerpt_must_match_claimed_page', () => {
