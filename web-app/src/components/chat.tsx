@@ -163,7 +163,7 @@ export function Chat() {
       }).then((r) => r.json());
       if (!availability.enabled)
         throw new Error(
-          "AI tutoring is paused until free-only provider access is verified.",
+          "AI tutoring is currently paused.",
         );
       const id = conversation.id || (await app.newConversation(value));
       if (current !== sequence.current) return;
@@ -315,11 +315,20 @@ export function Chat() {
               >
                 <div className="message-sender">
                   {message.role === "assistant" ? "OHMI" : "You"}
+                  {message.role === "assistant" && typeof message.structured?.mode === "string" && (
+                    <span className="muted"> · {message.structured.mode === "limited" ? "Limited mode" : message.structured.mode === "local" ? "Local reply" : "AI reply"}</span>
+                  )}
                 </div>
                 {message.role === "assistant" ? (
                   <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
                 ) : (
                   <p className="user-text">{message.text}</p>
+                )}
+                {message.role === "assistant" && message.structured?.mode === "limited" && message.id === conversation.messages.at(-1)?.id && (
+                  <Button variant="outline" disabled={pending} onClick={() => {
+                    const original = [...conversation.messages].reverse().find(item => item.role === "user");
+                    if (original) void send(undefined, original.text, { operation: "chat" });
+                  }}>Retry question</Button>
                 )}
                 {message.role === "assistant" && message.structured?.incomplete === true && (
                   <div className="incomplete-continuation-card">
@@ -498,7 +507,7 @@ export function Chat() {
               name="message"
               className="input"
               rows={2}
-              maxLength={2000}
+              maxLength={3000}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="What are you curious about…"

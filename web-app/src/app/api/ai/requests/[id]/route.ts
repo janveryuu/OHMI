@@ -26,8 +26,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       result = analysis?.payload || null;
     }
     if (job.status === 'completed' && !result) return Response.json({ code: 'result_unavailable', error: 'The original saved result is no longer available. No new generation was started.' }, { status: 410, headers: PRIVATE_HEADERS });
+    const provenance = result && typeof result === 'object' && !Array.isArray(result) ? result : {};
     return Response.json({ ok: true, requestId: job.id, accountId: user.id, status: job.status === 'pending' && Date.now() - Date.parse(job.created_at) > 60_000 ? 'expired' : job.status,
-      operation: job.operation, language: job.language, model: job.model, resultId: job.result_id,
+      operation: job.operation, language: job.language, model: typeof provenance.model === 'string' ? provenance.model : job.model, provider: typeof provenance.provider === 'string' ? provenance.provider : undefined, resultId: job.result_id,
       conversationId: job.conversation_id, result, errorCode: job.error_code }, { headers: PRIVATE_HEADERS });
   } catch (error) { return privateError(error); }
 }

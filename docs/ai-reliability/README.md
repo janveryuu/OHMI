@@ -1,5 +1,7 @@
 # OHMI AI reliability release
 
+> **28 October 2026 update:** The owner approved removing application TPM/TPD and daily consumption gates and copying Dormosaur's provider flow. The historical quota-preservation and no-fallback statements below are superseded by [the parity release](DORMOSAUR_PARITY.md).
+
 Owner requested investigation, fixes, GitHub push and Vercel release. Investigation began25 October2026; verification/release26 October Asia/Manila. [Plan](PLAN.md) was saved before implementation. No live inference was run. No provider/model, key, billing setting, numeric quota cap, onboarding boundary, student data or mascot asset was changed.
 
 ## Findings and fixes

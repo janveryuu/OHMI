@@ -1,6 +1,7 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleAiRequest } from './handler.ts';
 import { verifyPageCitation } from './pdf.ts';
+vi.mock('./copilot.ts', async (original) => ({ ...await original<typeof import('./copilot.ts')>(), consumeChatBurst: () => true }));
 
 describe('Production Edge AI Handler Tests & Regressions', () => {
   const defaultEnv = {
@@ -66,7 +67,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
     });
 
-    mockFetch = vi.fn().mockImplementation((url: string) => {
+    mockFetch = vi.fn().mockImplementation((url: string, init: RequestInit) => {
       if (typeof url === 'string' && url.includes('groq.com')) {
         return Promise.resolve(
           new Response(
@@ -74,11 +75,11 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
               choices: [
                 {
                   finish_reason: 'stop',
-                  message: { role: 'assistant', content: 'Here is the circuit advice.' }
+                  message: { role: 'assistant', content: JSON.stringify({ scope: 'in_scope', reply: 'Here is the circuit advice.' }) }
                 }
               ],
               usage: { prompt_tokens: 120, completion_tokens: 45, total_tokens: 165 },
-              model: 'openai/gpt-oss-120b'
+              model: JSON.parse(init.body as string).model
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
           )
@@ -180,7 +181,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
             fresh: false,
             status: 'completed',
             conversation_id: '44444444-4444-4444-4444-444444444444',
-            model: 'gemini-3.5-flash-lite'
+            model: 'gemini-3.8-flash'
           },
           error: null
         });
@@ -283,9 +284,10 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
     expect(res1.status).toBe(200);
     const data1 = await res1.json();
-    expect(data1.result.incomplete).toBe(true);
-    expect(data1.result.answer).toContain('Answer incomplete');
-    expect(mockRpc).toHaveBeenCalledWith('ohmi_complete_ai', expect.objectContaining({ p_output: expect.objectContaining({ incomplete: true, continuation: { operation: 'chat' } }), p_accounted_tokens: 2148 }));
+    expect(data1.result.mode).toBe('ai');
+    expect(data1.result.answer).toContain('circuit advice');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockRpc).toHaveBeenCalledWith('ohmi_complete_ai', expect.objectContaining({ p_model: 'openai/gpt-oss-20b' }));
 
     // B: Invalid tutorial result (malformed / missing required fields) must be rejected, not fabricated
     mockFetch.mockResolvedValueOnce(
@@ -517,13 +519,13 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(data.error).toContain('6 MiB');
     });
 
-    it('rejects version 1 body exceeding 32 KiB with 413', async () => {
+    it('rejects version 1 body exceeding 64 KiB with 413', async () => {
       const v1Oversized = {
         version: 1,
         requestId: '11111111-2222-3333-4444-555555555555',
         operation: 'chat',
         language: 'english',
-        message: 'x'.repeat(33 * 1024)
+        message: 'x'.repeat(65 * 1024)
       };
       const req = createRequest(v1Oversized);
 
@@ -536,7 +538,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(res.status).toBe(413);
       const data = await res.json();
       expect(data.code).toBe('payload_too_large');
-      expect(data.error).toContain('32 KiB');
+      expect(data.error).toContain('64 KiB');
     });
 
     it('rejects unsupported contract versions with 400', async () => {
@@ -1170,8 +1172,9 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
 
       const body = JSON.parse(init.body);
       expect(body.model).toBe('openai/gpt-oss-120b');
-      expect(body.reasoning_effort).toBe('low');
-      expect(body.include_reasoning).toBe(false);
+      expect(body.temperature).toBe(0.45);
+      expect(body.max_completion_tokens).toBe(1600);
+      expect(body.response_format).toEqual({ type: 'json_object' });
 
       const completeCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_complete_ai');
       expect(completeCall).toBeDefined();
@@ -1247,18 +1250,18 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, init] = mockFetch.mock.calls[0];
       expect(url).not.toContain('?key=');
-      expect(url).toContain('gemini-3.5-flash-lite:generateContent');
+      expect(url).toContain('gemini-3.8-flash:generateContent');
       expect(init.headers['x-goog-api-key']).toBe('test-gemini-key');
 
       const body = JSON.parse(init.body);
-      expect(body.generationConfig?.temperature).toBeUndefined();
+      expect(body.generationConfig?.temperature).toBe(0.1);
       expect(body.generationConfig?.thinkingConfig).toEqual({
         thinkingLevel: 'LOW',
         includeThoughts: false
       });
     });
 
-    it('handles Groq 429 rate limit with Retry-After header', async () => {
+    it('handles Groq 429 by completing with the next candidate', async () => {
       mockFetch.mockResolvedValueOnce(
         new Response(
           JSON.stringify({ error: { message: 'Rate limit exceeded' } }),
@@ -1280,10 +1283,11 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(429);
-      expect(res.headers.get('Retry-After')).toBe('30');
+      expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data.code).toBe('rate_limit');
+      expect(data.result.mode).toBe('ai');
+      expect(data.model).toBe('openai/gpt-oss-20b');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it('redacts Groq secret keys from error messages', async () => {
@@ -1313,14 +1317,12 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(502);
-      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
-      expect(failCall).toBeDefined();
-      expect(failCall[1].p_error_message).not.toContain('gsk_secretgroqkey1234567890');
-      expect(failCall[1].p_error_message).toContain('[REDACTED_KEY]');
+      expect(res.status).toBe(200);
+      expect(await res.text()).not.toContain('gsk_secretgroqkey1234567890');
+      expect(mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai')).toBeUndefined();
     });
 
-    it('handles Groq timeout cleanly with 504 and fails AI without fallback', async () => {
+    it('handles Groq timeout with successful fallback', async () => {
       mockFetch.mockImplementationOnce(() => {
         const err = new Error('The operation was aborted');
         err.name = 'AbortError';
@@ -1341,13 +1343,10 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
         fetch: mockFetch
       });
 
-      expect(res.status).toBe(504);
+      expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data.code).toBe('timeout');
-
-      const failCall = mockRpc.mock.calls.find(c => c[0] === 'ohmi_fail_ai');
-      expect(failCall).toBeDefined();
-      expect(failCall[1].p_error_code).toBe('timeout');
+      expect(data.result.mode).toBe('ai');
+      expect(data.model).toBe('openai/gpt-oss-20b');
     });
   });
 
@@ -1508,7 +1507,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
             choices: [
               {
                 finish_reason: 'stop',
-                message: { role: 'assistant', content: 'Use V = I * R to find the voltage drop.' }
+                message: { role: 'assistant', content: JSON.stringify({ scope: 'in_scope', reply: 'Use V = I * R to find the voltage drop.' }) }
               }
             ],
             usage: { prompt_tokens: 120, completion_tokens: 30 }
@@ -1544,7 +1543,7 @@ describe('Production Edge AI Handler Tests & Regressions', () => {
   describe('reliability safeguards', () => {
     const body = { version: 1, requestId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', operation: 'chat', language: 'english', message: 'Explain a resistor' };
     it.each([
-      { OHMI_GROQ_CHAT_ENABLED: 'false' }, { GROQ_API_KEY: '' }, { GROQ_FREE_TIER_CONFIRMED: 'false' }
+      { OHMI_GROQ_CHAT_ENABLED: 'false' }
     ])('rejects disabled/unconfigured text route before admission: %j', async (env) => {
       const response = await handleAiRequest(createRequest(body), { env: { ...defaultEnv, ...env }, createClient: createMockClientFactory(), fetch: mockFetch });
       expect(response.status).toBe(503); expect(mockRpc).not.toHaveBeenCalled(); expect(mockFetch).not.toHaveBeenCalled();

@@ -62,6 +62,9 @@ export interface AiResponseData {
   result: {
     status: 'answer' | 'needs_clarification' | 'unsupported';
     answer: string;
+    mode?: 'ai' | 'local' | 'limited';
+    provider?: string;
+    model?: string;
     questions?: string[];
     calculation?: AiCalculationResult;
     arduinoValidation?: ArduinoValidationResult;

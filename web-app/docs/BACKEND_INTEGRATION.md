@@ -1,3 +1,7 @@
+# 28 October 2026 provider update
+
+The owner-approved Dormosaur parity release removes application token-minute, token-day, provider RPM/RPD and user/project daily consumption gates. Plain chat uses Groq GPT-OSS 120B, Groq GPT-OSS 20B, then Gemini 2.5 Flash, with labelled local/limited replies. Gemini media uses 3.8 Flash. The copied 20 chat requests/user/minute per-runtime abuse guard remains. Older quota/free-readiness/no-fallback statements in this historical report are superseded; see `../../docs/ai-reliability/DORMOSAUR_PARITY.md`.
+
 # PWA backend integration — 24 October 2026
 
 The owner approved M2–M5 and frontend deployment. This release reuses the existing hosted schema, RLS and private bucket. One owner-approved additive migration repairs the missing artifact updated_at column. No policy relaxation, credential rotation, extension change or landing redesign is included.

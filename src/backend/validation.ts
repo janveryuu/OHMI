@@ -88,7 +88,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
   if (action === 'files.prepare') validateFile(payload);
   if (action === 'ai.chat') {
     uuid(payload.requestId);
-    payload.message = text(payload.message, 2000);
+    payload.message = text(payload.message, 3000);
     if (!['english', 'filipino', 'taglish'].includes(String(payload.language))) throw new Error('Invalid language.');
     if (payload.code !== undefined && (typeof payload.code !== 'string' || payload.code.length > 8000)) throw new Error('Invalid code length.');
     if (payload.assignmentId !== undefined) uuid(payload.assignmentId);
@@ -99,7 +99,7 @@ export function validateRequest(message: unknown, sender: Sender, extensionId: s
         throw new Error('Invalid historyThroughPosition.');
       }
     }
-    if (payload.context !== undefined && (!Array.isArray(payload.context) || payload.context.length > 4)) throw new Error('Invalid context.');
+    if (payload.context !== undefined && (!Array.isArray(payload.context) || payload.context.length > 24)) throw new Error('Invalid context.');
     if (payload.calculation !== undefined) {
       if (typeof payload.calculation !== 'object' || payload.calculation === null) throw new Error('Invalid calculation payload.');
       const calc = payload.calculation as Record<string, unknown>;

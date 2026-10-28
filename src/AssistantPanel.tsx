@@ -568,7 +568,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
 
       const chatContext = messages
         .filter((m) => m.mode !== 'sample')
-        .slice(-8)
+        .slice(-24)
         .map((m) => ({
           role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
           text: m.text
@@ -583,7 +583,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
         language: preferences.language,
         context: chatContext,
         ...(convId ? { conversationId: convId, historyThroughPosition: watermarkToSend } : {})
-      }) as { ok?: boolean; historyWatermark?: number; result?: { answer?: string } } | null;
+      }) as { ok?: boolean; historyWatermark?: number; result?: { answer?: string; mode?: 'ai' | 'local' | 'limited' } } | null;
 
       if (account.state.user?.id !== currentUserId) return;
       if (activeConversationIdRef.current !== convId) return;
@@ -595,7 +595,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
 
       const answer = res?.result?.answer;
       if (answer) {
-        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: answer, language: preferences.language, mode: 'live', isAi: true }]);
+        setMessages((current) => [...current, { id: ++messageId.current, role: 'ohmi', text: answer, language: preferences.language, mode: 'live', isAi: res?.result?.mode === 'ai', structured_result: res?.result }]);
         onMotion('happy');
       } else {
         setNotice('No answer received from AI tutor.');
@@ -870,7 +870,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           )}
           {messages.length === 0 && <div className="ohmi-chat-start"><span className="ohmi-feature-icon"><Icon name="chat" /></span><p>{account.state.user ? 'Ask OHMI anything about components, circuits, or Arduino code.' : 'What’s puzzling you? Try a question about the sample LED circuit.'}</p></div>}
           {messages.map((message) => <div key={message.id} data-message-id={message.id} className={`ohmi-message ohmi-message-${message.role}`}>
-            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.mode === 'live' || message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
+            <span className="ohmi-message-label">{message.role === 'user' ? 'You' : message.structured_result?.mode === 'limited' ? 'OHMI · Limited mode' : message.structured_result?.mode === 'local' ? 'OHMI · Local reply' : message.mode === 'live' || message.isAi ? 'OHMI' : 'Fixed sample reply'}</span>
             <div lang={message.language === 'filipino' ? 'fil' : message.language === 'english' ? 'en' : undefined}><MessageContent content={message.text} /></div>
             {message.attachment && <span className="ohmi-file-chip"><Icon name="assignments" size={14} />led-lab.pdf (sample)</span>}
           </div>)}

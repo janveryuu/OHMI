@@ -73,7 +73,7 @@ describe('ai.chat request validation', () => {
 
   it('rejects missing requestId, oversized message, or invalid language', () => {
     expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, message: 'Hi' }), content, id)).toThrow();
-    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'x'.repeat(2001), language: 'english' }), content, id)).toThrow();
+    expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'x'.repeat(3001), language: 'english' }), content, id)).toThrow();
     expect(() => validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'spanish' }), content, id)).toThrow();
     expect(validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: 0 }), content, id).action).toBe('ai.chat');
     expect(validateRequest(message('ai.chat', { accountId: dummyAcc, requestId: dummyReq, message: 'Hi', language: 'english', historyThroughPosition: 10 }), content, id).action).toBe('ai.chat');

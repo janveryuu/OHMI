@@ -23,10 +23,7 @@ do $test$ declare replay jsonb; begin
   perform public.ohmi_complete_ai(current_setting('test.first')::uuid,'{}',1,1,'gemini-3.5-flash-lite',2);
   raise exception 'Duplicate completion accepted';
  exception when raise_exception then if sqlerrm not like '%no longer pending%' then raise; end if; end;
- begin
-  perform public.ohmi_reserve_ai(current_setting('test.owner')::uuid,gen_random_uuid(),'chat',null,repeat('b',64),'english','openai/gpt-oss-120b',6401,null);
-  raise exception 'Token minute cap bypassed';
- exception when raise_exception then if sqlerrm not like '%token minute limit%' then raise; end if; end;
+ perform public.ohmi_reserve_ai(current_setting('test.owner')::uuid,gen_random_uuid(),'chat',null,repeat('b',64),'english','openai/gpt-oss-120b',6401,null);
  assert not has_function_privilege('authenticated','public.ohmi_complete_ai(uuid,jsonb,integer,integer,text,integer)','EXECUTE'), 'Student can complete requests';
  assert not has_function_privilege('anon','public.ohmi_reserve_ai(uuid,uuid,text,uuid,text,text,text,integer,uuid)','EXECUTE'), 'Anonymous admission available';
 end $test$;
@@ -39,14 +36,26 @@ do $test$ declare stale uuid:=gen_random_uuid(); begin
   raise exception 'Late completion accepted';
  exception when raise_exception then if sqlerrm not like '%lease expired%' then raise; end if; end;
 end $test$;
--- The existing cap values are not modified, even temporarily.
+-- Historical usage and concurrent pending rows cannot impose application consumption quotas.
 insert into public.ohmi_ai_requests(id,user_id,kind,operation,input_hash,language,model,reserved_tokens,status,accounted_tokens,created_at,finished_at)
 select gen_random_uuid(),current_setting('test.owner')::uuid,'chat','chat',repeat('c',64),'english','openai/gpt-oss-120b',60000,'failed',60000,now()-interval '2 minutes',now()-interval '2 minutes' from generate_series(1,3);
 do $test$ begin
- begin
-  perform public.ohmi_reserve_ai(current_setting('test.owner')::uuid,gen_random_uuid(),'chat',null,repeat('d',64),'english','openai/gpt-oss-120b',1,null);
-  raise exception 'Token daily cap bypassed';
- exception when raise_exception then if sqlerrm not like '%token daily limit%' then raise; end if; end;
+ perform public.ohmi_reserve_ai(current_setting('test.owner')::uuid,gen_random_uuid(),'chat',null,repeat('d',64),'english','openai/gpt-oss-120b',null,null);
+end $test$;
+do $test$ declare request uuid; result jsonb; begin
+ for i in 1..45 loop
+  request := gen_random_uuid();
+  result := public.ohmi_reserve_ai(current_setting('test.owner')::uuid,request,'chat',current_setting('test.conversation')::uuid,repeat('f',64),'english','openai/gpt-oss-120b',64001,null);
+  assert result->>'fresh'='true', 'Historical consumption blocked fresh request';
+ end loop;
+ result := public.ohmi_reserve_ai(current_setting('test.owner')::uuid,request,'chat',current_setting('test.conversation')::uuid,repeat('f',64),'english','openai/gpt-oss-120b',null,null);
+ assert result->>'fresh'='false', 'Pending replay generated twice';
+ perform public.ohmi_complete_ai(request,'{"message":"Synthetic","answer":"Fallback answer","mode":"ai","provider":"gemini","model":"gemini-2.5-flash"}',1,2,'gemini-2.5-flash',3);
+ assert (select model from public.ohmi_ai_requests where id=request)='gemini-2.5-flash', 'Fallback provenance lost';
+ request := gen_random_uuid();
+ perform public.ohmi_reserve_ai(current_setting('test.owner')::uuid,request,'chat',null,repeat('f',64),'english','openai/gpt-oss-120b',null,null);
+ perform public.ohmi_complete_ai(request,'{"message":"Synthetic","answer":"Local identity","mode":"local","provider":"local","model":"ohmi-local"}',0,0,'ohmi-local',0);
+ assert (select accounted_tokens from public.ohmi_ai_requests where id=request)=0, 'Local reply charged provider usage';
 end $test$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('test.owner'),true);
@@ -60,4 +69,4 @@ do $test$ begin
 end $test$;
 reset role;
 rollback;
-select 'PASS: exact snapshots, mutable-analysis independence, replay, single completion, total usage, existing TPM/TPD caps, service-only RPCs, owner RLS; all fixtures rolled back' as result;
+select 'PASS: no TPM/TPD gates, parallel pending requests, exact recovery, single completion, service-only RPCs and owner RLS; all fixtures rolled back' as result;

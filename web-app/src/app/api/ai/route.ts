@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           error:
-            "AI tutoring is paused until free-only provider access is verified. Your saved materials and conversations remain available.",
+            "AI tutoring is currently paused. Your saved materials and conversations remain available.",
         },
         { status: 503, headers: PRIVATE_HEADERS },
       );

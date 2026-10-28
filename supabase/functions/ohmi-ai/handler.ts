@@ -1,9 +1,10 @@
 // Supabase Edge Function: ohmi-ai production request handler
 // Approved routes: Gemini multimodal/structured, Groq conversational text.
-// Zero automatic retries, bounded memory/execution, strict Auth verification.
+// Dormosaur-style bounded chat failover, bounded memory/execution, strict Auth verification.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { Buffer } from 'node:buffer';
+import { answerChat, providerConfigs, consumeChatBurst } from './copilot.ts';
 import {
   calculateLedResistor,
   calculateOhmsLaw,
@@ -27,8 +28,8 @@ import {
 import type { CircuitRequestV2, CircuitEvidence, CircuitCheckResult } from '../../../src/backend/contracts.ts';
 
 export const MODEL = GEMINI_PRODUCTION_MODEL;
-export const MAX_BODY_BYTES = 32 * 1024; // 32 KiB
-export const MAX_BODY_BYTES_V1 = 32 * 1024; // 32 KiB
+export const MAX_BODY_BYTES = 64 * 1024; // 64 KiB
+export const MAX_BODY_BYTES_V1 = 64 * 1024; // 64 KiB
 export const MAX_BODY_BYTES_V2 = 6 * 1024 * 1024; // 6 MiB
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MiB
 export const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MiB
@@ -91,6 +92,11 @@ import { abortable, readBoundedBody, ResponseSizeError, callGroqChatCompletions 
 
 export interface AiHandlerDependencies {
   env?: {
+    OHMI_COPILOT_PROVIDER?: string;
+    OHMI_COPILOT_MODEL?: string;
+    OHMI_COPILOT_GROQ_MODEL?: string;
+    OHMI_COPILOT_GROQ_FALLBACK_MODEL?: string;
+    OHMI_COPILOT_GEMINI_MODEL?: string;
     SUPABASE_URL?: string;
     SUPABASE_ANON_KEY?: string;
     SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -297,7 +303,8 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         systemInstruction: { parts: [{ text: req.systemInstruction }] },
         contents,
         generationConfig: {
-          maxOutputTokens: req.maxTokens,
+          temperature: 0.1,
+          ...(!req.images?.length && !req.pdf ? { maxOutputTokens: req.maxTokens } : {}),
           thinkingConfig: {
             thinkingLevel: 'LOW',
             includeThoughts: false
@@ -481,6 +488,10 @@ function markStage(deps: AiHandlerDependencies | undefined, name: string) {
   deps.timings.last = now;
 }
 
+function chatEnvironment(deps?: AiHandlerDependencies) {
+  return Object.fromEntries(['GROQ_API_KEY', 'GEMINI_API_KEY', 'OHMI_COPILOT_PROVIDER', 'OHMI_COPILOT_MODEL', 'OHMI_COPILOT_GROQ_MODEL', 'OHMI_COPILOT_GROQ_FALLBACK_MODEL', 'OHMI_COPILOT_GEMINI_MODEL'].map(key => [key, getEnv(key, deps) || undefined]));
+}
+
 function routeReadiness(route: ResolvedRoute, deps?: AiHandlerDependencies): Response | undefined {
   const readiness = checkRouteReadiness(route, {
     OHMI_AI_ENABLED: getEnv('OHMI_AI_ENABLED', deps),
@@ -538,7 +549,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   });
 
   const { data: { user }, error: userError } = await userClient.auth.getUser(token);
-  if (userError || !user) {
+  if (userError || !user || user.is_anonymous) {
     return errorResponse('auth_error', 'Sign in to use the AI assistant.', 401);
   }
 
@@ -577,8 +588,8 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   }
 
   if (body?.version === 1) {
-    if (contentLength > MAX_BODY_BYTES_V1 || rawBody.length > MAX_BODY_BYTES_V1) {
-      return errorResponse('payload_too_large', 'Request body exceeds 32 KiB limit.', 413);
+    if (contentLength > MAX_BODY_BYTES_V1 || new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES_V1) {
+      return errorResponse('payload_too_large', 'Request body exceeds 64 KiB limit.', 413);
     }
   } else {
     return errorResponse('invalid_request', 'Unsupported contract version. Expected version 1.', 400);
@@ -612,12 +623,19 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     return errorResponse('invalid_request', 'Chat operation cannot contain attachments. Use pdf or image operation.', 400);
   }
 
-  const route = resolveAiRoute(operation, {
+  let route = resolveAiRoute(operation, {
     circuitAnalysisId,
     hasArtifactReference: Boolean(circuitAnalysisId)
   }, getEnv('GROQ_CHAT_MODEL', deps));
-  const notReady = routeReadiness(route, deps);
-  if (notReady) return notReady;
+  const plainChat = operation === 'chat' && !circuitAnalysisId;
+  if (plainChat) {
+    if (getEnv('OHMI_GROQ_CHAT_ENABLED', deps) === 'false') return errorResponse('unavailable', 'Chat is paused.', 503);
+    const first = providerConfigs(chatEnvironment(deps))[0];
+    if (first) route = { ...route, provider: first.provider, model: first.model };
+  } else {
+    const notReady = routeReadiness(route, deps);
+    if (notReady) return notReady;
+  }
 
   if (!['chat', 'image', 'pdf', 'tutorial'].includes(operation)) {
     return errorResponse('invalid_request', 'Invalid operation.', 400);
@@ -627,8 +645,8 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     return errorResponse('invalid_request', 'Invalid language preference.', 400);
   }
 
-  if (typeof message !== 'string' || message.length > 2000) {
-    return errorResponse('invalid_request', 'Message must be a string up to 2,000 characters.', 400);
+  if (typeof message !== 'string' || message.length > 3000) {
+    return errorResponse('invalid_request', 'Message must be a string up to 3,000 characters.', 400);
   }
 
   if (code !== undefined && (typeof code !== 'string' || code.length > 8000)) {
@@ -802,16 +820,16 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
         .eq('user_id', user.id)
         .lte('position', historyThroughPosition)
         .order('position', { ascending: false })
-        .limit(12);
+        .limit(24);
 
       if (Array.isArray(candidateMsgs) && candidateMsgs.length > 0) {
         const chronological = [...candidateMsgs].reverse();
         let totalChars = 0;
         const recentSubset: typeof chronological = [];
-        for (let i = chronological.length - 1; i >= 0 && recentSubset.length < 8; i--) {
+        for (let i = chronological.length - 1; i >= 0 && recentSubset.length < 24; i--) {
           const item = chronological[i];
-          const content = item.role === 'assistant' ? (item.content || '').slice(-2000) : (item.content || '').slice(0, 2000);
-          if (totalChars + content.length > 4000) break;
+          const content = (item.content || '').slice(0, 3000);
+          if (totalChars + content.length > 16000) break;
           totalChars += content.length;
           recentSubset.unshift({ ...item, content });
         }
@@ -833,17 +851,19 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
   } else {
     // Legacy client context fallback
     if (Array.isArray(context)) {
-      for (const item of context.slice(-4)) {
+      for (const item of context.slice(-24)) {
         if (item && typeof item.text === 'string' && (item.role === 'user' || item.role === 'assistant')) {
           canonicalHistory.push({
             role: item.role,
-            content: item.text.slice(0, 1000)
+            content: item.text.slice(0, 3000)
           });
         }
       }
     }
   }
 
+  let historyChars = 0;
+  canonicalHistory = canonicalHistory.reverse().filter(m => { historyChars += m.content.length; return historyChars <= 16000; }).reverse();
   markStage(deps, 'context');
 
   // Canonical input hash including conversationId and history snapshot (P4-7 / F3)
@@ -870,13 +890,12 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     ? buildTutorialSystemInstruction(language)
     : buildAskSystemInstruction(language, operation);
   const maxTokens = operation === 'tutorial' ? 4096 : operation === 'pdf' ? 3072 : operation === 'image' ? 2048 : 2560;
-  const estimatedTokens = Math.min(64000, maxTokens + Math.ceil(new TextEncoder().encode(systemInstruction + message + (code || '') + canonicalHistory.map(m => m.content).join('')).byteLength / 2) + (inlineMediaPart ? (extractedPdfPages.length ? Math.ceil(new TextEncoder().encode(extractedPdfPages.join('')).byteLength / 2) + 2048 : 4096) : 0));
   const reserveKind = (operation === 'tutorial' && !assignmentId) ? 'chat' : operation;
   const reserveResult = await adminClient.rpc('ohmi_reserve_ai', {
     p_user_id: user.id,
     p_request_id: requestId,
     p_kind: reserveKind,
-    p_estimated_tokens: estimatedTokens,
+    p_estimated_tokens: null,
     p_target: targetId,
     p_hash: inputHash,
     p_language: language,
@@ -935,8 +954,8 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
         operation,
         language,
         result: replayedResult,
-        model: reservation.model || route.model,
-        provider: route.provider,
+        model: replayedResult.model || reservation.model || route.model,
+        provider: replayedResult.provider || (reservation.model?.startsWith('gemini') ? 'gemini' : route.provider),
         ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
       });
     }
@@ -949,6 +968,10 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     // 6. Build prompt & invoke AI provider (zero automatic retries)
 
 
+  if (plainChat && !consumeChatBurst(user.id)) {
+    await adminClient.rpc('ohmi_fail_ai', { p_request_id: requestId, p_error_code: 'rate_limit', p_model: route.model, p_input_tokens: 0, p_output_tokens: 0, p_accounted_tokens: 0 });
+    return errorResponse('rate_limit', 'Please wait a minute before trying again.', 429, 60);
+  }
   const historyList = canonicalHistory;
 
   let promptText = message;
@@ -1045,7 +1068,13 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
   }
 
   // Call provider through unified transport seam
-  const transportRes = await callAiProviderTransport({
+  const chatAnswer = plainChat ? await answerChat({
+    env: chatEnvironment(deps), system: systemInstruction, messages: [...historyList, { role: 'user', content: message }],
+    snapshot: JSON.stringify({ code: code || null, arduinoWarnings: arduinoValidation?.warnings || [] }),
+    fetch: deps?.fetch || fetch, deadline: (deps?.deadline ?? Date.now() + 50000) - 5000,
+    calculation: calculationResult?.valid ? `Verified calculation: ${Object.entries(calculationResult.formatted).map(([key, value]) => `${key}: ${value}`).join('; ')}` : undefined
+  }) : undefined;
+  const transportRes: AiTransportResult = chatAnswer ? { ok: true, provider: chatAnswer.provider === 'gemini' ? 'gemini' : 'groq', model: chatAnswer.model, text: chatAnswer.answer, promptTokens: chatAnswer.promptTokens, completionTokens: chatAnswer.completionTokens, totalTokens: chatAnswer.totalTokens, finishReason: 'STOP' } : await callAiProviderTransport({
     provider: route.provider,
     model: route.model,
     systemInstruction,
@@ -1058,7 +1087,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     responseSchema: operation === 'tutorial' ? tutorialResponseSchema : undefined,
     geminiApiKey,
     groqApiKey,
-    timeoutMs: providerTimeout(operation !== 'chat' || !!circuitAnalysisId, deps),
+    timeoutMs: Math.min(providerTimeout(operation !== 'chat' || !!circuitAnalysisId, deps), ['image', 'pdf'].includes(operation) ? 25000 : 40000),
     fetchFn: deps?.fetch || fetch
   });
 
@@ -1077,13 +1106,9 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
-      await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: route.model,
-        p_retry_after: transportRes.retryAfterSeconds || 60
-      });
       return errorResponse(
         transportRes.code,
-        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. No fallback was used.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. Please retry shortly.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
         transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
         transportRes.retryAfterSeconds || 60
       );
@@ -1135,6 +1160,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
   let resultPayload: any = {
     status: 'answer',
     answer: answerText,
+    ...(chatAnswer ? { mode: chatAnswer.mode, provider: chatAnswer.provider, model: chatAnswer.runtimeModel || chatAnswer.model } : {}),
     ...(incomplete ? { incomplete: true, continuation: { operation, ...(assignmentId ? { assignmentId } : {}), ...(circuitAnalysisId ? { circuitAnalysisId } : {}) } } : {}),
     ...(calculationResult ? { calculation: calculationResult } : {}),
     ...(arduinoValidation ? { arduinoValidation } : {})
@@ -1199,7 +1225,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     p_input_tokens: inputTokens,
     p_output_tokens: outputTokens,
     p_accounted_tokens: transportRes.totalTokens,
-    p_model: route.model
+    p_model: chatAnswer?.model || route.model
   });
 
   markStage(deps, 'persistence');
@@ -1214,8 +1240,8 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     operation,
     language,
     result: resultPayload,
-    model: route.model,
-    provider: route.provider,
+    model: chatAnswer?.runtimeModel || chatAnswer?.model || route.model,
+    provider: chatAnswer?.provider || route.provider,
     ...(conversationId ? { conversationId, historyWatermark: watermark !== undefined ? watermark + 2 : undefined } : {})
   });
 }
@@ -1399,7 +1425,7 @@ export async function handleCircuitCheckRequest(
     p_user_id: user.id,
     p_request_id: reqV2.requestId,
     p_kind: 'circuit_check',
-    p_estimated_tokens: Math.min(64000, 5120 + reqV2.message.length + (reqV2.code?.length || 0) + (reqV2.simulation?.length || 0) + reqV2.images.length * 4096),
+    p_estimated_tokens: null,
     p_target: targetId,
     p_hash: inputHash,
     p_language: reqV2.language,
@@ -1517,13 +1543,9 @@ export async function handleCircuitCheckRequest(
     });
 
     if (transportRes.code === 'rate_limit' || transportRes.code === 'unavailable' || transportRes.code === 'quota_exhausted') {
-      await adminClient.rpc('ohmi_defer_ai_provider', {
-        p_model: route.model,
-        p_retry_after: transportRes.retryAfterSeconds || 60
-      });
       return errorResponse(
         transportRes.code,
-        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. No fallback was used.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
+        transportRes.code === 'quota_exhausted' ? 'AI provider free quota is exhausted or expired. Please retry shortly.' : 'AI provider is temporarily busy or rate limited. Try again in a minute.',
         transportRes.code === 'quota_exhausted' ? 503 : transportRes.status,
         transportRes.retryAfterSeconds || 60
       );

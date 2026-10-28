@@ -97,7 +97,8 @@ export async function startAuthFixture() {
         ai.posts.push(body);
         const result={status:'answer',answer:'Continued explanation from the original PDF.'};
         ai.jobs.push({id:body.requestId,user_id:user.id,status:'completed',operation:body.operation,language:body.language,model:'synthetic',result_payload:result,conversation_id:ai.conversationId,created_at:new Date().toISOString()});
-        ai.messages.push({id:crypto.randomUUID(),user_id:user.id,role:'user',content:body.message,position:3}, {id:crypto.randomUUID(),user_id:user.id,role:'assistant',content:result.answer,structured_result:result,position:4});
+        const position = Math.max(0, ...ai.messages.map(message => message.position || 0)) + 1;
+        ai.messages.push({id:crypto.randomUUID(),user_id:user.id,role:'user',content:body.message,position}, {id:crypto.randomUUID(),user_id:user.id,role:'assistant',content:result.answer,structured_result:result,position:position+1});
         return send(200,{ok:true,requestId:body.requestId,accountId:user.id,result});
       }
     }

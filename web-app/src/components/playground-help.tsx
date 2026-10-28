@@ -13,6 +13,7 @@ export function PlaygroundHelp({ project }: { project: Project }) {
   const app = useApp(),
     [question, setQuestion] = useState("Why is my LED not working?"),
     [answer, setAnswer] = useState(""),
+    [replyMode, setReplyMode] = useState(""),
     [error, setError] = useState(""),
     [pending, setPending] = useState(false);
   const active = useRef(true),
@@ -31,7 +32,8 @@ export function PlaygroundHelp({ project }: { project: Project }) {
     setAnswer("");
     setError("");
     retry.current = null;
-  }, [signature]);
+    setReplyMode("");
+  }, [signature, app.user?.id]);
   useEffect(() => {
     active.current = true;
     return () => {
@@ -86,6 +88,7 @@ export function PlaygroundHelp({ project }: { project: Project }) {
           "OHMI returned no readable explanation. Open Ask OHMI to review saved history.",
         );
       setAnswer(data.result.answer);
+      setReplyMode(data.result.mode === "limited" ? "Limited mode" : data.result.mode === "local" ? "Local reply" : "AI reply");
       retry.current = null;
       await app.refresh();
     } catch (e) {
@@ -148,6 +151,7 @@ export function PlaygroundHelp({ project }: { project: Project }) {
       )}
       {answer && (
         <div className="pg-ai-answer">
+          <p className="muted">{replyMode}</p>
           <strong>AI guidance, not electrical validation</strong>
           <RichText text={answer} />
           <Link href="/ask">View conversation in Ask OHMI</Link>
