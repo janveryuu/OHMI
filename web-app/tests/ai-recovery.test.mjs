@@ -27,6 +27,17 @@ test('unknown UUID posts once, retaining original owned material and identity', 
   assert.equal(calls.length,2); assert.equal(calls[1][1].method,'POST');
   assert.deepEqual(JSON.parse(calls[1][1].body),payload);
 });
+test('a newly created UUID skips read preflight and still posts only once', async t => {
+  const calls = mock(t, [json(saved)]);
+  assert.deepEqual(await askBackend(payload, undefined, { fresh: true }), saved);
+  assert.equal(calls.length, 1); assert.equal(calls[0][1].method, 'POST');
+});
+test('an ambiguous fresh POST still recovers by UUID without regeneration', async t => {
+  const calls = mock(t, [new TypeError('Network lost'), json(saved)]);
+  assert.deepEqual(await askBackend(payload, undefined, { fresh: true }), saved);
+  assert.equal(calls.filter(call => call[1]?.method === 'POST').length, 1);
+  assert.match(calls[1][0], /requests/);
+});
 test('lost POST acknowledgement recovers exact result without another generation', async t => {
   const calls = mock(t,[json({},404),new TypeError('Network lost'),json(saved)]);
   assert.deepEqual(await askBackend(payload),saved);

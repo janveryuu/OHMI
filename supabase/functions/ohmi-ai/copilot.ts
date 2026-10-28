@@ -76,7 +76,7 @@ export async function answerChat(options: { env: Environment; system: string; me
         const url = config.provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`;
         const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(config.provider === 'groq' ? { Authorization: `Bearer ${config.apiKey}` } : { 'x-goog-api-key': config.apiKey }) };
         const body = config.provider === 'groq' ? {
-          model: config.model, messages: [{ role: 'system', content: system }, { role: 'user', content: snapshot }, ...options.messages], temperature: 0.45, max_completion_tokens: 1600, response_format: { type: 'json_object' }
+          model: config.model, messages: [{ role: 'system', content: system }, { role: 'user', content: snapshot }, ...options.messages], temperature: 0.45, max_completion_tokens: 1600, reasoning_effort: 'low', include_reasoning: false, response_format: { type: 'json_object' }
         } : {
           systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: snapshot }] }, ...options.messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))], generationConfig: { temperature: 0.45, maxOutputTokens: 1800, responseMimeType: 'application/json' }
         };

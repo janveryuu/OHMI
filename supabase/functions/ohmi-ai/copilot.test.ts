@@ -17,7 +17,7 @@ describe('Dormosaur provider parity', () => {
     const fetcher = vi.fn(async () => groq());
     const result = await answerChat({ env, system: 'OHMI tutor', messages, fetch: fetcher });
     const body = JSON.parse(fetcher.mock.calls[0][1].body as string);
-    expect(body).toMatchObject({ model: 'openai/gpt-oss-120b', temperature: 0.45, max_completion_tokens: 1600, response_format: { type: 'json_object' } });
+    expect(body).toMatchObject({ model: 'openai/gpt-oss-120b', temperature: 0.45, max_completion_tokens: 1600, reasoning_effort: 'low', include_reasoning: false, response_format: { type: 'json_object' } });
     expect(result).toMatchObject({ mode: 'ai', model: 'openai/gpt-oss-120b', answer: 'Resistance opposes current.' });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });

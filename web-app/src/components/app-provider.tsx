@@ -24,6 +24,7 @@ import {
   type StoredConversation,
   type StoredFile,
   type StoredMessage,
+  mergeConversationPage,
 } from "@/lib/backend/data";
 
 export type Message = StoredMessage;
@@ -455,7 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const data = await conversationMessages(client, owner.id, id);
     if (epoch.current.current(generation))
       setConversations((previous) =>
-        previous.map((c) => (c.id === id ? { ...c, ...data } : c)),
+        previous.map((c) => c.id === id ? mergeConversationPage(c, data) : c),
       );
   }
   async function saveProgress(

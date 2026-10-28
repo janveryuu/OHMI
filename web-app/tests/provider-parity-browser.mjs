@@ -13,8 +13,8 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } }); await seedSession(context);
   const page = await context.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://127.0.0.1:3115/app/ask/');
-  await page.getByText('· Limited mode', { exact: true }).waitFor();
-  assert.equal(await page.getByText('· Local reply', { exact: true }).count(), 1);
+  await page.getByText('Limited mode', { exact: true }).waitFor();
+  assert.equal(await page.getByText('Local reply', { exact: true }).count(), 1);
   const draft = page.getByRole('textbox'); await draft.fill('Preserve this unrelated draft');
   await page.getByRole('button', { name: 'Retry question', exact: true }).click();
   await page.getByText('Continued explanation from the original PDF.', { exact: true }).waitFor();

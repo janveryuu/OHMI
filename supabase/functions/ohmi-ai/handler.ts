@@ -22,6 +22,7 @@ import { circuitResponseSchema, tutorialResponseSchema } from './schemas.ts';
 import { validateCircuitRequest, validateCircuitResult, buildCircuitPrompt } from './circuit.ts';
 import {
   OHMI_TUTOR_VERSION,
+  OHMI_CHAT_VERSION,
   buildAskSystemInstruction,
   buildTutorialSystemInstruction
 } from './tutor-policy.ts';
@@ -1219,7 +1220,7 @@ For a feasible circuit, set "status": "tutorial". Each step MUST include non-emp
     p_output: {
       ...resultPayload,
       message,
-      prompt_version: OHMI_TUTOR_VERSION,
+      prompt_version: plainChat ? OHMI_CHAT_VERSION : OHMI_TUTOR_VERSION,
       ...(fileHash ? { source_hash: fileHash } : {})
     },
     p_input_tokens: inputTokens,

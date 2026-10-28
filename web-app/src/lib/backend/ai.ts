@@ -7,7 +7,7 @@ function failure(data: Record<string, any>) {
 }
 
 // Recovery is read-only. A POST is sent only when this UUID has no existing request.
-export async function askBackend(payload: Record<string, unknown>, signal?: AbortSignal) {
+export async function askBackend(payload: Record<string, unknown>, signal?: AbortSignal, options: { fresh?: boolean } = {}) {
   const lookup = async () => {
     const response = await fetch(`/app/api/ai/requests/${encodeURIComponent(String(payload.requestId))}/`, { cache: 'no-store', signal });
     if (response.status === 404) return null;
@@ -26,8 +26,11 @@ export async function askBackend(payload: Record<string, unknown>, signal?: Abor
     }
     throw failure({ code: 'in_progress', error: 'This request is still being processed. Check it again before starting a new one.', retryAfterSeconds: 10 });
   };
-  const saved = await lookup();
-  if (saved) return saved;
+  // A UUID just created by this caller cannot have a prior result; the server still admits it atomically.
+  if (!options.fresh) {
+    const saved = await lookup();
+    if (saved) return saved;
+  }
   try {
     const response = await fetch('/app/api/ai/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal });
     const data = await response.json();

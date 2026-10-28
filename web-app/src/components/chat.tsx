@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AnimatePresence, motion } from "motion/react";
+
 import {
   AlertCircle,
   ArrowRight,
@@ -28,8 +28,8 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { RichText } from "./rich-text";
-import { OhmiTypingIndicator } from "./ui/typing-indicator";
-import { LoadingSkeleton } from "./ui/loading-skeleton";
+
+
 import { askBackend } from "@/lib/backend/ai";
 import { validateFile } from "@/lib/demo.mjs";
 
@@ -50,6 +50,7 @@ export function Chat() {
     } | null>(null);
   const request = useRef<AbortController | null>(null),
     sequence = useRef(0),
+    submitting = useRef(false),
     retry = useRef<{ key: string; requestId: string } | null>(null),
     uploaded = useRef<{ file: File; id: string } | null>(null),
     fileRef = useRef<HTMLInputElement>(null),
@@ -79,6 +80,7 @@ export function Chat() {
   }, [conversation.messages.length, pending, optimisticUser]);
   useEffect(() => {
     sequence.current++;
+    submitting.current = false;
     request.current?.abort();
     setPending(false);
     setDraft("");
@@ -90,10 +92,12 @@ export function Chat() {
   }, [app.user?.id]);
   function stop() {
     sequence.current++;
+    submitting.current = false;
     request.current?.abort();
     setPending(false);
     if (optimisticUser) {
       setDraft(optimisticUser.text);
+      setAttachment(lastAttachment.current);
       setOptimisticUser(null);
     }
     setError(
@@ -103,6 +107,7 @@ export function Chat() {
   async function newChat() {
     request.current?.abort();
     sequence.current++;
+    submitting.current = false;
     setPending(false);
     setOptimisticUser(null);
     setError("");
@@ -117,10 +122,10 @@ export function Chat() {
       );
     }
   }
-  async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>) {
+  async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {
     event?.preventDefault();
     const value = text.trim();
-    if (!value || pending) return;
+    if (!value || submitting.current) return;
     if (!app.user) {
       setError("Sign in to ask OHMI and save your conversation.");
       return;
@@ -131,6 +136,7 @@ export function Chat() {
       );
       return;
     }
+    submitting.current = true;
     const current = ++sequence.current,
       controller = new AbortController();
     request.current = controller;
@@ -139,32 +145,23 @@ export function Chat() {
 
     if (!continuation) {
       lastSubmittedText.current = value;
-      lastAttachment.current = attachment;
+      const selectedFile = retryFile === undefined ? attachment : retryFile;
+      lastAttachment.current = selectedFile;
       setOptimisticUser({
         id: crypto.randomUUID(),
         text: value,
-        attachment: attachment?.name,
+        attachment: selectedFile?.name,
         status: "pending",
       });
-      setDraft("");
-      setAttachment(null);
+      if (retryFile === undefined) {
+        setDraft("");
+        setAttachment(null);
+      }
     }
     isNearBottomRef.current = true;
-    setTimeout(() => {
-      if (messagesRef.current) {
-        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-      }
-    }, 10);
+
 
     try {
-      const availability = await fetch("/app/api/ai/", {
-        cache: "no-store",
-        signal: controller.signal,
-      }).then((r) => r.json());
-      if (!availability.enabled)
-        throw new Error(
-          "AI tutoring is currently paused.",
-        );
       const id = conversation.id || (await app.newConversation(value));
       if (current !== sequence.current) return;
       let assignmentId = typeof continuation?.assignmentId === "string" ? continuation.assignmentId : undefined;
@@ -194,15 +191,16 @@ export function Chat() {
         ...(typeof continuation?.circuitAnalysisId === "string" ? { circuitAnalysisId: continuation.circuitAnalysisId } : {}),
       };
       const key = JSON.stringify(payload);
+      const fresh = retry.current?.key !== key;
       const requestId =
         retry.current?.key === key
           ? retry.current.requestId
           : crypto.randomUUID();
       retry.current = { key, requestId };
-      await askBackend({ ...payload, requestId }, controller.signal);
+      await askBackend({ ...payload, requestId }, controller.signal, { fresh });
       if (current !== sequence.current) return;
       await app.refreshConversation(id);
-      await app.refresh();
+      if (operation !== "chat") await app.refresh();
       if (current !== sequence.current) return;
       setOptimisticUser(null);
       if (!continuation) {
@@ -228,7 +226,7 @@ export function Chat() {
         );
       }
     } finally {
-      if (current === sequence.current) setPending(false);
+      if (current === sequence.current) { submitting.current = false; setPending(false); }
     }
   }
   return (
@@ -290,35 +288,36 @@ export function Chat() {
           ref={messagesRef}
           onScroll={handleScroll}
           role="log"
+          tabIndex={0}
           aria-label="Conversation messages"
           aria-live="polite"
         >
           {conversation.hasOlder && (
             <Button
               variant="outline"
-              onClick={() =>
-                void app
-                  .loadOlder(conversation.id)
-                  .catch((error) => setError(error.message))
-              }
+              onClick={async () => {
+                const el = messagesRef.current;
+                const height = el?.scrollHeight || 0, top = el?.scrollTop || 0;
+                try {
+                  await app.loadOlder(conversation.id);
+                  requestAnimationFrame(() => { if (el) el.scrollTop = top + el.scrollHeight - height; });
+                } catch (cause) { setError(cause instanceof Error ? cause.message : 'Earlier messages could not load.'); }
+              }}
             >
               Load earlier messages
             </Button>
           )}
-          <AnimatePresence initial={false}>
+
             {conversation.messages.map((message) => (
-              <motion.article
+              <article
                 key={message.id}
                 className={`message ${message.role}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
               >
-                <div className="message-sender">
-                  {message.role === "assistant" ? "OHMI" : "You"}
-                  {message.role === "assistant" && typeof message.structured?.mode === "string" && (
-                    <span className="muted"> · {message.structured.mode === "limited" ? "Limited mode" : message.structured.mode === "local" ? "Local reply" : "AI reply"}</span>
-                  )}
-                </div>
+                <span className="sr-only">{message.role === "assistant" ? "OHMI" : "You"}</span>
+                {message.role === "assistant" && <Image className="chat-reply-avatar mascot" src="/app/mascot.png" alt="" aria-hidden="true" width={25} height={29} />}
+                {message.role === "assistant" && (message.structured?.mode === "limited" || message.structured?.mode === "local") && (
+                  <span className="chat-reply-note">{message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
+                )}
                 {message.role === "assistant" ? (
                   <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
                 ) : (
@@ -357,43 +356,23 @@ export function Chat() {
                     {message.attachment}
                   </span>
                 )}
-              </motion.article>
+              </article>
             ))}
 
             {optimisticUser && (
-              <motion.article
+              <article
                 key={optimisticUser.id}
                 className={`message user ${
                   optimisticUser.status === "failed"
                     ? "failed-message"
                     : "pending-message"
                 }`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
               >
-                <div className="message-sender">
-                  <span>You</span>
-                  <span
-                    className={`message-sender-status ${optimisticUser.status}`}
-                  >
-                    {optimisticUser.status === "pending" ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span>Sending…</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle
-                          size={12}
-                          className="text-destructive inline mr-0.5"
-                        />
-                        <span>Not delivered</span>
-                      </>
-                    )}
-                  </span>
-                </div>
+                <span className="sr-only">You</span>
                 <p className="user-text">{optimisticUser.text}</p>
+                <span className={`chat-delivery ${optimisticUser.status}`} role="status">
+                  {optimisticUser.status === "pending" ? <><span className="chat-send-dot" aria-hidden="true" /><span className="sr-only">Sending message</span></> : <><AlertCircle size={12} aria-hidden="true" /> Not delivered</>}
+                </span>
                 {optimisticUser.attachment && (
                   <span className="message-attachment">
                     <File size={14} />
@@ -409,6 +388,7 @@ export function Chat() {
                       className="text-xs h-7"
                       onClick={() => {
                         setDraft(optimisticUser.text);
+                        setAttachment(lastAttachment.current);
                         setOptimisticUser(null);
                         setError("");
                       }}
@@ -422,7 +402,7 @@ export function Chat() {
                       onClick={() => {
                         const text = optimisticUser.text;
                         setOptimisticUser(null);
-                        void send(undefined, text);
+                        void send(undefined, text, undefined, lastAttachment.current);
                       }}
                     >
                       <RotateCcw size={12} className="mr-1" />
@@ -430,34 +410,16 @@ export function Chat() {
                     </Button>
                   </div>
                 )}
-              </motion.article>
+              </article>
             )}
 
             {pending && (
-              <motion.article
-                key="typing-indicator"
-                className="message assistant typing-message"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.15 }}
-                role="status"
-                aria-live="polite"
-              >
-                <div className="message-sender">
-                  <span>OHMI</span>
-                </div>
-                <OhmiTypingIndicator message="OHMI is preparing your answer…" />
-                <div className="mt-2 pt-2 border-t border-border/40">
-                  <LoadingSkeleton
-                    variant="text-block"
-                    lines={2}
-                    ariaLabel="Preparing answer lines"
-                  />
-                </div>
-              </motion.article>
+              <div className="chat-typing" role="status" aria-label="OHMI is thinking">
+                <Image className="mascot" src="/app/mascot.png" alt="" aria-hidden="true" width={25} height={29} />
+                <span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                <span className="sr-only">OHMI is thinking</span>
+              </div>
             )}
-          </AnimatePresence>
           {conversation.messages.length === 0 && !optimisticUser && !pending && (
             <div className="chat-suggestions">
               <h2>Curiosity looks good on you.</h2>
@@ -657,6 +619,10 @@ export function Chat() {
                     request.current?.abort();
                     sequence.current++;
                     setPending(false);
+                    submitting.current = false;
+                    setOptimisticUser(null);
+                    retry.current = null;
+                    uploaded.current = null;
                     app.setActiveChat(c.id);
                     setDraft("");
                     setAttachment(null);

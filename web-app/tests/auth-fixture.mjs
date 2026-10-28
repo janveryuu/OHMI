@@ -31,6 +31,8 @@ export async function startAuthFixture() {
   const invited = new Set();
   const profiles = new Map();
   const server = createServer(async (request, response) => {
+    if (state.delayMs) await new Promise(resolve => setTimeout(resolve, state.delayMs));
+    (state.requests ||= []).push({ method: request.method, path: new URL(request.url, 'http://fixture').pathname });
     const url = new URL(request.url, "http://127.0.0.1:54329");
     response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:3115");
     response.setHeader("Access-Control-Allow-Credentials", "true");
@@ -88,14 +90,18 @@ export async function startAuthFixture() {
     if (state.ai) {
       const ai=state.ai;
       if (url.pathname === '/rest/v1/ohmi_conversations') return send(200,[{id:ai.conversationId,user_id:user.id,title:'Synthetic PDF conversation'}]);
-      if (url.pathname === '/rest/v1/ohmi_messages') return send(200,ai.messages.filter(m=>m.user_id===user.id).sort((a,b)=>b.position-a.position));
+      if (url.pathname === '/rest/v1/ohmi_messages') {
+        const before = Number((url.searchParams.get('position') || '').replace('lt.', '')) || Infinity;
+        return send(200,ai.messages.filter(m=>m.user_id===user.id && m.position < before).sort((a,b)=>b.position-a.position).slice(0,Number(url.searchParams.get('limit')) || 50));
+      }
       if (url.pathname === '/rest/v1/ohmi_ai_requests') {
         const id=(url.searchParams.get('id')||'').replace('eq.','');
         return send(200,ai.jobs.filter(j=>j.id===id&&j.user_id===user.id));
       }
       if (url.pathname === '/functions/v1/ohmi-web') {
+        if (ai.delayMs) await new Promise(resolve => setTimeout(resolve, ai.delayMs));
         ai.posts.push(body);
-        const result={status:'answer',answer:'Continued explanation from the original PDF.'};
+        const result=ai.result || {status:'answer',answer:'Continued explanation from the original PDF.'};
         ai.jobs.push({id:body.requestId,user_id:user.id,status:'completed',operation:body.operation,language:body.language,model:'synthetic',result_payload:result,conversation_id:ai.conversationId,created_at:new Date().toISOString()});
         const position = Math.max(0, ...ai.messages.map(message => message.position || 0)) + 1;
         ai.messages.push({id:crypto.randomUUID(),user_id:user.id,role:'user',content:body.message,position}, {id:crypto.randomUUID(),user_id:user.id,role:'assistant',content:result.answer,structured_result:result,position:position+1});

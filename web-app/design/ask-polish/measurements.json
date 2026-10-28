@@ -1,0 +1,58 @@
+{
+  "before": {
+    "conditions": {
+      "browserLatencyMs": 60,
+      "fixtureLatencyMs": 40,
+      "syntheticProviderMs": 250,
+      "warmedRuns": 3
+    },
+    "runs": [
+      {
+        "visibleMs": 57,
+        "completionMs": 1388,
+        "browserApiRequests": 3,
+        "fixtureRequests": 18
+      },
+      {
+        "visibleMs": 58,
+        "completionMs": 1393,
+        "browserApiRequests": 3,
+        "fixtureRequests": 11
+      },
+      {
+        "visibleMs": 64,
+        "completionMs": 1403,
+        "browserApiRequests": 3,
+        "fixtureRequests": 11
+      }
+    ]
+  },
+  "after": {
+    "conditions": {
+      "browserLatencyMs": 60,
+      "fixtureLatencyMs": 40,
+      "syntheticProviderMs": 250,
+      "warmedRuns": 3
+    },
+    "runs": [
+      {
+        "visibleMs": 48,
+        "completionMs": 879,
+        "browserApiRequests": 1,
+        "fixtureRequests": 3
+      },
+      {
+        "visibleMs": 58,
+        "completionMs": 883,
+        "browserApiRequests": 1,
+        "fixtureRequests": 3
+      },
+      {
+        "visibleMs": 57,
+        "completionMs": 877,
+        "browserApiRequests": 1,
+        "fixtureRequests": 3
+      }
+    ]
+  }
+}

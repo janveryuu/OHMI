@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   OHMI_TUTOR_VERSION,
+  OHMI_CHAT_VERSION,
   formatLanguageDescription,
   getCoreTutorPolicy,
   buildAskSystemInstruction,
@@ -104,10 +105,10 @@ describe('OHMI Unified Versioned Tutor Policy (Milestone F2)', () => {
   describe('buildAskSystemInstruction', () => {
     it('appends Markdown and LaTeX formatting guidance for chat', () => {
       const askPrompt = buildAskSystemInstruction('english', 'chat');
-      expect(askPrompt).toContain(OHMI_TUTOR_VERSION);
-      expect(askPrompt).toContain('standard Markdown');
-      expect(askPrompt).toContain('```cpp');
-      expect(askPrompt).toContain('LaTeX math formatting with $...$ for inline formulas and $$...$$ for display equations');
+      expect(askPrompt).toContain(OHMI_CHAT_VERSION);
+      expect(askPrompt).toContain('Markdown');
+      expect(askPrompt).toContain('fenced code with language tags');
+      expect(askPrompt).toContain('$...$ or $$...$$');
     });
 
     it('appends image analysis instructions for image operation', () => {

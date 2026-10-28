@@ -50,7 +50,8 @@ test("ask OHMI chat implements optimistic bubble, typing indicator, and recovera
   );
   assert.ok(chatSource.includes("optimisticUser"), "Optimistic message state present");
   assert.ok(chatSource.includes("pending-message"), "Right-aligned pending bubble styling present");
-  assert.ok(chatSource.includes("OhmiTypingIndicator"), "OhmiTypingIndicator present in message flow");
+  assert.ok(chatSource.includes('aria-label="OHMI is thinking"'), "Minimal accessible typing status present");
+  assert.ok(!chatSource.includes("LoadingSkeleton"), "Chat no longer renders skeleton cards");
   assert.ok(chatSource.includes("Restore question"), "Draft recovery present on failure");
   assert.ok(chatSource.includes("isNearBottomRef"), "Near-bottom scroll check protects user reading position");
 });

@@ -1,5 +1,14 @@
 import type { Database } from "./database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+export function mergeConversationPage(conversation: StoredConversation, page: Pick<StoredConversation, 'messages' | 'hasOlder' | 'loaded'>): StoredConversation {
+  // Keep pagination contiguous when another device has added more than one page.
+  if ((page.messages[0]?.position || 0) > (conversation.messages.at(-1)?.position || 0) + 1) return { ...conversation, ...page };
+  return {
+    ...conversation, ...page,
+    messages: [...conversation.messages.filter(old => !page.messages.some(message => message.id === old.id)), ...page.messages].sort((a, b) => (a.position || 0) - (b.position || 0)),
+    hasOlder: conversation.loaded && conversation.messages[0]?.position && conversation.messages[0].position < (page.messages[0]?.position || 0) ? conversation.hasOlder : page.hasOlder,
+  };
+}
 export type StoredFile = {
   id: string;
   name: string;
