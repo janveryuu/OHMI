@@ -18,6 +18,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/vendor/design-electronics/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+        ],
+      },
+      {
+        source: "/vendor/design-electronics/index.html",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: blob:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'" },
+        ],
+      },
+      {
         source: "/sw.js",
         headers: [
           {

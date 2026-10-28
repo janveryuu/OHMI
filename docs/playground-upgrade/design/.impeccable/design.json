@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T00:00:00Z",
+  "title": "Design System: OHMI electronics workspace — M1 local preview",
+  "extensions": {
+    "motion": [
+      { "name": "shared-button-feedback", "value": "background-color 0.18s, color 0.18s, transform 0.15s", "purpose": "Inherited shared Button state feedback; active scale is 0.98 and global reduced-motion rules apply." }
+    ],
+    "breakpoints": [
+      { "name": "stacked-footer", "value": "640px" }
+    ],
+    "typographyMeta": {
+      "body": { "displayName": "Supporting copy", "purpose": "React shell notice, status and footer. The native editor retains its own bundled fonts." }
+    }
+  },
+  "components": [
+    {
+      "name": "Run button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Shared primary button starts native simulation; disabled while loading or busy.",
+      "html": "<button class=\"ds-run\">Run</button>",
+      "css": ".ds-run{min-height:44px;padding:8px 16px;border:0;border-radius:11px;background:var(--primary);color:var(--primary-foreground);font:500 14px var(--font-geist),sans-serif;transition:background-color .18s,color .18s,transform .15s}.ds-run:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}.ds-run:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.ds-run:active{transform:scale(.98)}.ds-run:disabled{opacity:.5;pointer-events:none}"
+    },
+    {
+      "name": "Secondary circuit control",
+      "kind": "button",
+      "description": "Shared outline control for views, file actions, Stop and history.",
+      "html": "<button class=\"ds-control\">Download .dez</button>",
+      "css": ".ds-control{min-height:44px;padding:8px 16px;border:1px solid var(--border);border-radius:11px;background:var(--background);color:var(--foreground);font:500 14px var(--font-geist),sans-serif;transition:background-color .18s,color .18s,transform .15s}.ds-control:hover{background:var(--accent);color:var(--accent-foreground)}.ds-control:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.ds-control:active{transform:scale(.98)}.ds-control:disabled{opacity:.5;pointer-events:none}"
+    },
+    {
+      "name": "Local saving notice",
+      "kind": "card",
+      "refersTo": "local-notice",
+      "description": "A flat secondary surface explains local-only storage and simulation limits.",
+      "html": "<p class=\"ds-notice\">Download your circuit before leaving. Cloud saving and AI building are not connected in this preview.</p>",
+      "css": ".ds-notice{max-width:75ch;padding:14px 16px;background:var(--secondary);color:var(--foreground);border-radius:var(--radius);font:14px/1.6 var(--font-geist),sans-serif}"
+    },
+    {
+      "name": "Workspace return link",
+      "kind": "nav",
+      "description": "Visible text link participates in the shared local-work exit guard.",
+      "html": "<a class=\"ds-return\" href=\"#playground\">Back to Playground</a>",
+      "css": ".ds-return{display:inline-flex;align-items:center;min-height:44px;color:var(--primary);font:14px var(--font-geist),sans-serif;text-decoration:underline;text-underline-offset:4px}.ds-return:hover{text-decoration-thickness:2px}.ds-return:focus-visible{outline:2px solid var(--ring);outline-offset:3px}"
+    },
+    {
+      "name": "Engine status",
+      "kind": "custom",
+      "description": "Polite text status names loading, ready and local file outcomes without claiming cloud persistence.",
+      "html": "<p class=\"ds-status\" role=\"status\">Changes stay in this tab until downloaded.</p>",
+      "css": ".ds-status{margin:12px 0;color:var(--muted-foreground);font:14px/1.6 var(--font-geist),sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Calm mint study workspace",
+    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1 only. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
+    "keyCharacteristics": [
+      "Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.",
+      "Familiar labeled controls, restrained borders and the unchanged canonical OHMI mascot in the shared shell.",
+      "Native technical canvas retained; no new illustrations, mascot variants or decorative motion."
+    ],
+    "rules": [
+      { "name": "The Technical Canvas Rule", "body": "Theme the surrounding controls without recoloring physical part markings or making schematic symbols unreadable.", "section": "colors" },
+      { "name": "The Local Work Rule", "body": "Keep local-only saving explicit: students must download .dez before leaving. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.", "section": "components" }
+    ],
+    "dos": [
+      "Do reuse the existing semantic tokens, shared Button and exact approved mascot.",
+      "Do preserve the native technical rendering and disclose simulation limits.",
+      "Do distinguish local-preview verification from production readiness."
+    ],
+    "donts": [
+      "Don't infer full canvas accessibility from the surrounding DOM controls.",
+      "Don't treat the heading exception, upstream canvas geometry or incidental test toasts as new application-wide design rules.",
+      "Don't add replacement mascot art, visual AI controls or cloud-save claims to M1."
+    ]
+  }
+}

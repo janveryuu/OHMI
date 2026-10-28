@@ -1,0 +1,115 @@
+{
+  "scope": "Official v0.2.1 native Windows release only; no AI, OHMI integration or hardware verification",
+  "nativeSelftest": {
+    "exit": 0,
+    "passedAssertions": 105
+  },
+  "cases": [
+    {
+      "name": "uno-blink",
+      "parts": 3,
+      "wires": 6,
+      "dezBytes": 40189,
+      "roundTrip": "pass",
+      "ino": "uno-blink.ino",
+      "observations": [
+        {
+          "seconds": 0.25,
+          "lit": [
+            true
+          ],
+          "brightness": {
+            "LED1": 0.82
+          },
+          "warnings": []
+        },
+        {
+          "seconds": 0.75,
+          "lit": [
+            false
+          ],
+          "brightness": {},
+          "warnings": []
+        },
+        {
+          "seconds": 1.25,
+          "lit": [
+            true
+          ],
+          "brightness": {
+            "LED1": 0.82
+          },
+          "warnings": []
+        },
+        {
+          "seconds": 1.75,
+          "lit": [
+            false
+          ],
+          "brightness": {},
+          "warnings": []
+        }
+      ]
+    },
+    {
+      "name": "uno-traffic-light",
+      "parts": 7,
+      "wires": 18,
+      "dezBytes": 44301,
+      "roundTrip": "pass",
+      "ino": "uno-traffic-light.ino",
+      "observations": [
+        {
+          "seconds": 0.25,
+          "lit": [
+            true,
+            false,
+            false
+          ],
+          "brightness": {
+            "LED1": 0.58
+          },
+          "warnings": []
+        },
+        {
+          "seconds": 1.25,
+          "lit": [
+            false,
+            true,
+            false
+          ],
+          "brightness": {
+            "LED2": 0.5
+          },
+          "warnings": []
+        },
+        {
+          "seconds": 2.25,
+          "lit": [
+            false,
+            false,
+            true
+          ],
+          "brightness": {
+            "LED3": 0.52
+          },
+          "warnings": []
+        },
+        {
+          "seconds": 3.25,
+          "lit": [
+            true,
+            false,
+            false
+          ],
+          "brightness": {
+            "LED1": 0.58
+          },
+          "warnings": []
+        }
+      ]
+    }
+  ],
+  "catalogCount": 177,
+  "catalogSearchReturned": 80
+}

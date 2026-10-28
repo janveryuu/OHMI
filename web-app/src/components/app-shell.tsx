@@ -99,6 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
   const label = pathname.startsWith("/library/")
     ? "Library"
+    : pathname.startsWith("/playground/") ? "Playground"
     : navigation.find((n) => n.href === pathname)?.label || "OHMI";
   const nav = (mobile = false) =>
     navigation
@@ -107,7 +108,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         const Icon = icons[item.icon];
         const active =
           pathname === item.href ||
-          (item.href === "/library" && pathname.startsWith("/library/"));
+          (item.href === "/library" && pathname.startsWith("/library/")) ||
+          (item.href === "/playground" && pathname.startsWith("/playground/"));
         return (
           <Link prefetch={pathname === "/playground" ? false : undefined}
             key={item.href}

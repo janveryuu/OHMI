@@ -1,0 +1,167 @@
+{
+  "battery": {
+    "simulation": "battery",
+    "pins": [
+      {
+        "id": "minus",
+        "name": "\u2212"
+      },
+      {
+        "id": "plus",
+        "name": "+"
+      }
+    ],
+    "properties": {
+      "style": "9V block",
+      "voltage": "9V"
+    },
+    "propertyDefinitions": [
+      {
+        "key": "voltage",
+        "label": "Voltage",
+        "options": [
+          "1.5V",
+          "3V",
+          "3.7V",
+          "4.5V",
+          "5V",
+          "9V",
+          "12V"
+        ]
+      },
+      {
+        "key": "style",
+        "label": "Style",
+        "options": [
+          "9V block",
+          "AA pack",
+          "Coin cell"
+        ]
+      }
+    ]
+  },
+  "resistor": {
+    "simulation": "resistor",
+    "pins": [
+      {
+        "id": "pin0",
+        "name": "Pin 0"
+      },
+      {
+        "id": "pin1",
+        "name": "Pin 1"
+      }
+    ],
+    "properties": {
+      "power": "1/4W",
+      "resistance": "220\u03a9",
+      "tolerance": "\u00b15%"
+    },
+    "propertyDefinitions": [
+      {
+        "key": "resistance",
+        "label": "Resistance",
+        "options": [
+          "100\u03a9",
+          "220\u03a9",
+          "330\u03a9",
+          "470\u03a9",
+          "1k\u03a9",
+          "2.2k\u03a9",
+          "4.7k\u03a9",
+          "10k\u03a9",
+          "47k\u03a9",
+          "100k\u03a9",
+          "1M\u03a9"
+        ]
+      },
+      {
+        "key": "power",
+        "label": "Power",
+        "options": [
+          "1/8W",
+          "1/4W",
+          "1/2W",
+          "1W"
+        ]
+      },
+      {
+        "key": "tolerance",
+        "label": "Tolerance",
+        "options": [
+          "\u00b11%",
+          "\u00b15%",
+          "\u00b110%"
+        ]
+      }
+    ]
+  },
+  "led": {
+    "simulation": "led",
+    "pins": [
+      {
+        "id": "cathode",
+        "name": "cathode (\u2212)"
+      },
+      {
+        "id": "anode",
+        "name": "anode (+)"
+      }
+    ],
+    "properties": {
+      "color": "Red",
+      "package": "5 mm [THT]"
+    },
+    "propertyDefinitions": [
+      {
+        "key": "color",
+        "label": "Color",
+        "options": [
+          "Red",
+          "Green",
+          "Blue",
+          "Yellow",
+          "White",
+          "Orange"
+        ]
+      },
+      {
+        "key": "package",
+        "label": "Package",
+        "options": [
+          "5 mm [THT]",
+          "3 mm [THT]"
+        ]
+      }
+    ]
+  },
+  "switch": {
+    "simulation": "switch",
+    "pins": [
+      {
+        "id": "a",
+        "name": "left (A)"
+      },
+      {
+        "id": "common"
+      },
+      {
+        "id": "b",
+        "name": "right (B)"
+      }
+    ],
+    "properties": {
+      "position": "left"
+    },
+    "propertyDefinitions": [
+      {
+        "key": "position",
+        "label": "Position",
+        "options": [
+          "left",
+          "right"
+        ]
+      }
+    ]
+  }
+}

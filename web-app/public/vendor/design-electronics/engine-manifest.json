@@ -1,0 +1,40 @@
+{
+  "upstream": "4d9cb373bd06afb2d99b1548e6c3a0c86992bd56",
+  "emscripten": "5.0.7",
+  "protocol": 1,
+  "patchedSources": [
+    {
+      "file": "CMakeLists.txt",
+      "sha256": "ee0377a9f8a7770f817792a9007e9cc13e289d58e7de074ca6740e1b041a2c30"
+    },
+    {
+      "file": "src/web.cpp",
+      "sha256": "c791de6a9728776b10d988532804d73b275a4110fa124a9f6506bd682266f351"
+    },
+    {
+      "file": "src/ohmi_web.cpp",
+      "sha256": "b0ce073c3c78bd3f2d8b720f394550d5fc6b5670e485188ba8d1bd314177ade6"
+    },
+    {
+      "file": "src/panels.cpp",
+      "sha256": "3aca81efea631fa6b76f0a1e9221c70f653eff201c8890a2c12f2ac5526ebf42"
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "designElectronics.js",
+      "bytes": 217492,
+      "sha256": "9dcf96450c87369f43ecb0c9c6a0df3471f90aa596fe037280e85a222325553d"
+    },
+    {
+      "file": "designElectronics.wasm",
+      "bytes": 5301863,
+      "sha256": "d24275a16face1d0fc65ed8bc34ecad9389ec9a3588ea7ca0e1046b9e8ceb3d8"
+    },
+    {
+      "file": "designElectronics.data",
+      "bytes": 239771,
+      "sha256": "1f292efc591e36c4623501e3b5bc771124d7ba58dda06aadea229f752ff283b3"
+    }
+  ]
+}

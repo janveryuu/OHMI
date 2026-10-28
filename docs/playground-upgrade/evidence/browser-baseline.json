@@ -1,0 +1,38 @@
+[
+  {
+    "name": "desktop-breadboard",
+    "errors": [],
+    "canvas": {
+      "width": 1440,
+      "height": 900
+    },
+    "title": "designElectronics"
+  },
+  {
+    "name": "desktop-schematic",
+    "errors": [],
+    "canvas": {
+      "width": 1440,
+      "height": 900
+    },
+    "title": "designElectronics"
+  },
+  {
+    "name": "desktop-pcb",
+    "errors": [],
+    "canvas": {
+      "width": 1440,
+      "height": 900
+    },
+    "title": "designElectronics"
+  },
+  {
+    "name": "mobile-breadboard",
+    "errors": [],
+    "canvas": {
+      "width": 390,
+      "height": 844
+    },
+    "title": "designElectronics"
+  }
+]

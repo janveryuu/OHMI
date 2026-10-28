@@ -1,0 +1,2 @@
+# Preserve the pinned source bytes across Windows/Linux checkouts.
+upstream/** -text

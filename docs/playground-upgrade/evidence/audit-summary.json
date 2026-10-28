@@ -1,0 +1,45 @@
+{
+  "auditedAt": "2026-10-29",
+  "ohmiBase": "76e14cad1678c4632a29dd0eee1ea2272503be3d",
+  "upstream": {
+    "repository": "https://github.com/rORrEtboLt/designElectronics",
+    "sourceCommit": "4d9cb373bd06afb2d99b1548e6c3a0c86992bd56",
+    "releaseTag": "v0.2.1",
+    "releaseCommit": "aefd20516e8f2a05fd1c183639ca4953ef6d82f8",
+    "windowsReleaseSha256": "c6af8da9aef3563921732da374376451f6245b4b8f2575cc44698fe899a34dd4",
+    "publishedWasmSourceCommit": "not attested; must rebuild pinned source before shipping",
+    "wasmSha256": "88cb8ca3af7c8122a9d17df7e77e4bd2dc764640fd4bf9e53b4a30be5d6a942e",
+    "wasmBytes": 4743673,
+    "dataBytes": 239661,
+    "loaderBytes": 200499
+  },
+  "wasmSelftest": {
+    "status": "aborted; not a pass",
+    "exception": "RuntimeError: Aborted(undefined). Build with -sASSERTIONS for more info.",
+    "passedAssertions": 97,
+    "catalogEntries": 791
+  },
+  "deployed": {
+    "ohmiAiVersion": 29,
+    "ohmiWebVersion": 19,
+    "status": "ACTIVE",
+    "groqPrimary": "openai/gpt-oss-120b",
+    "existingChatFallbacks": [
+      "openai/gpt-oss-20b",
+      "gemini-2.5-flash"
+    ],
+    "geminiMediaPrimary": "gemini-3.5-flash-lite",
+    "geminiMediaCandidates": [
+      "gemini-3.5-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-3.8-flash"
+    ],
+    "modelOverrideSecretNamesPresent": false,
+    "freeTierConfirmationSecretNamesPresent": true,
+    "confirmationValuesRead": false,
+    "accountBillingPlanVerified": false,
+    "inferenceCalls": 0,
+    "sourceVerification": "downloaded deployed Edge source; metadata and secret names only, no values"
+  },
+  "scope": "M0 local audit; no OHMI runtime changes, hosted writes, production infrastructure changes, push or deployment"
+}

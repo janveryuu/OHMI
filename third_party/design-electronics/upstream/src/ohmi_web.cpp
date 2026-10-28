@@ -1,0 +1,172 @@
+// OHMI's bounded browser adapter. Simulation, documents and MCP remain upstream.
+#include "app.h"
+#include "mcp.h"
+#include <emscripten.h>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <stdexcept>
+
+namespace {
+App* app = nullptr;
+std::unique_ptr<McpSession> session;
+constexpr size_t maxBytes = 1024 * 1024;
+
+void replaced() {
+    app->simOn = false;
+    app->simulator.reset();
+    for (auto& camera : app->cam) camera.valid = false;
+    app->selParts.clear(); app->selWires.clear(); app->selNotes.clear();
+    app->codeOpen = false;
+}
+
+void bounded(const Json& value, int depth = 0) {
+    if (depth > 24 || value.size() > 20000) throw std::runtime_error("Document structure is too large.");
+    if (value.isString() && value.str().size() > 65536) throw std::runtime_error("Text is too large.");
+    if (value.isNumber() && (!std::isfinite(value.num()) || std::abs(value.num()) > 10000000)) throw std::runtime_error("Number is outside the supported range.");
+    for (const auto& item : value.items()) bounded(item, depth + 1);
+    for (const auto& item : value.members()) bounded(item.second, depth + 1);
+}
+
+Json observe(double seconds) {
+    if (!std::isfinite(seconds) || seconds < 0.05 || seconds > 5 || app->doc.parts.size() > 100)
+        throw std::runtime_error("Observation supports 0.05 to 5 seconds and up to 100 parts.");
+    app->doc.syncWireEnds();
+    Connectivity connectivity; connectivity.build(app->doc);
+    Simulator simulator;
+    Json samples = Json::array();
+    for (double time = 0; time < seconds - 0.000001; time += 0.05) {
+        const auto result = simulator.step(app->doc, connectivity, {}, std::min(0.05, seconds - time));
+        Json sample = Json::object(), leds = Json::object(), errors = Json::array(), warnings = Json::array(), damaged = Json::array();
+        for (const auto& value : result.brightness) leds.set(std::to_string(value.first), value.second);
+        for (const auto& value : result.code) if (!value.second.error.empty()) {
+            Json error = Json::object(); error.set("part", value.first); error.set("line", value.second.errorLine); error.set("message", value.second.error); errors.push(error);
+        }
+        for (const auto& value : result.warnings) warnings.push(value);
+        for (const auto& value : result.damaged) damaged.push(value);
+        sample.set("time", result.time); sample.set("leds", leds); sample.set("errors", errors); sample.set("warnings", warnings); sample.set("damaged", damaged);
+        samples.push(sample);
+    }
+    Json output = Json::object(); output.set("samples", samples); output.set("engine", "designElectronics interpreter; not hardware verification"); return output;
+}
+
+Json dispatch(const Json& request) {
+    const std::string operation = request["operation"].str();
+    if (operation == "status") {
+        Json result = Json::object(); result.set("ready", app != nullptr); result.set("catalogCount", (int)partLibrary().size()); result.set("protocol", 1); return result;
+    }
+    if (!app || !session) throw std::runtime_error("Engine is not ready.");
+    if (operation == "snapshot") {
+        app->doc.syncWireEnds();
+        const auto result = app->doc.toJson(true);
+        if (result.dump().size() > maxBytes) throw std::runtime_error("This document exceeds the 1 MiB bridge limit. Use the native export menu.");
+        return result;
+    }
+    if (operation == "open") {
+        const auto& value = request["document"];
+        if (value["format"].str() != "designElectronics" || value["version"].i() != 1 || !value["parts"].isArray() || !value["wires"].isArray() || value["parts"].size() > 200 || value["wires"].size() > 800)
+            throw std::runtime_error("Unsupported or oversized designElectronics document.");
+        Document staged; std::string error;
+        if (!staged.fromJson(value, &error)) throw std::runtime_error(error.empty() ? "Could not read this document." : error);
+        if (staged.parts.size() != value["parts"].size() || staged.wires.size() != value["wires"].size()) throw std::runtime_error("Document contains unknown parts or invalid wires.");
+        for (const auto& wire : value["wires"].items()) for (const auto* key : {"from", "to"}) {
+            const auto& terminal = wire[key];
+            if (!terminal.isObject()) continue;
+            const auto* part = staged.part(terminal["part"].i());
+            if (!part || part->def->pinIndex(terminal["pin"].str()) < 0) throw std::runtime_error("Wire references an invalid terminal.");
+        }
+        std::set<int> ids;
+        for (const auto& part : staged.parts) {
+            if (!part.def || part.id <= 0 || !ids.insert(part.id).second) throw std::runtime_error("Invalid or duplicate part identifier.");
+        }
+        for (const auto& wire : staged.wires) {
+            if (wire.id <= 0 || !ids.insert(wire.id).second || wire.pts.size() < 2) throw std::runtime_error("Invalid or duplicate wire identifier.");
+            for (const auto& ref : wire.ends) if (ref.part >= 0) {
+                const auto* part = staged.part(ref.part);
+                if (!part || ref.pin < 0 || ref.pin >= (int)part->def->pins.size()) throw std::runtime_error("Wire references an invalid terminal.");
+            }
+        }
+        app->checkpoint(); app->doc = std::move(staged); app->changed(); replaced();
+        Json result = Json::object(); result.set("opened", true); return result;
+    }
+    if (operation == "observe") return observe(request["seconds"].num());
+    if (operation == "view") {
+        int view = request["view"].i(-1);
+        if (view < 0 || view >= NUM_VIEWS) throw std::runtime_error("Unknown view.");
+        app->view = view;
+        Json result = Json::object(); result.set("view", view); return result;
+    }
+    if (operation == "running") {
+        app->simOn = request["running"].boolean(); app->simulator.reset();
+        Json result = Json::object(); result.set("running", app->simOn); return result;
+    }
+    if (operation == "undo" || operation == "redo") {
+        if (operation == "undo") app->undo(); else app->redo();
+        Json result = Json::object(); result.set("changed", true); return result;
+    }
+    if (operation == "theme") {
+        bool dark = request["theme"].str() == "dark";
+        Theme theme;
+        theme.bg = dark ? rgba(11,12,15) : rgba(246,250,248);
+        theme.panel = dark ? rgba(21,23,27) : rgba(252,254,253);
+        theme.panel2 = dark ? rgba(32,35,41) : rgba(235,244,240);
+        theme.border = dark ? rgba(60,65,74) : rgba(194,213,205);
+        theme.text = dark ? rgba(240,244,247) : rgba(28,48,40);
+        theme.textDim = dark ? rgba(166,180,190) : rgba(83,109,98);
+        theme.accent = dark ? rgba(139,223,197) : rgba(23,104,86);
+        theme.accentText = dark ? rgba(12,35,28) : rgba(250,255,252);
+        theme.button = theme.panel; theme.buttonHover = theme.panel2; theme.buttonDown = theme.border; theme.field = theme.panel;
+        theme.ok = dark ? rgba(139,223,197) : rgba(23,104,86);
+        theme.danger = dark ? rgba(255,180,171) : rgba(178,54,54);
+        app->ui.th = theme;
+        Json result = Json::object(); result.set("theme", dark ? "dark" : "light"); return result;
+    }
+    if (operation == "export") {
+        const auto format = request["format"].str();
+        Json args = Json::object(); args.set("format", format); args.set("view", request["view"].str("breadboard"));
+        if (format == "gerber") args.set("path", "/tmp/ohmi-export.zip");
+        else if (format != "svg" && format != "bom" && format != "netlist" && format != "spice") throw std::runtime_error("Unsupported export format.");
+        bool failed = false; const auto text = session->callTool("export", args, failed);
+        if (failed) throw std::runtime_error(text);
+        return Json::parse(text);
+    }
+    if (operation == "tool") {
+        const auto name = request["name"].str();
+        static const std::set<std::string> allowed = {"list_parts", "get_part_info", "get_design", "new_design", "load_example", "add_part", "set_part_properties", "move_part", "place_on_breadboard", "remove_part", "remove_wire", "connect", "autoroute", "run_drc"};
+        if (!allowed.count(name) || !request["arguments"].isObject()) throw std::runtime_error("This tool is not allowed in the browser bridge.");
+        if (app->doc.parts.size() >= 200 && name == "add_part") throw std::runtime_error("The bridge limit is 200 parts.");
+        if (app->doc.wires.size() >= 798 && name == "connect") throw std::runtime_error("The bridge limit is 800 wires.");
+        bool failed = false; const auto text = session->callTool(name, request["arguments"], failed);
+        if (failed) throw std::runtime_error(text);
+        return Json::parse(text);
+    }
+    throw std::runtime_error("Unknown bridge operation.");
+}
+}
+
+void ohmiWebRegister(App* value) {
+    app = value;
+    // No persistent browser autosave is restored across OHMI accounts.
+    app->scratchSession = true;
+    session = std::make_unique<McpSession>(&app->doc);
+    session->beforeEdit = [] { app->checkpoint(); };
+    session->afterEdit = [] { app->doc.syncWireEnds(); app->changed(); app->pruneSelection(); app->drcIssues.clear(); };
+    session->onReplaced = replaced;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* de_ohmi_dispatch(const char* input) {
+    static std::string output;
+    Json result = Json::object();
+    try {
+        if (!input || std::strlen(input) > maxBytes) throw std::runtime_error("Bridge request exceeds 1 MiB.");
+        std::string error; const Json request = Json::parse(input, &error);
+        if (!error.empty() || !request.isObject()) throw std::runtime_error("Invalid JSON request.");
+        bounded(request);
+        result.set("result", dispatch(request)); result.set("ok", true);
+    } catch (const std::exception& error) {
+        result.set("ok", false); result.set("error", error.what());
+    }
+    output = result.dump();
+    if (output.size() > 2 * maxBytes) output = "{\"ok\":false,\"error\":\"Bridge response is too large.\"}";
+    return output.c_str();
+}

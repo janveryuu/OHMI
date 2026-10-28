@@ -1,0 +1,4 @@
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f6faf8;color:#1c3028;font:14px/1.5 system-ui,sans-serif}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+canvas:focus-visible{outline:3px solid #176856;outline-offset:-3px}
+#status{position:fixed;inset:45% 24px auto;text-align:center;margin:0}

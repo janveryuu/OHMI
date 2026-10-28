@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/rORrEtboLt/designElectronics",
+  "commit": "4d9cb373bd06afb2d99b1548e6c3a0c86992bd56",
+  "emscripten": "5.0.7",
+  "emsdkCommit": "d7b4130688bfa348392b921ab04015aa15c4f154",
+  "sdkBuild": "6cd98e86d7749ff98b82b7f2ae78eb4f01942788",
+  "cmake": "3.31.6",
+  "ninjaWheel": "1.11.1.4",
+  "sdl": "fc305ea8ebe117ec9bbc54f08cb2a2c75dba8ae8",
+  "sdlTtf": "38b0f69acb2763f910aad2a5f3f8d72541c05361",
+  "submodules": {
+    "external/freetype": "619ae00aa447112866aa11375e5fcf4af16f8711",
+    "external/freetype/subprojects/dlg": "72dfcc858c040c54a6a0b88fcb7e70ee186d3167",
+    "external/harfbuzz": "950d232cdcd29e2e83a2099307e5624a8f1aa937",
+    "external/plutosvg": "96e115bc0f837dbccf260a05ad23978b6b54f731",
+    "external/plutosvg/plutovg": "bbd91f0d06a71491691b36330f29dffa4af87ccf",
+    "external/plutovg": "a6e0d682d08a5e993694ad82a23e5d45e831f315"
+  }
+}

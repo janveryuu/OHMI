@@ -1,0 +1,2273 @@
+{
+ "format": "designElectronics",
+ "version": 1,
+ "app": "designElectronics 0.2.1",
+ "uid": "80b723edf2bdc8cc",
+ "title": "uno-blink",
+ "saved": "2026-10-28T17:23:22Z",
+ "rules": {
+  "traceWidth": 24,
+  "clearance": 12,
+  "viaPad": 40,
+  "viaDrill": 20
+ },
+ "nextId": 10,
+ "parts": [
+  {
+   "id": 1,
+   "type": "arduino_uno",
+   "label": "A1",
+   "props": {
+    "outputs": "D13=HIGH",
+    "type": "Arduino Uno (Rev3)"
+   },
+   "views": {
+    "breadboard": {
+     "at": [0, 0]
+    },
+    "schematic": {
+     "at": [0, 0]
+    },
+    "pcb": {
+     "at": [0, 0]
+    }
+   },
+   "code": "void setup() {\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);\n  digitalWrite(13, LOW);\n  delay(500);\n}\n"
+  },
+  {
+   "id": 2,
+   "type": "resistor",
+   "label": "R1",
+   "props": {
+    "power": "1/4W",
+    "resistance": "220Ω",
+    "tolerance": "±5%"
+   },
+   "views": {
+    "breadboard": {
+     "at": [3200, 0]
+    },
+    "schematic": {
+     "at": [3200, 0]
+    },
+    "pcb": {
+     "at": [3200, 0]
+    }
+   }
+  },
+  {
+   "id": 3,
+   "type": "led",
+   "label": "LED1",
+   "props": {
+    "color": "Red",
+    "package": "5 mm [THT]"
+   },
+   "views": {
+    "breadboard": {
+     "at": [4200, 0]
+    },
+    "schematic": {
+     "at": [4200, 0]
+    },
+    "pcb": {
+     "at": [4200, 0]
+    }
+   }
+  }
+ ],
+ "wires": [
+  {
+   "id": 4,
+   "view": "schematic",
+   "points": [
+    [1200, 1400],
+    [3200, 1400],
+    [3200, 0]
+   ],
+   "from": {
+    "part": 1,
+    "pin": "D13"
+   },
+   "to": {
+    "part": 2,
+    "pin": "pin0"
+   }
+  },
+  {
+   "id": 5,
+   "view": "breadboard",
+   "points": [
+    [1240, 100],
+    [3200, 0]
+   ],
+   "from": {
+    "part": 1,
+    "pin": "D13"
+   },
+   "to": {
+    "part": 2,
+    "pin": "pin0"
+   },
+   "color": "#418ce1"
+  },
+  {
+   "id": 6,
+   "view": "schematic",
+   "points": [
+    [3600, 0],
+    [4200, 0]
+   ],
+   "from": {
+    "part": 2,
+    "pin": "pin1"
+   },
+   "to": {
+    "part": 3,
+    "pin": "anode"
+   }
+  },
+  {
+   "id": 7,
+   "view": "breadboard",
+   "points": [
+    [3600, 0],
+    [4300, 0]
+   ],
+   "from": {
+    "part": 2,
+    "pin": "pin1"
+   },
+   "to": {
+    "part": 3,
+    "pin": "anode"
+   },
+   "color": "#418ce1"
+  },
+  {
+   "id": 8,
+   "view": "schematic",
+   "points": [
+    [4500, 0],
+    [0, 0],
+    [0, 1400]
+   ],
+   "from": {
+    "part": 3,
+    "pin": "cathode"
+   },
+   "to": {
+    "part": 1,
+    "pin": "GND"
+   }
+  },
+  {
+   "id": 9,
+   "view": "breadboard",
+   "points": [
+    [4200, 0],
+    [1140, 100]
+   ],
+   "from": {
+    "part": 3,
+    "pin": "cathode"
+   },
+   "to": {
+    "part": 1,
+    "pin": "GND"
+   },
+   "color": "#418ce1"
+  }
+ ],
+ "notes_": [],
+ "library": [
+  {
+   "type": "arduino_uno",
+   "title": "Arduino Uno (Rev3)",
+   "category": "Microcontroller",
+   "description": "ATmega328P microcontroller board, 5 V logic. In simulation it is USB-powered: 5V and 3.3V pins supply the circuit, and the pins listed under \"Pin outputs\" are driven (e.g. D13=HIGH, D9=LOW, D5=BLINK:500, D6=PWM:30). Firmware itself is not executed.",
+   "labelPrefix": "A",
+   "sim": "board",
+   "simParams": "GND=GND;RAIL 5V=5;RAIL 3V3=3.3;IO=5;ROUT=25",
+   "views": ["breadboard", "schematic", "pcb"],
+   "properties": {
+    "outputs": "D13=HIGH",
+    "type": "Arduino Uno (Rev3)"
+   },
+   "propertyDefs": [
+    {
+     "key": "type",
+     "label": "Type",
+     "options": ["Arduino Uno (Rev3)"]
+    },
+    {
+     "key": "outputs",
+     "label": "Pin outputs (simulation)",
+     "options": ["D13=HIGH", "D13=LOW", "D13=BLINK:500", "D9=HIGH, D10=HIGH, D11=HIGH", ""]
+    }
+   ],
+   "pins": [
+    {
+     "id": "D0",
+     "name": "D0",
+     "breadboard": [2600, 100],
+     "schematic": [1200, 100],
+     "pcb": [2600, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D1",
+     "name": "D1",
+     "breadboard": [2500, 100],
+     "schematic": [1200, 200],
+     "pcb": [2500, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D2",
+     "name": "D2",
+     "breadboard": [2400, 100],
+     "schematic": [1200, 300],
+     "pcb": [2400, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D3",
+     "name": "D3",
+     "breadboard": [2300, 100],
+     "schematic": [1200, 400],
+     "pcb": [2300, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D4",
+     "name": "D4",
+     "breadboard": [2200, 100],
+     "schematic": [1200, 500],
+     "pcb": [2200, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D5",
+     "name": "D5",
+     "breadboard": [2100, 100],
+     "schematic": [1200, 600],
+     "pcb": [2100, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D6",
+     "name": "D6",
+     "breadboard": [2000, 100],
+     "schematic": [1200, 700],
+     "pcb": [2000, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D7",
+     "name": "D7",
+     "breadboard": [1900, 100],
+     "schematic": [1200, 800],
+     "pcb": [1900, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D8",
+     "name": "D8",
+     "breadboard": [1740, 100],
+     "schematic": [1200, 900],
+     "pcb": [1740, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D9",
+     "name": "D9",
+     "breadboard": [1640, 100],
+     "schematic": [1200, 1000],
+     "pcb": [1640, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D10",
+     "name": "D10",
+     "breadboard": [1540, 100],
+     "schematic": [1200, 1100],
+     "pcb": [1540, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D11",
+     "name": "D11",
+     "breadboard": [1440, 100],
+     "schematic": [1200, 1200],
+     "pcb": [1440, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D12",
+     "name": "D12",
+     "breadboard": [1340, 100],
+     "schematic": [1200, 1300],
+     "pcb": [1340, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "D13",
+     "name": "D13",
+     "breadboard": [1240, 100],
+     "schematic": [1200, 1400],
+     "pcb": [1240, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "GND",
+     "name": "GND",
+     "breadboard": [1140, 100],
+     "schematic": [0, 1400],
+     "pcb": [1140, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "AREF",
+     "name": "AREF",
+     "breadboard": [1040, 100],
+     "schematic": [0, 400],
+     "pcb": [1040, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "SDA",
+     "name": "SDA",
+     "breadboard": [940, 100],
+     "schematic": [1200, 1500],
+     "pcb": [940, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "SCL",
+     "name": "SCL",
+     "breadboard": [840, 100],
+     "schematic": [1200, 1600],
+     "pcb": [840, 100],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "NC",
+     "name": "NC",
+     "breadboard": [1060, 2000],
+     "schematic": [0, 700],
+     "pcb": [1060, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "IOREF",
+     "name": "IOREF",
+     "breadboard": [1160, 2000],
+     "schematic": [0, 500],
+     "pcb": [1160, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "RESET",
+     "name": "RESET",
+     "breadboard": [1260, 2000],
+     "schematic": [0, 600],
+     "pcb": [1260, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "3V3",
+     "name": "3V3",
+     "breadboard": [1360, 2000],
+     "schematic": [0, 300],
+     "pcb": [1360, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "5V",
+     "name": "5V",
+     "breadboard": [1460, 2000],
+     "schematic": [0, 200],
+     "pcb": [1460, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "GND_2",
+     "name": "GND",
+     "breadboard": [1560, 2000],
+     "schematic": [0, 1500],
+     "pcb": [1560, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "GND_3",
+     "name": "GND",
+     "breadboard": [1660, 2000],
+     "schematic": [0, 1600],
+     "pcb": [1660, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "VIN",
+     "name": "VIN",
+     "breadboard": [1760, 2000],
+     "schematic": [0, 100],
+     "pcb": [1760, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A0",
+     "name": "A0",
+     "breadboard": [1960, 2000],
+     "schematic": [0, 800],
+     "pcb": [1960, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A1",
+     "name": "A1",
+     "breadboard": [2060, 2000],
+     "schematic": [0, 900],
+     "pcb": [2060, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A2",
+     "name": "A2",
+     "breadboard": [2160, 2000],
+     "schematic": [0, 1000],
+     "pcb": [2160, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A3",
+     "name": "A3",
+     "breadboard": [2260, 2000],
+     "schematic": [0, 1100],
+     "pcb": [2260, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A4",
+     "name": "A4",
+     "breadboard": [2360, 2000],
+     "schematic": [0, 1200],
+     "pcb": [2360, 2000],
+     "pad": 66,
+     "drill": 40
+    },
+    {
+     "id": "A5",
+     "name": "A5",
+     "breadboard": [2460, 2000],
+     "schematic": [0, 1300],
+     "pcb": [2460, 2000],
+     "pad": 66,
+     "drill": 40
+    }
+   ],
+   "buses": [
+    ["GND", "GND_2", "GND_3"]
+   ],
+   "holes": [
+    {
+     "at": [550, 100],
+     "diameter": 125
+    },
+    {
+     "at": [600, 2000],
+     "diameter": 125
+    },
+    {
+     "at": [2600, 1400],
+     "diameter": 125
+    },
+    {
+     "at": [2600, 300],
+     "diameter": 125
+    }
+   ],
+   "graphics": {
+    "breadboard": [
+     {
+      "k": "poly",
+      "pts": [
+       [0, 0],
+       [2600, 0],
+       [2700, 100],
+       [2700, 1940],
+       [2600, 2100],
+       [0, 2100]
+      ],
+      "w": 12,
+      "stroke": "#005e65",
+      "fill": "#008791"
+     },
+     {
+      "k": "rect",
+      "a": [-250, 300],
+      "b": [400, 820],
+      "r": 10,
+      "w": 8,
+      "stroke": "#8c8c91",
+      "fill": "#c8c8cd"
+     },
+     {
+      "k": "rect",
+      "a": [-180, 1500],
+      "b": [400, 1920],
+      "r": 10,
+      "fill": "#1e1e1e"
+     },
+     {
+      "k": "rect",
+      "a": [785, 45],
+      "b": [1795, 155],
+      "r": 6,
+      "fill": "#191919"
+     },
+     {
+      "k": "rect",
+      "a": [1845, 45],
+      "b": [2655, 155],
+      "r": 6,
+      "fill": "#191919"
+     },
+     {
+      "k": "rect",
+      "a": [1005, 1945],
+      "b": [1815, 2055],
+      "r": 6,
+      "fill": "#191919"
+     },
+     {
+      "k": "rect",
+      "a": [1905, 1945],
+      "b": [2515, 2055],
+      "r": 6,
+      "fill": "#191919"
+     },
+     {
+      "k": "rect",
+      "a": [2580, 80],
+      "b": [2620, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2480, 80],
+      "b": [2520, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2380, 80],
+      "b": [2420, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2280, 80],
+      "b": [2320, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2180, 80],
+      "b": [2220, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2080, 80],
+      "b": [2120, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1980, 80],
+      "b": [2020, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1880, 80],
+      "b": [1920, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1720, 80],
+      "b": [1760, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1620, 80],
+      "b": [1660, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1520, 80],
+      "b": [1560, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1420, 80],
+      "b": [1460, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1320, 80],
+      "b": [1360, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1220, 80],
+      "b": [1260, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1120, 80],
+      "b": [1160, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1020, 80],
+      "b": [1060, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [920, 80],
+      "b": [960, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [820, 80],
+      "b": [860, 120],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1040, 1980],
+      "b": [1080, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1140, 1980],
+      "b": [1180, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1240, 1980],
+      "b": [1280, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1340, 1980],
+      "b": [1380, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1440, 1980],
+      "b": [1480, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1540, 1980],
+      "b": [1580, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1640, 1980],
+      "b": [1680, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1740, 1980],
+      "b": [1780, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [1940, 1980],
+      "b": [1980, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2040, 1980],
+      "b": [2080, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2140, 1980],
+      "b": [2180, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2240, 1980],
+      "b": [2280, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2340, 1980],
+      "b": [2380, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "rect",
+      "a": [2440, 1980],
+      "b": [2480, 2020],
+      "fill": "#464646"
+     },
+     {
+      "k": "text",
+      "at": [2600, 210],
+      "text": "0",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2500, 210],
+      "text": "1",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2400, 210],
+      "text": "2",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2300, 210],
+      "text": "3",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2200, 210],
+      "text": "4",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2100, 210],
+      "text": "5",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2000, 210],
+      "text": "6",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1900, 210],
+      "text": "7",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1740, 210],
+      "text": "8",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1640, 210],
+      "text": "9",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1540, 210],
+      "text": "10",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1440, 210],
+      "text": "11",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1340, 210],
+      "text": "12",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1240, 210],
+      "text": "13",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1140, 210],
+      "text": "GND",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1040, 210],
+      "text": "AREF",
+      "size": 26,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [940, 210],
+      "text": "SDA",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [840, 210],
+      "text": "SCL",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1060, 1890],
+      "text": "NC",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1160, 1890],
+      "text": "IOREF",
+      "size": 26,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1260, 1890],
+      "text": "RESET",
+      "size": 26,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1360, 1890],
+      "text": "3V3",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1460, 1890],
+      "text": "5V",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1560, 1890],
+      "text": "GND",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1660, 1890],
+      "text": "GND",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1760, 1890],
+      "text": "VIN",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1960, 1890],
+      "text": "A0",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2060, 1890],
+      "text": "A1",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2160, 1890],
+      "text": "A2",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2260, 1890],
+      "text": "A3",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2360, 1890],
+      "text": "A4",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2460, 1890],
+      "text": "A5",
+      "size": 38,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2200, 290],
+      "text": "DIGITAL (PWM~)",
+      "size": 55,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1400, 1800],
+      "text": "POWER",
+      "size": 55,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [2200, 1800],
+      "text": "ANALOG IN",
+      "size": 55,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "rect",
+      "a": [1150, 1300],
+      "b": [2600, 1640],
+      "r": 10,
+      "fill": "#232326"
+     },
+     {
+      "k": "text",
+      "at": [1875, 1470],
+      "text": "ATMEGA328P",
+      "size": 90,
+      "align": 1,
+      "fill": "#aaaaaa"
+     },
+     {
+      "k": "text",
+      "at": [1350, 800],
+      "text": "UNO",
+      "size": 260,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "text",
+      "at": [1350, 1050],
+      "text": "ARDUINO",
+      "size": 110,
+      "align": 1,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "rect",
+      "a": [600, 440],
+      "b": [800, 560],
+      "r": 8,
+      "fill": "#c8c8cd"
+     },
+     {
+      "k": "circle",
+      "c": [700, 500],
+      "r": 40,
+      "fill": "#c82828"
+     },
+     {
+      "k": "rect",
+      "a": [1000, 450],
+      "b": [1050, 480],
+      "r": 4,
+      "fill": "#f0c83c"
+     },
+     {
+      "k": "text",
+      "at": [1090, 465],
+      "text": "L",
+      "size": 35,
+      "align": 0,
+      "fill": "#f0fafa"
+     },
+     {
+      "k": "circle",
+      "c": [150, 150],
+      "r": 55,
+      "w": 6,
+      "stroke": "#b4b4b4",
+      "fill": "#ffffff"
+     },
+     {
+      "k": "circle",
+      "c": [2550, 800],
+      "r": 55,
+      "w": 6,
+      "stroke": "#b4b4b4",
+      "fill": "#ffffff"
+     },
+     {
+      "k": "circle",
+      "c": [150, 1950],
+      "r": 55,
+      "w": 6,
+      "stroke": "#b4b4b4",
+      "fill": "#ffffff"
+     }
+    ],
+    "schematic": [
+     {
+      "k": "rect",
+      "a": [200, 0],
+      "b": [1000, 1700],
+      "w": 10,
+      "stroke": "#1e1e1e",
+      "fill": "#ffffff"
+     },
+     {
+      "k": "line",
+      "a": [0, 100],
+      "b": [200, 100],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 100],
+      "text": "VIN",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 200],
+      "b": [200, 200],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 200],
+      "text": "5V",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 300],
+      "b": [200, 300],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 300],
+      "text": "3V3",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 400],
+      "b": [200, 400],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 400],
+      "text": "AREF",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 500],
+      "b": [200, 500],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 500],
+      "text": "IOREF",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 600],
+      "b": [200, 600],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 600],
+      "text": "RESET",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 700],
+      "b": [200, 700],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 700],
+      "text": "NC",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 800],
+      "b": [200, 800],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 800],
+      "text": "A0",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 900],
+      "b": [200, 900],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 900],
+      "text": "A1",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1000],
+      "b": [200, 1000],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1000],
+      "text": "A2",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1100],
+      "b": [200, 1100],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1100],
+      "text": "A3",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1200],
+      "b": [200, 1200],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1200],
+      "text": "A4",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1300],
+      "b": [200, 1300],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1300],
+      "text": "A5",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1400],
+      "b": [200, 1400],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1400],
+      "text": "GND",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1500],
+      "b": [200, 1500],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1500],
+      "text": "GND",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [0, 1600],
+      "b": [200, 1600],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [225, 1600],
+      "text": "GND",
+      "size": 45,
+      "align": 0,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 100],
+      "b": [1200, 100],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 100],
+      "text": "D0",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 200],
+      "b": [1200, 200],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 200],
+      "text": "D1",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 300],
+      "b": [1200, 300],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 300],
+      "text": "D2",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 400],
+      "b": [1200, 400],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 400],
+      "text": "D3",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 500],
+      "b": [1200, 500],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 500],
+      "text": "D4",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 600],
+      "b": [1200, 600],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 600],
+      "text": "D5",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 700],
+      "b": [1200, 700],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 700],
+      "text": "D6",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 800],
+      "b": [1200, 800],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 800],
+      "text": "D7",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 900],
+      "b": [1200, 900],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 900],
+      "text": "D8",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1000],
+      "b": [1200, 1000],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1000],
+      "text": "D9",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1100],
+      "b": [1200, 1100],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1100],
+      "text": "D10",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1200],
+      "b": [1200, 1200],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1200],
+      "text": "D11",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1300],
+      "b": [1200, 1300],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1300],
+      "text": "D12",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1400],
+      "b": [1200, 1400],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1400],
+      "text": "D13",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1500],
+      "b": [1200, 1500],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1500],
+      "text": "SDA",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "line",
+      "a": [1000, 1600],
+      "b": [1200, 1600],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "text",
+      "at": [975, 1600],
+      "text": "SCL",
+      "size": 45,
+      "align": 2,
+      "fill": "#323232"
+     },
+     {
+      "k": "text",
+      "at": [600, -60],
+      "text": "Arduino Uno (Rev3)",
+      "size": 60,
+      "align": 1,
+      "fill": "#323232"
+     }
+    ],
+    "pcb": [
+     {
+      "k": "poly",
+      "pts": [
+       [0, 0],
+       [2600, 0],
+       [2700, 100],
+       [2700, 1940],
+       [2600, 2100],
+       [0, 2100],
+       [0, 0]
+      ],
+      "w": 10,
+      "stroke": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2600, 200],
+      "text": "D0",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2500, 200],
+      "text": "D1",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2400, 200],
+      "text": "D2",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2300, 200],
+      "text": "D3",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2200, 200],
+      "text": "D4",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2100, 200],
+      "text": "D5",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2000, 200],
+      "text": "D6",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1900, 200],
+      "text": "D7",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1740, 200],
+      "text": "D8",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1640, 200],
+      "text": "D9",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1540, 200],
+      "text": "D10",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1440, 200],
+      "text": "D11",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1340, 200],
+      "text": "D12",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1240, 200],
+      "text": "D13",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1140, 200],
+      "text": "GND",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1040, 200],
+      "text": "ARE",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [940, 200],
+      "text": "SDA",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [840, 200],
+      "text": "SCL",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1060, 1900],
+      "text": "NC",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1160, 1900],
+      "text": "IOR",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1260, 1900],
+      "text": "RES",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1360, 1900],
+      "text": "3V3",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1460, 1900],
+      "text": "5V",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1560, 1900],
+      "text": "GND",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1660, 1900],
+      "text": "GND",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1760, 1900],
+      "text": "VIN",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1960, 1900],
+      "text": "A0",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2060, 1900],
+      "text": "A1",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2160, 1900],
+      "text": "A2",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2260, 1900],
+      "text": "A3",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2360, 1900],
+      "text": "A4",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [2460, 1900],
+      "text": "A5",
+      "size": 30,
+      "align": 1,
+      "fill": "#ffffff"
+     },
+     {
+      "k": "text",
+      "at": [1350, 1050],
+      "text": "Arduino Uno (Rev3) shield",
+      "size": 70,
+      "align": 1,
+      "fill": "#ffffff"
+     }
+    ]
+   }
+  },
+  {
+   "type": "resistor",
+   "title": "Resistor",
+   "category": "Core",
+   "description": "A resistor limits current. Edit the resistance in the Inspector; the color bands update automatically.",
+   "labelPrefix": "R",
+   "valueProp": "resistance",
+   "sim": "resistor",
+   "views": ["breadboard", "schematic", "pcb"],
+   "properties": {
+    "power": "1/4W",
+    "resistance": "220Ω",
+    "tolerance": "±5%"
+   },
+   "propertyDefs": [
+    {
+     "key": "resistance",
+     "label": "Resistance",
+     "options": ["100Ω", "220Ω", "330Ω", "470Ω", "1kΩ", "2.2kΩ", "4.7kΩ", "10kΩ", "47kΩ", "100kΩ", "1MΩ"]
+    },
+    {
+     "key": "power",
+     "label": "Power",
+     "options": ["1/8W", "1/4W", "1/2W", "1W"]
+    },
+    {
+     "key": "tolerance",
+     "label": "Tolerance",
+     "options": ["±1%", "±5%", "±10%"]
+    }
+   ],
+   "pins": [
+    {
+     "id": "pin0",
+     "name": "Pin 0",
+     "breadboard": [0, 0],
+     "schematic": [0, 0],
+     "pcb": [0, 0],
+     "pad": 70,
+     "drill": 38
+    },
+    {
+     "id": "pin1",
+     "name": "Pin 1",
+     "breadboard": [400, 0],
+     "schematic": [400, 0],
+     "pcb": [400, 0],
+     "pad": 70,
+     "drill": 38
+    }
+   ],
+   "buses": [],
+   "holes": [],
+   "graphics": {
+    "breadboard": [
+     {
+      "k": "line",
+      "a": [0, 0],
+      "b": [110, 0],
+      "w": 18,
+      "stroke": "#a0a0a5"
+     },
+     {
+      "k": "line",
+      "a": [290, 0],
+      "b": [400, 0],
+      "w": 18,
+      "stroke": "#a0a0a5"
+     },
+     {
+      "k": "circle",
+      "c": [115, 0],
+      "r": 46,
+      "w": 6,
+      "stroke": "#aa915f",
+      "fill": "#dec896"
+     },
+     {
+      "k": "circle",
+      "c": [285, 0],
+      "r": 46,
+      "w": 6,
+      "stroke": "#aa915f",
+      "fill": "#dec896"
+     },
+     {
+      "k": "rect",
+      "a": [115, -38],
+      "b": [285, 38],
+      "fill": "#dec896"
+     },
+     {
+      "k": "line",
+      "a": [115, -38],
+      "b": [285, -38],
+      "w": 6,
+      "stroke": "#aa915f"
+     },
+     {
+      "k": "line",
+      "a": [115, 38],
+      "b": [285, 38],
+      "w": 6,
+      "stroke": "#aa915f"
+     },
+     {
+      "k": "rect",
+      "a": [110, -46],
+      "b": [132, 46],
+      "fill": "#d21e1e"
+     },
+     {
+      "k": "rect",
+      "a": [150, -38],
+      "b": [172, 38],
+      "fill": "#d21e1e"
+     },
+     {
+      "k": "rect",
+      "a": [190, -38],
+      "b": [212, 38],
+      "fill": "#78461e"
+     },
+     {
+      "k": "rect",
+      "a": [255, -38],
+      "b": [277, 38],
+      "fill": "#c8a028"
+     }
+    ],
+    "schematic": [
+     {
+      "k": "line",
+      "a": [0, 0],
+      "b": [100, 0],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "line",
+      "a": [300, 0],
+      "b": [400, 0],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "poly",
+      "pts": [
+       [100, 0],
+       [116.667, -40],
+       [150, 40],
+       [183.333, -40],
+       [216.667, 40],
+       [250, -40],
+       [283.333, 40],
+       [300, 0]
+      ],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     }
+    ],
+    "pcb": [
+     {
+      "k": "rect",
+      "a": [70, -45],
+      "b": [330, 45],
+      "w": 10,
+      "stroke": "#ffffff"
+     }
+    ]
+   }
+  },
+  {
+   "type": "led",
+   "title": "Red LED",
+   "category": "Core",
+   "description": "Light-emitting diode. The longer leg (anode, +) goes to the positive side; always use a series resistor.",
+   "labelPrefix": "LED",
+   "valueProp": "color",
+   "sim": "led",
+   "views": ["breadboard", "schematic", "pcb"],
+   "properties": {
+    "color": "Red",
+    "package": "5 mm [THT]"
+   },
+   "propertyDefs": [
+    {
+     "key": "color",
+     "label": "Color",
+     "options": ["Red", "Green", "Blue", "Yellow", "White", "Orange"]
+    },
+    {
+     "key": "package",
+     "label": "Package",
+     "options": ["5 mm [THT]", "3 mm [THT]"]
+    }
+   ],
+   "pins": [
+    {
+     "id": "cathode",
+     "name": "cathode (−)",
+     "breadboard": [0, 0],
+     "schematic": [300, 0],
+     "pcb": [0, 0],
+     "pad": 70,
+     "drill": 38,
+     "square": true
+    },
+    {
+     "id": "anode",
+     "name": "anode (+)",
+     "breadboard": [100, 0],
+     "schematic": [0, 0],
+     "pcb": [100, 0],
+     "pad": 70,
+     "drill": 38
+    }
+   ],
+   "buses": [],
+   "holes": [],
+   "graphics": {
+    "breadboard": [
+     {
+      "k": "line",
+      "a": [0, -150],
+      "b": [0, 0],
+      "w": 16,
+      "stroke": "#a0a0a5"
+     },
+     {
+      "k": "poly",
+      "pts": [
+       [100, -150],
+       [100, -90],
+       [135, -60],
+       [100, -30],
+       [100, 0]
+      ],
+      "w": 16,
+      "stroke": "#a0a0a5"
+     },
+     {
+      "k": "rect",
+      "a": [-50, -320],
+      "b": [150, -150],
+      "fill": "#eb2828d8",
+      "tag": 1
+     },
+     {
+      "k": "circle",
+      "c": [50, -320],
+      "r": 100,
+      "fill": "#eb2828d8",
+      "tag": 1
+     },
+     {
+      "k": "rect",
+      "a": [-68, -175],
+      "b": [168, -149],
+      "r": 6,
+      "fill": "#a41c1c"
+     },
+     {
+      "k": "rect",
+      "a": [-5, -360],
+      "b": [20, -240],
+      "r": 10,
+      "fill": "#ffffff5a"
+     }
+    ],
+    "schematic": [
+     {
+      "k": "line",
+      "a": [0, 0],
+      "b": [100, 0],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "line",
+      "a": [200, 0],
+      "b": [300, 0],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "poly",
+      "pts": [
+       [100, -60],
+       [100, 60],
+       [200, 0]
+      ],
+      "w": 10,
+      "stroke": "#1e1e1e",
+      "fill": "#ffffff"
+     },
+     {
+      "k": "line",
+      "a": [200, -60],
+      "b": [200, 60],
+      "w": 10,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "line",
+      "a": [130, -80],
+      "b": [180, -130],
+      "w": 8,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "line",
+      "a": [170, -70],
+      "b": [220, -120],
+      "w": 8,
+      "stroke": "#1e1e1e"
+     },
+     {
+      "k": "poly",
+      "pts": [
+       [185, -135],
+       [173.333, -104.241],
+       [154.241, -123.333]
+      ],
+      "fill": "#1e1e1e"
+     },
+     {
+      "k": "poly",
+      "pts": [
+       [225, -125],
+       [213.333, -94.2409],
+       [194.241, -113.333]
+      ],
+      "fill": "#1e1e1e"
+     }
+    ],
+    "pcb": [
+     {
+      "k": "arc",
+      "c": [50, 0],
+      "r": 120,
+      "a0": 30,
+      "a1": 330,
+      "w": 10,
+      "stroke": "#ffffff"
+     },
+     {
+      "k": "line",
+      "a": [153.92, -60],
+      "b": [153.92, 60],
+      "w": 10,
+      "stroke": "#ffffff"
+     }
+    ]
+   }
+  }
+ ]
+}

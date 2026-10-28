@@ -1,0 +1,15 @@
+.workspace { min-width: 0; padding: clamp(16px, 3vw, 32px); }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.header h1 { font-size: clamp(24px, 3vw, 32px); font-weight: 650; letter-spacing: -.025em; }
+.header p, .footer p, .status { color: var(--muted-foreground); font-size: 14px; line-height: 1.6; }
+.header a, .footer a { color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
+.header a { display: inline-flex; align-items: center; min-height: 44px; }
+.notice { max-width: 75ch; padding: 14px 16px; background: var(--secondary); border-radius: var(--radius); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+.toolbar, .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar { gap: 12px 24px; }
+.status { margin: 12px 0; }
+.error { color: var(--destructive); margin: 12px 0; }
+.frame { width: 100%; height: max(600px, 75dvh); border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.footer { display: flex; align-items: center; gap: 24px; justify-content: space-between; margin-top: 16px; }
+.footer p { max-width: 75ch; }
+@media (max-width: 640px) { .frame { height: 75dvh; min-height: 560px; } .footer { align-items: flex-start; flex-direction: column; } }
