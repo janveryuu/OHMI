@@ -356,7 +356,7 @@ export async function callAiProviderTransport(req: AiTransportRequest): Promise<
         retryAfterSeconds: retryAfter || 60
       };
     }
-    if (status === 503 || status === 502) {
+    if (status >= 500) {
       return {
         ok: false,
         provider: 'gemini',
@@ -1096,7 +1096,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
 
       if (transportRes.ok) break;
 
-      if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code)) {
+      if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code) && transportRes.message !== 'Provider connection failed.') {
         break;
       }
       if (i < candidateModels.length - 1) {
@@ -1193,7 +1193,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
         p_error_code: 'invalid_tutorial',
         p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
         p_error_message: 'Failed to extract JSON from tutorial response.',
-        p_model: MODEL
+        p_model: transportRes.model || route.model
       });
       return errorResponse('unavailable', 'Received invalid tutorial format from AI provider.', 502);
     }
@@ -1205,7 +1205,7 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
         p_error_code: 'invalid_tutorial',
         p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
         p_error_message: tutVal.error || 'Tutorial validation failed.',
-        p_model: route.model
+        p_model: transportRes.model || route.model
       });
       return errorResponse('unavailable', tutVal.error || 'Tutorial did not meet required format.', 502);
     }
@@ -1566,7 +1566,7 @@ export async function handleCircuitCheckRequest(
 
     if (transportRes.ok) break;
 
-    if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code)) {
+    if (!['unavailable', 'timeout', 'rate_limit'].includes(transportRes.code) && transportRes.message !== 'Provider connection failed.') {
       break;
     }
     if (i < candidateModels.length - 1) {
@@ -1641,7 +1641,7 @@ export async function handleCircuitCheckRequest(
       p_error_code: 'invalid_circuit_check',
       p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
       p_error_message: 'Failed to parse JSON from circuit check response.',
-      p_model: route.model
+      p_model: transportRes.model || route.model
     });
     return errorResponse('unavailable', 'Received invalid circuit check format from AI provider.', 502);
   }
@@ -1656,7 +1656,7 @@ export async function handleCircuitCheckRequest(
       p_error_code: 'invalid_circuit_check',
       p_input_tokens: inputTokens, p_output_tokens: outputTokens, p_accounted_tokens: transportRes.totalTokens,
       p_error_message: valErr.slice(0, 200),
-      p_model: route.model
+      p_model: transportRes.model || route.model
     });
     return errorResponse('unavailable', valErr, 502);
   }
