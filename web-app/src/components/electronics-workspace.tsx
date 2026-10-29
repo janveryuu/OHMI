@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import { ElectronicsBridge, type EngineRequest } from "@/lib/playground/bridge";
 import { useElectronicsProject } from "@/lib/playground/use-electronics-project";
 import styles from "./electronics-workspace.module.css";
+import { ElectronicsTools } from "./electronics-tools";
+import type { EngineStatus } from "@/lib/playground/bridge";
 import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 
@@ -28,6 +30,23 @@ function Editor({
   const bridge = useRef<ElectronicsBridge | null>(null);
   const [generation, setGeneration] = useState(0);
   const [ready, setReady] = useState(false);
+  const [canvasFocus, setCanvasFocus] = useState(false);
+  const focusButton = useRef<HTMLButtonElement>(null),
+    focusBand = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (canvasFocus)
+      requestAnimationFrame(() => {
+        focusBand.current?.scrollIntoView({
+          block: "start",
+          behavior: "instant",
+        });
+        frame.current?.focus();
+      });
+  }, [canvasFocus]);
+  const [engineState, setEngineState] = useState<Pick<
+    EngineStatus,
+    "running" | "view"
+  > | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
     "Loading the local electronics engine…",
@@ -35,6 +54,25 @@ function Editor({
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
   const cloud = useElectronicsProject(bridge, ready, accountId);
+  useEffect(() => {
+    if (!ready) return;
+    let active = true;
+    const refresh = () => {
+      if (document.visibilityState === "hidden") return;
+      bridge.current
+        ?.request<EngineStatus>({ operation: "status" })
+        .then((status) => {
+          if (active) setEngineState(status);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [ready]);
   const [observations, setObservations] = useState<
     { time: number; leds: Record<string, number> }[]
   >([]);
@@ -217,6 +255,7 @@ function Editor({
       frame.current,
       (status) => {
         setReady(true);
+        setEngineState(status);
         setError("");
         setMessage(
           `${status.catalogCount} native parts available. Save a private snapshot or download .dez to keep changes.`,
@@ -264,7 +303,12 @@ function Editor({
     setBusy(true);
     setError("");
     try {
-      return await bridge.current?.request<T>(request);
+      const result = await bridge.current?.request<T>(request);
+      if (bridge.current)
+        setEngineState(
+          await bridge.current.request<EngineStatus>({ operation: "status" }),
+        );
+      return result;
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -327,14 +371,16 @@ function Editor({
           <p>Local preview · Your original Playground remains available.</p>
         </div>
         <Link href="/playground/">Back to Playground</Link>
+        <Button
+          ref={focusButton}
+          variant="outline"
+          disabled={!ready || busy || cloud.busy}
+          onClick={() => setCanvasFocus(true)}
+        >
+          Focus canvas
+        </Button>
       </header>
-      <p className={styles.notice}>
-        {cloud.available
-          ? "Save a private snapshot or download .dez before leaving."
-          : "Download your circuit before leaving. Private saving requires the separately approved storage rollout."}{" "}
-        AI drafts require a separately enabled planner. Simulation uses an
-        Arduino subset interpreter; it does not verify real hardware.
-      </p>
+
       {buildId && (
         <Button
           disabled={!ready || busy || cloud.busy}
@@ -350,6 +396,195 @@ function Editor({
           ))}
         </ul>
       )}
+      <div className={styles.toolbar} aria-label="Circuit controls">
+        <div className={styles.group} aria-label="Circuit view">
+          {["Breadboard", "Schematic", "PCB"].map((name, view) => (
+            <Button
+              key={name}
+              variant="outline"
+              aria-pressed={engineState?.view === view}
+              disabled={!ready || busy || cloud.busy}
+              onClick={() => perform({ operation: "view", view })}
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
+        <div className={styles.group}>
+          <Button
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => perform({ operation: "running", running: true })}
+          >
+            Run
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => perform({ operation: "running", running: false })}
+          >
+            Stop
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => perform({ operation: "undo" })}
+          >
+            Undo
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => perform({ operation: "redo" })}
+          >
+            Redo
+          </Button>
+        </div>
+        <ElectronicsTools
+          bridge={bridge}
+          disabled={!ready || busy || cloud.busy}
+          onBusy={setBusy}
+        />
+        <div className={styles.group} aria-label="Canvas zoom">
+          {(
+            [
+              ["out", "Zoom out"],
+              ["fit", "Fit circuit"],
+              ["in", "Zoom in"],
+            ] as const
+          ).map(([direction, name]) => (
+            <Button
+              key={direction}
+              variant="outline"
+              disabled={!ready || busy || cloud.busy}
+              onClick={() => perform({ operation: "zoom", direction })}
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <p role="status" className={styles.status}>
+        <strong>
+          {!ready
+            ? "Engine loading"
+            : engineState?.running
+              ? "Simulation running"
+              : "Simulation paused"}
+        </strong>
+        {" · "}
+        {message}
+      </p>
+      {observations.length > 0 && (
+        <details className={styles.projects}>
+          <summary>Engine observations from the opened draft</summary>
+          <p>
+            Captured before opening, not live after edits. Brightness is a
+            simulator value from 0 (off) to 1 (full). This is not hardware
+            verification.
+          </p>
+          <div
+            className={styles.observations}
+            tabIndex={0}
+            role="region"
+            aria-label="Four-second engine timeline"
+          >
+            <table>
+              <caption>Four seconds, sampled every 50 ms</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time (s)</th>
+                  <th scope="col">LED native ID: brightness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {observations.map((sample) => (
+                  <tr key={sample.time}>
+                    <td>{sample.time.toFixed(2)}</td>
+                    <td>
+                      {Object.entries(sample.leds)
+                        .map(([id, value]) => id + ": " + value.toFixed(3))
+                        .join(" · ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
+      {canvasFocus && (
+        <div ref={focusBand} className={styles.focusBand}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCanvasFocus(false);
+              requestAnimationFrame(() => {
+                focusButton.current?.scrollIntoView({
+                  block: "center",
+                  behavior: "instant",
+                });
+                focusButton.current?.focus();
+              });
+            }}
+          >
+            Return to controls
+          </Button>
+          <span>
+            {engineState?.running ? "Simulation running" : "Simulation paused"}
+          </span>
+        </div>
+      )}
+      <iframe
+        key={generation}
+        ref={frame}
+        inert={busy || cloud.busy}
+        className={styles.frame}
+        data-focused={canvasFocus}
+        title="designElectronics circuit editor"
+        src="/app/vendor/design-electronics/index.html"
+        sandbox="allow-scripts allow-downloads"
+        onLoad={connect}
+      />
+      <div className={styles.toolbar} aria-label="Circuit files">
+        <div className={styles.group}>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => file.current?.click()}
+          >
+            Open .dez
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={download}
+          >
+            Download .dez
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => void downloadSketches()}
+          >
+            Download .ino
+          </Button>
+          <input
+            ref={file}
+            type="file"
+            accept=".dez,application/json"
+            hidden
+            onChange={(event) => {
+              void open(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </div>
+      </div>
       <details className={styles.projects}>
         <summary>Private projects</summary>
         <div className={styles.toolbar}>
@@ -447,138 +682,13 @@ function Editor({
           </Button>
         )}
       </details>
-      <div className={styles.toolbar} aria-label="Circuit controls">
-        <div className={styles.group} aria-label="Circuit view">
-          {["Breadboard", "Schematic", "PCB"].map((name, view) => (
-            <Button
-              key={name}
-              variant="outline"
-              disabled={!ready || busy || cloud.busy}
-              onClick={() => perform({ operation: "view", view })}
-            >
-              {name}
-            </Button>
-          ))}
-        </div>
-        <div className={styles.group}>
-          <Button
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => perform({ operation: "running", running: true })}
-          >
-            Run
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => perform({ operation: "running", running: false })}
-          >
-            Stop
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => perform({ operation: "undo" })}
-          >
-            Undo
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => perform({ operation: "redo" })}
-          >
-            Redo
-          </Button>
-        </div>
-        <div className={styles.group}>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => file.current?.click()}
-          >
-            Open .dez
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={download}
-          >
-            Download .dez
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!ready || busy || cloud.busy}
-            onClick={() => void downloadSketches()}
-          >
-            Download .ino
-          </Button>
-          <input
-            ref={file}
-            type="file"
-            accept=".dez,application/json"
-            hidden
-            onChange={(event) => {
-              void open(event.target.files?.[0]);
-              event.target.value = "";
-            }}
-          />
-        </div>
-      </div>
-      <p role="status" className={styles.status}>
-        {message}
+      <p className={styles.notice}>
+        {cloud.available
+          ? "Save a private snapshot or download .dez before leaving."
+          : "Download your circuit before leaving. Private saving requires the separately approved storage rollout."}{" "}
+        AI drafts require a separately enabled planner. Simulation uses an
+        Arduino subset interpreter; it does not verify real hardware.
       </p>
-      {observations.length > 0 && (
-        <details className={styles.projects}>
-          <summary>Engine observations from the opened draft</summary>
-          <p>
-            Captured before opening, not live after edits. Brightness is a
-            simulator value from 0 (off) to 1 (full). This is not hardware
-            verification.
-          </p>
-          <div
-            className={styles.observations}
-            tabIndex={0}
-            role="region"
-            aria-label="Four-second engine timeline"
-          >
-            <table>
-              <caption>Four seconds, sampled every 50 ms</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Time (s)</th>
-                  <th scope="col">LED native ID: brightness</th>
-                </tr>
-              </thead>
-              <tbody>
-                {observations.map((sample) => (
-                  <tr key={sample.time}>
-                    <td>{sample.time.toFixed(2)}</td>
-                    <td>
-                      {Object.entries(sample.leds)
-                        .map(([id, value]) => id + ": " + value.toFixed(3))
-                        .join(" · ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )}
-      {error && (
-        <p role="alert" className={styles.error}>
-          {error}
-        </p>
-      )}
-      <iframe
-        key={generation}
-        ref={frame}
-        inert={busy || cloud.busy}
-        className={styles.frame}
-        title="designElectronics circuit editor"
-        src="/app/vendor/design-electronics/index.html"
-        sandbox="allow-scripts allow-downloads"
-        onLoad={connect}
-      />
       <footer className={styles.footer}>
         <p>
           Use the native editor menus for components, wiring, Arduino code and

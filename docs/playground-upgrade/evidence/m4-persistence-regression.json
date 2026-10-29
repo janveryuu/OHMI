@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "authenticated private CRUD, no-store, 409 revisions/duplicate UUID, owner isolation, invalid pins, CSRF, expected-account binding, immutable legacy copy, unsigned denial, unavailable storage 503",
+    "actual WASM converted switch open/closed behavior; dynamic DIP/header/connector/breadboard pin validation matches native definitions",
+    "host save/edit/reopen/export, desktop/mobile/light/dark private project controls",
+    "native document Open/New/example and actual native File Open with identical UID save separately without overwriting A; ordinary edits still update A",
+    "pending private request/account reload leaves no previous-account project controls"
+  ],
+  "errors": []
+}

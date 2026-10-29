@@ -1,5 +1,5 @@
 ---
-name: OHMI electronics workspace — M1–M3 local preview
+name: OHMI electronics workspace — M1–M4 local preview
 description: A scoped record of the inherited OHMI shell and native editor chrome, not a replacement application design system.
 colors:
   primary: "#08776b"
@@ -49,13 +49,13 @@ components:
     padding: "12px 16px"
 ---
 
-# Design System: OHMI electronics workspace — M1–M3 local preview
+# Design System: OHMI electronics workspace — M1–M4 local preview
 
 ## Overview
 
 **Creative North Star: "Calm mint study workspace"**
 
-This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M3 local implementation, including the explicit Ask OHMI build disclosure and workspace handoff. The application-wide authority remains `web-app/DESIGN.md`, with product constraints in `web-app/PRODUCT.md` and phase boundaries in `../PLAN.md`.
+This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M4 local implementation, including the explicit Ask OHMI build disclosure, workspace handoff and on-demand DOM circuit tools. The application-wide authority remains `web-app/DESIGN.md`, with product constraints in `web-app/PRODUCT.md` and phase boundaries in `../PLAN.md`.
 
 **Key Characteristics:**
 - Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.
@@ -78,7 +78,7 @@ Page and legacy-copy heading sizes remain local implementation exceptions, not a
 
 ## Layout
 
-Header and control groups wrap without horizontal page overflow. A native `details` disclosure for Private projects sits between the persistence notice and circuit toolbar. Thin block borders separate this optional section; its summary has a 44px minimum target. Project rows wrap their name/revision, Open and Delete controls; long names can break rather than overflow. The toolbar separates view, simulation/history and file actions. The full-width editor follows the loading/status line. At 640px and below, footer controls stack; the editor remains at least 560px tall. Above that breakpoint, its height is at least 600px or 75dvh. Shared OHMI navigation adapts independently around this surface.
+Header and control groups wrap without horizontal page overflow. Core view, simulation/history, tools and zoom controls precede the loading/status line and full-width editor. File actions, the optional Private projects disclosure, persistence/simulation notice and help follow the editor. Thin block borders separate project operations; the summary has a 44px minimum target. Project rows wrap their name/revision, Open and Delete controls; long names can break rather than overflow. At 640px and below, footer controls stack; the ordinary editor remains at least 560px tall. Above that breakpoint, its height is at least 600px or 75dvh. Shared OHMI navigation adapts independently around this surface.
 
 Ask OHMI places its separate Build disclosure below the existing composer, preserving that composer's layout and unrelated draft. The disclosure uses a thin border, base surface radius and left-aligned body copy. Its summary and result link retain 44px minimum targets; action buttons wrap with the control gap rather than shrinking. A full-width labeled textarea has a 100px minimum height. The workspace adds a requested-draft action and a second native disclosure for captured observations. The timeline scrolls within a bounded region, uses tabular numbers and retains a caption and table headers.
 
@@ -86,9 +86,13 @@ Initial shell captures are in `../evidence/m1-*.png`. M2 ordinary desktop/light,
 
 M3 evidence is `m3-ask-light.png`, `m3-ask-mobile-dark.png`, `m3-build-mobile-viewport.png` and `m3-workspace-dark.png`. The mobile viewport capture shows the build controls within the inherited fixed navigation; it does not certify the native canvas's touch or assistive-technology coverage.
 
+M4 adds a bounded Circuit tools dialog, 640px wide at most, with a scrollable body and persistent title/description. At 640px and below it becomes an edge-aligned phone sheet capped at 90dvh; forms wrap rather than compressing controls. Section summaries, fields and the close target retain at least 44px height. Phone fields rise to 16px, while supporting copy stays on the body scale. The explicit Focus canvas layout scrolls a compact return/status band into view and gives the same iframe a viewport-relative height above the floating navigation. Returning restores focus to its launch control. This is an optional work layout, not a new route, modal or second engine.
+
+M4 evidence is `m4-desktop-light.png`, `m4-desktop-dark.png`, `m4-tablet-dark.png`, `m4-mobile-dark.png`, the corresponding `-tools.png` captures and `m4-mobile-canvas-focus.png`. Earlier M1–M3 captures remain historical evidence; they do not describe the current ordering or synchronized controls.
+
 ## Elevation & Depth
 
-Tonal surfaces and thin borders provide most separation. Buttons inherit the shared component's modest outline shadow and focus treatment. The editor frame adds no decorative halo, glass layer or gradient.
+Tonal surfaces and thin borders provide most separation. Buttons inherit the shared component's modest outline shadow and focus treatment. On-demand tools inherit the shared Radix dialog overlay and dialog shadow; depth protects an active editing task rather than decorating the canvas. The editor frame adds no decorative halo, glass layer or gradient.
 
 ## Shapes
 
@@ -98,7 +102,7 @@ Use the shared Button corners and base surface radius for the notice and editor 
 
 **The Captured Work Rule.** Saving records an explicit captured snapshot, not continuous autosave; later edits need another save. Keep `.dez` download available, and require it when private storage is unavailable. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.
 
-Host controls are labeled DOM buttons with shared keyboard focus and disabled states while loading or busy. Status uses `role="status"`, errors use `role="alert"`, and the iframe has a descriptive title. View buttons issue native commands without claiming synchronized selected-state semantics. Reload provides recovery after engine failure.
+Host controls are labeled DOM buttons with shared keyboard focus and disabled states while loading or busy. Status uses `role="status"`, errors use `role="alert"`, and the iframe has a descriptive title. View buttons expose synchronized native state through `aria-pressed`; native run/view state is refreshed while the page is visible. Labeled zoom controls operate on the same camera. Reload provides recovery after engine failure.
 
 Private projects reuses those buttons for Save snapshot, Save separate copy, Refresh, Open, Delete and loading older records. Legacy records have a distinct Create copy action and a visible promise that original saves/progress remain unchanged; the new simulator can differ. Availability, empty lists, save revision, replacement notices and failures are rendered inline rather than implying background autosave.
 
@@ -112,13 +116,21 @@ The Build disclosure states its qualified component scope and unavailable state 
 
 Captured observations use an optional details/table surface, not a success badge or fabricated live indicator. Its copy distinguishes historical simulator samples from post-edit behavior and hardware verification. The table's bounded scrolling region is keyboard-focusable; values use tabular numerals and thin row separators.
 
-The native canvas is not a DOM-accessible equivalent of every editor operation. Full keyboard, touch and assistive-technology coverage remains an M4 gate; shell checks are not whole-editor accessibility certification. M3 was verified locally with mocked provider responses and actual WASM, not live inference. Its review's ship disposition covers the one planner-warning preservation fix. Hosted enablement, production readiness and M4 polish remain separately gated.
+**The Shared Engine Rule.** DOM tools and canvas controls edit the same native document and undo history. Presentation changes must not replace the iframe or reset student work.
+
+Circuit tools presents the full native catalog with actual presets, a search/empty state, placed-component selection, property controls, complete Arduino sketch editing, coordinate placement, pin-to-pin wiring and removal. Components, Inspector & code and Wiring use native disclosures inside the scrollable body. Each field has an explicit visible name; search, select and textarea controls use card/foreground/input tokens and a two-pixel ring for keyboard focus. Code uses monospace for its function. Simulation model copy stays visible, including pinout-only limitations. Unapplied inspector edits require a discard decision before closing, switching or refreshing; Escape and the close control preserve this guard. The dialog returns focus to Parts & inspector.
+
+**The Canvas Focus Rule.** Focus canvas changes only presentation and scroll. Keep a visible return action and simulation state, restore keyboard focus, and retain every action in the ordinary layout.
+
+The native canvas is not a DOM-accessible equivalent of every editor operation. M4 adds verified keyboard/touch-emulated forms and viewport checks, not whole-native-editor assistive-technology certification. Physical-device testing, Safari, real model/free-tier qualification and hosted deployment remain unverified or separately gated. M3 used mocked provider responses and actual WASM. M4 review's ship disposition covers its one scored canvas-focus fix, not production readiness.
 
 ## Do's and Don'ts
 
 - **Do** reuse the existing semantic tokens, shared Button and exact approved mascot.
 - **Do** preserve the native technical rendering and disclose simulation limits.
 - **Do** distinguish local-preview verification from production readiness.
+- **Do** keep DOM tools, native history and focused-canvas presentation on the same runtime.
+- **Do** guard unapplied inspector changes and restore focus when leaving a temporary editing surface.
 - **Don't** infer full canvas accessibility from the surrounding DOM controls.
 - **Don't** treat local heading exceptions, upstream canvas geometry or incidental test toasts as new application-wide design rules.
 - **Do** preserve planner caveats and distinguish model narrative, captured simulation evidence and actual saved work.

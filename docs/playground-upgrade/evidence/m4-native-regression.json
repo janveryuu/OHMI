@@ -1,0 +1,1587 @@
+{
+  "checks": [
+    "uno-blink simulation and editable roundtrip",
+    "uno-traffic-light simulation and editable roundtrip",
+    "native document edits, undo and redo",
+    "invalid sketch reports error and engine recovers; bad terminals and path tools rejected",
+    "three views and five export formats",
+    "opaque sandbox denies parent DOM access",
+    "authenticated OHMI route, controls, download, desktop/tablet/mobile layouts, theme sync",
+    "account change reload destroys the previous engine runtime",
+    "canceling internal navigation and browser Back retains runtime; confirmed exit succeeds"
+  ],
+  "errors": [],
+  "status": {
+    "ready": true,
+    "catalogCount": 791,
+    "protocol": 1,
+    "documentId": "e4343b208b8fcce2:0",
+    "running": false,
+    "view": 0
+  },
+  "uno-blink": {
+    "samples": [
+      {
+        "time": 0.05,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.1,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.15,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.2,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.25,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.3,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.35,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.4,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.45,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.5,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.55,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.6,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.65,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.7,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.75,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.8,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.85,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.9,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.95,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.05,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.1,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.15,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.2,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.25,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.3,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.35,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.4,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.45,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.5,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.55,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.6,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.65,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.7,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.75,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.8,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.85,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.9,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.95,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.05,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.1,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.15,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.2,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.25,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.3,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.35,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.4,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.45,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.5,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.55,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.6,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.65,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.7,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.75,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.8,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.85,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.9,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.95,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.05,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.1,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.15,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.2,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.25,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.3,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.35,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.4,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.45,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.5,
+        "leds": {
+          "3": 0.820513
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.55,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.6,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.65,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.7,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.75,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.8,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.85,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.9,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.95,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 4,
+        "leds": {},
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      }
+    ],
+    "engine": "designElectronics interpreter; not hardware verification"
+  },
+  "uno-traffic-light": {
+    "samples": [
+      {
+        "time": 0.05,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.1,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.15,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.2,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.25,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.3,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.35,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.4,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.45,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.5,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.55,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.6,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.65,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.7,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.75,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.8,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.85,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.9,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 0.95,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.05,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.1,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.15,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.2,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.25,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.3,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.35,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.4,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.45,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.5,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.55,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.6,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.65,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.7,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.75,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.8,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.85,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.9,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 1.95,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2,
+        "leds": {
+          "11": 0.504504
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.05,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.1,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.15,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.2,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.25,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.3,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.35,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.4,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.45,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.5,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.55,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.6,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.65,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.7,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.75,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.8,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.85,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.9,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 2.95,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3,
+        "leds": {
+          "19": 0.522522
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.05,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.1,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.15,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.2,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.25,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.3,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.35,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.4,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.45,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.5,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.55,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.6,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.65,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.7,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.75,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.8,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.85,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.9,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 3.95,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      },
+      {
+        "time": 4,
+        "leds": {
+          "3": 0.576576
+        },
+        "errors": [],
+        "warnings": [],
+        "damaged": []
+      }
+    ],
+    "engine": "designElectronics interpreter; not hardware verification"
+  },
+  "selftest": {
+    "code": 0,
+    "log": [
+      "designElectronics 0.2.1 self-test",
+      "Part library: 791 entries",
+      "  [ ok ] parseSI 4.7kΩ",
+      "  [ ok ] parseSI 100nF",
+      "  [ ok ] parseSI 100µF",
+      "Example 0: LED with battery (5 parts, 7 wires)",
+      "  nets=62  BB: 3/3 routed  SCH: 3/3  PCB: 0/3",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    LED part 3 brightness 0.99",
+      "  [ ok ] LED lights up in simulation",
+      "  autoroute: Routing completed: 3 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 1: Arduino LED on pin 13 (7 parts, 7 wires)",
+      "  nets=91  BB: 3/3 routed  SCH: 3/3  PCB: 0/3",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    LED part 4 brightness 0.72",
+      "  [ ok ] LED lights up in simulation",
+      "  autoroute: Routing completed: 3 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 2: Pushbutton LED (6 parts, 4 wires)",
+      "  nets=60  BB: 4/4 routed  SCH: 0/4  PCB: 0/4",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "  [ ok ] LED off with button released",
+      "  [ ok ] LED on with button pressed",
+      "  autoroute: Routing completed: 4 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 3: Voltage divider + multimeter (6 parts, 7 wires)",
+      "  nets=61  BB: 3/3 routed  SCH: 0/3  PCB: 0/3",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    meter part 5 reads 4.50V",
+      "  [ ok ] multimeter reads ~4.5V across the divider",
+      "  autoroute: Routing completed: 3 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 4: 555 LED blinker (9 parts, 11 wires)",
+      "  nets=55  BB: 6/6 routed  SCH: 0/6  PCB: 0/6",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    LED part 8 brightness 0.23",
+      "  LED changed state 19 times in 1.5 s",
+      "  [ ok ] example LED blinks in simulation",
+      "  autoroute: Routing completed: 13 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 5: ESP32 blink (5 parts, 3 wires)",
+      "  nets=97  BB: 3/3 routed  SCH: 0/3  PCB: 0/3",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    LED part 4 brightness 0.36",
+      "  LED changed state 3 times in 1.5 s",
+      "  [ ok ] example LED blinks in simulation",
+      "  autoroute: Routing completed: 3 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Example 6: Raspberry Pi LED (5 parts, 3 wires)",
+      "  nets=92  BB: 5/5 routed  SCH: 2/5  PCB: 2/5",
+      "  [ ok ] breadboard view fully wired",
+      "  [ ok ] save/load round trip",
+      "  [ ok ] nets identical after reload",
+      "  sim: Simulating",
+      "    LED part 4 brightness 0.26",
+      "  LED changed state 3 times in 1.5 s",
+      "  [ ok ] example LED blinks in simulation",
+      "  autoroute: Routing completed: 3 connection(s) routed.",
+      "  [ ok ] PCB fully routed",
+      "  DRC: 0 issue(s), 0 clearance",
+      "  [ ok ] no clearance violations after autoroute",
+      "  [ ok ] SVG export",
+      "  [ ok ] BOM export",
+      "  [ ok ] netlist export",
+      "  [ ok ] SPICE export",
+      "  [ ok ] Gerber zip export",
+      "Parts library data",
+      "  [ ok ] every data part fits its packages, with no overlapping pads",
+      "  [ ok ] SMD pads are routed on the top layer (Routing completed: 2 connection(s) routed.)",
+      "  [ ok ] no DRC errors around fine-pitch SMD pads",
+      "  [ ok ] Gerber export with SMD pads",
+      "  [ ok ] SMD parts save and load",
+      "Simulation models",
+      "  555 astable: 6.5 Hz (expected ~6.9 Hz)",
+      "  [ ok ] 555 astable blinks an LED at the right frequency",
+      "  74HC08: 1&1 -> LED 0.35, 1&0 -> LED 0.00",
+      "  [ ok ] logic gates follow their truth table",
+      "  LM358 gain-2 amplifier: in 0.82 V -> out 1.64V (expected ~1.64 V)",
+      "  [ ok ] op-amp amplifies with the right gain",
+      "  ESP32 GPIO2 blink: t=0.2s 0.36, t=0.7s 0.00",
+      "  [ ok ] ESP32 pin BLINK output toggles",
+      "  Pi GPIO17 LED 0.36, Mega D53 LED 0.82, Pi GPIO2 3.30V, Mega 5V 5.00V, Pi 3V3 3.30V",
+      "  [ ok ] Raspberry Pi and Arduino Mega pins drive LEDs",
+      "  [ ok ] board rails and GPIO levels are right",
+      "  LM393 night light: bright 0.00, dark 0.18",
+      "  [ ok ] comparator switches an LED on in the dark",
+      "  ESP32 sketch: LED 0.36 then 0.00, serial \"hello\"",
+      "  [ ok ] an ESP32 sketch blinks an LED and prints to Serial",
+      "  Uno button sketch: released 0.00, pressed 0.82",
+      "  [ ok ] a sketch reads a button through INPUT_PULLUP",
+      "  74HC595 via shiftOut(0xA5): QA..QH = 10100101 (expected 10100101)",
+      "  [ ok ] shiftOut from a sketch loads a 74HC595",
+      "  MAX6675 -> OLED: serial \"123.25\", OLED \"123.3 C\", 116 px, 0 warnings",
+      "  [ ok ] a sketch reads a MAX6675 and draws on an SSD1306 OLED",
+      "  broken sketch: line 3: expected ';' but found '}'",
+      "  [ ok ] sketch errors point at the right line",
+      "  CD4017: Q3 lit in 20 of 200 samples (expected ~20)",
+      "  [ ok ] CD4017 counter advances on clock edges",
+      "  relay: Simulating, coil+ 4.88 V, coil- 0.00 V, NO 4.88 V, LED 0.87",
+      "  [ ok ] relay coil closes the NO contact",
+      "  CD4511 + 7-seg showing 2: lit segments \"abdeg\" (expected abdeg)",
+      "  [ ok ] BCD decoder drives the 7-segment display",
+      "Version history",
+      "  v1: First version · 5 parts",
+      "  v2: Added LED2 · R1 resistance 470Ω → 330Ω (Brighter)",
+      "  [ ok ] every save is a version; unchanged saves are skipped",
+      "  [ ok ] change summary names what changed",
+      "  [ ok ] versions are listed newest first",
+      "  [ ok ] an old version reads back exactly",
+      "  [ ok ] base64 round trip",
+      "  default GitHub location: octocat/electronics-designs / led-with-battery-7cbe21/led-with-battery.dez",
+      "  [ ok ] each design gets its own folder",
+      "Layers",
+      "  [ ok ] hidden (per view) and locked are saved and loaded",
+      "  [ ok ] a hidden part still connects and simulates",
+      "Tidy wiring",
+      "  69 wire(s) tidied across the examples",
+      "  [ ok ] examples have wires to tidy",
+      "  [ ok ] tidied wires are horizontal and vertical runs only",
+      "  [ ok ] tidied wires still end on their pins",
+      "  [ ok ] tidying keeps every connection the same",
+      "  [ ok ] schematic wires never run along another net's wire",
+      "  [ ok ] tidy wires are saved and loaded as tidy",
+      "Video export",
+      "  MP4 4111 bytes, GIF 2449 bytes",
+      "  [ ok ] MP4 export is valid H.264 (header not byte-swapped)",
+      "  [ ok ] GIF export is a valid animation",
+      "",
+      "All tests passed."
+    ]
+  }
+}

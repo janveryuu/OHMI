@@ -1,0 +1,56 @@
+{
+  "checks": [
+    "full791 catalog/presets, empty search, no-drag add/move/wire, code/property edits, unapplied-change guard, scoped axe",
+    "focus restoration, exact sketch/document, live native running/view state, DOM zoom controls",
+    "desktop/tablet/mobile, emulated touch,44px sheet targets,reduced motion,theme persistence"
+  ],
+  "errors": [],
+  "viewports": [
+    {
+      "name": "desktop-light",
+      "width": 1440,
+      "height": 1100,
+      "dialog": {
+        "x": 400,
+        "y": 173.5234375,
+        "width": 640,
+        "height": 752.953125
+      }
+    },
+    {
+      "name": "desktop-dark",
+      "width": 1440,
+      "height": 1100,
+      "dialog": {
+        "x": 400,
+        "y": 173.5234375,
+        "width": 640,
+        "height": 752.953125
+      }
+    },
+    {
+      "name": "tablet-dark",
+      "width": 820,
+      "height": 1180,
+      "dialog": {
+        "x": 90,
+        "y": 213.5234375,
+        "width": 640,
+        "height": 752.953125
+      }
+    },
+    {
+      "name": "mobile-dark",
+      "width": 390,
+      "height": 844,
+      "dialog": {
+        "x": 0,
+        "y": 84.40625,
+        "width": 390,
+        "height": 759.59375
+      }
+    }
+  ],
+  "coldLocalReadyMs": 960,
+  "axe": []
+}

@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "file": "designElectronics.js",
+      "bytes": 217308,
+      "gzipEstimateBytes": 51131
+    },
+    {
+      "file": "designElectronics.wasm",
+      "bytes": 5328006,
+      "gzipEstimateBytes": 1762748
+    },
+    {
+      "file": "designElectronics.data",
+      "bytes": 239771,
+      "gzipEstimateBytes": 122266
+    }
+  ],
+  "totalBytes": 5785085,
+  "gzipEstimateBytes": 1936145,
+  "note": "gzip estimates, not measured production network transfer. Engine lazy-loads on experimental route only."
+}

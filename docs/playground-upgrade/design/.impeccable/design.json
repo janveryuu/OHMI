@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T03:42:26.6997847Z",
-  "title": "Design System: OHMI electronics workspace — M1–M3 local preview",
+  "generatedAt": "2026-10-29T04:17:20.295726Z",
+  "title": "Design System: OHMI electronics workspace — M1–M4 local preview",
   "extensions": {
     "motion": [
       {
@@ -12,7 +12,7 @@
     ],
     "breakpoints": [
       {
-        "name": "stacked-footer",
+        "name": "phone-tools-and-stacked-footer",
         "value": "640px"
       }
     ],
@@ -57,9 +57,9 @@
     {
       "name": "Engine status",
       "kind": "custom",
-      "description": "Polite text status names loading, file and snapshot outcomes; a save is not continuous autosave.",
-      "html": "<p class=\"ds-status\" role=\"status\">Captured circuit saved as revision 1. Later edits need another save.</p>",
-      "css": ".ds-status{margin:12px 0;color:var(--muted-foreground);font:14px/1.6 var(--font-geist),sans-serif}"
+      "description": "Polite status reports actual native running/view state alongside loading, file and snapshot outcomes; saving is not continuous autosave.",
+      "html": "<p class=\"ds-status\" role=\"status\"><strong>Simulation paused</strong> · Captured circuit saved as revision 1. Later edits need another save.</p>",
+      "css": ".ds-status{margin:12px 0;color:var(--muted-foreground);font:14px/1.6 var(--font-geist),sans-serif}.ds-status strong{color:var(--foreground);font-weight:600}"
     },
     {
       "name": "Private projects disclosure",
@@ -82,11 +82,25 @@
       "description": "Historical simulator observations use a captioned, keyboard-scrollable table rather than implying live or hardware verification.",
       "html": "<div class=\"ds-timeline\" tabindex=\"0\" role=\"region\" aria-label=\"Four-second engine timeline\"><table><caption>Four seconds, sampled every 50 ms</caption><thead><tr><th scope=\"col\">Time (s)</th><th scope=\"col\">LED native ID: brightness</th></tr></thead><tbody><tr><td>0.05</td><td>3: 1.000</td></tr></tbody></table></div>",
       "css": ".ds-timeline{max-height:280px;overflow:auto;color:var(--foreground);font:14px var(--font-geist),sans-serif;font-variant-numeric:tabular-nums}.ds-timeline table{width:100%;text-align:left;border-collapse:collapse}.ds-timeline th,.ds-timeline td{padding:8px;border-bottom:1px solid var(--border)}.ds-timeline:focus-visible{outline:2px solid var(--ring);outline-offset:3px}"
+    },
+    {
+      "name": "Circuit tools fields",
+      "kind": "input",
+      "description": "Explicitly named native property, search and wiring controls use the existing card/input palette, 44px targets and 16px phone fields. Code fields retain monospace for code.",
+      "html": "<label class=\"ds-tool-field\" for=\"ds-native-property\">Resistance<input id=\"ds-native-property\" value=\"220Ω\" /></label>",
+      "css": ".ds-tool-field{display:grid;gap:6px;margin-block:12px;color:var(--foreground);font:14px/1.6 var(--font-geist),sans-serif}.ds-tool-field input{width:100%;min-height:44px;border:1px solid var(--input);border-radius:8px;background:var(--card);color:var(--foreground);padding:10px;font:inherit}.ds-tool-field input:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-tool-field input:disabled{opacity:.5}@media(max-width:640px){.ds-tool-field input{font-size:16px}}"
+    },
+    {
+      "name": "Focused canvas return band",
+      "kind": "custom",
+      "description": "An optional presentation layout keeps a visible return action and actual simulation state without replacing the engine iframe.",
+      "html": "<div class=\"ds-focus-band\"><button>Return to controls</button><span>Simulation paused</span></div>",
+      "css": ".ds-focus-band{display:flex;align-items:center;gap:12px;margin-block:8px;scroll-margin-top:88px;color:var(--foreground);font:14px var(--font-geist),sans-serif}.ds-focus-band button{min-height:44px;padding:8px 16px;border:1px solid var(--border);border-radius:11px;background:var(--background);color:var(--foreground);font:inherit}.ds-focus-band button:hover{background:var(--accent);color:var(--accent-foreground)}.ds-focus-band button:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.ds-focus-band button:active{transform:scale(.98)}"
     }
   ],
   "narrative": {
     "northStar": "Calm mint study workspace",
-    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M3 local implementation, including the explicit Ask OHMI build disclosure and workspace handoff. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
+    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M4 local implementation, including the explicit Ask OHMI build disclosure, workspace handoff and on-demand DOM circuit tools. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
     "keyCharacteristics": [
       "Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.",
       "Familiar labeled controls, restrained borders and the unchanged canonical OHMI mascot in the shared shell.",
@@ -112,12 +126,24 @@
         "name": "The Explicit Draft Rule",
         "body": "Building is a distinct action, never an automatic interpretation of chat text. Keep generation, stopping the wait, checking the same request and opening a new editable draft visibly separate. Do not imply that stopping the wait cancels server work or that a completed model answer has already opened or saved a circuit.",
         "section": "components"
+      },
+      {
+        "name": "The Shared Engine Rule",
+        "body": "DOM tools and canvas controls edit the same native document and undo history. Presentation changes must not replace the iframe or reset student work.",
+        "section": "components"
+      },
+      {
+        "name": "The Canvas Focus Rule",
+        "body": "Focus canvas changes only presentation and scroll. Keep a visible return action and simulation state, restore keyboard focus, and retain every action in the ordinary layout.",
+        "section": "components"
       }
     ],
     "dos": [
       "Do reuse the existing semantic tokens, shared Button and exact approved mascot.",
       "Do preserve the native technical rendering and disclose simulation limits.",
       "Do distinguish local-preview verification from production readiness.",
+      "Do keep DOM tools, native history and focused-canvas presentation on the same runtime.",
+      "Do guard unapplied inspector changes and restore focus when leaving a temporary editing surface.",
       "Do preserve planner caveats and distinguish model narrative, captured simulation evidence and actual saved work."
     ],
     "donts": [

@@ -67,6 +67,16 @@
 }
 .toolbar {
   gap: 12px 24px;
+  margin-block: 12px;
+}
+.toolbar button[aria-pressed="true"] {
+  background: var(--secondary);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.status strong {
+  color: var(--foreground);
+  font-weight: 600;
 }
 .projects {
   border-block: 1px solid var(--border);
@@ -115,6 +125,18 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
+}
+.focusBand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 8px;
+  scroll-margin-top: 88px;
+  font-size: 14px;
+}
+.frame[data-focused="true"] {
+  height: calc(100dvh - 240px);
+  min-height: 300px;
 }
 .footer {
   display: flex;

@@ -19,6 +19,10 @@ test("shipped engine assets match the pinned manifest and current adapter", asyn
 });
 
 test("engine bridge rejects untrusted commands and oversized structures", () => {
+  assert.throws(()=>validateRequest({operation:'catalog',presets:'all'}));
+  assert.throws(()=>validateRequest({operation:'zoom',direction:'unbounded'}));
+  assert.equal(validateRequest({operation:'catalog',presets:true}).presets,true);
+  assert.equal(validateRequest({operation:'zoom',direction:'fit'}).direction,'fit');
   for (const request of [null, [], {operation:"open_design",path:"/private"}, {operation:"tool",name:"export",arguments:{path:"/private"}}, {operation:"status",path:"/private"}, {operation:"observe",seconds:Infinity}, {operation:"observe",seconds:6}, {operation:"view",view:4}, {operation:"running",running:1}, {operation:"theme",theme:"auto"}, {operation:"export",format:"gerber",view:"invalid"}]) assert.throws(() => validateRequest(request));
   assert.throws(() => boundedJson(JSON.parse('{"__proto__":{}}')));
   assert.throws(() => boundedJson("x".repeat(65537)));

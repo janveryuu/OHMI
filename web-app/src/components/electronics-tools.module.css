@@ -1,0 +1,115 @@
+.sheet {
+  width: min(640px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.sheet h2 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.sheet [data-slot="dialog-close"] {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+.content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  padding-right: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.section {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.section label {
+  display: grid;
+  gap: 6px;
+  margin-block: 12px;
+  min-width: 0;
+}
+.section input,
+.section select,
+.section textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 10px;
+  font: inherit;
+}
+.section textarea {
+  font-family: ui-monospace, monospace;
+  line-height: 1.6;
+  tab-size: 2;
+}
+.section input:focus-visible,
+.section select:focus-visible,
+.section textarea:focus-visible,
+.content:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.section form {
+  margin-bottom: 16px;
+}
+.section p {
+  margin-block: 12px;
+  color: var(--muted-foreground);
+}
+.section li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block: 8px;
+}
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.row label {
+  flex: 1 1 120px;
+}
+.error {
+  color: var(--destructive);
+}
+@media (max-width: 640px) {
+  .section input,
+  .section select,
+  .section textarea {
+    font-size: 16px;
+  }
+  .sheet[data-slot="dialog-content"] {
+    inset: auto 0 0 !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: 90dvh;
+    --tw-translate-x: 0px;
+    --tw-translate-y: 0px;
+    transform: none !important;
+    translate: 0px 0px !important;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+    transition: none;
+  }
+}

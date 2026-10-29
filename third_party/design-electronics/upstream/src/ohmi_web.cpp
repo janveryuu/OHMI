@@ -62,6 +62,7 @@ Json dispatch(const Json& request) {
     if (operation == "status") {
         Json result = Json::object(); result.set("ready", app != nullptr); result.set("catalogCount", (int)partLibrary().size()); result.set("protocol", 1);
         if (app) result.set("documentId", documentIdentity());
+        if (app) { result.set("running", app->simOn); result.set("view", app->view); }
         return result;
     }
     if (!app || !session) throw std::runtime_error("Engine is not ready.");
@@ -78,6 +79,11 @@ Json dispatch(const Json& request) {
             item.set("type", entry.type); item.set("title", entry.title);
             for (const auto& pin : definition->pins) pins.push(pin.id);
             item.set("pins", pins);
+            if (request["presets"].boolean()) {
+                Json props = Json::object();
+                for (const auto& property : entry.props) props.set(property.first, property.second);
+                item.set("properties", props); item.set("category", entry.category);
+            }
             entries.push(item);
         }
         return entries;
@@ -167,6 +173,14 @@ Json dispatch(const Json& request) {
         if (view < 0 || view >= NUM_VIEWS) throw std::runtime_error("Unknown view.");
         app->view = view;
         Json result = Json::object(); result.set("view", view); return result;
+    }
+    if (operation == "zoom") {
+        const auto direction = request["direction"].str();
+        if (direction == "fit") app->fitView(app->view, app->rCanvas);
+        else if (direction == "in" || direction == "out")
+            app->zoomAt(direction == "in" ? 1.25f : 0.8f, {app->rCanvas.x + app->rCanvas.w/2, app->rCanvas.y + app->rCanvas.h/2});
+        else throw std::runtime_error("Unknown zoom direction.");
+        Json result = Json::object(); result.set("zoom", app->cam[app->view].zoom); return result;
     }
     if (operation == "running") {
         app->simOn = request["running"].boolean(); app->simulator.reset();

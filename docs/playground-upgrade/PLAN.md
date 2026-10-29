@@ -1,6 +1,6 @@
 # Playground upgrade: file-level implementation plan
 
-Status: **M0–M3 complete locally; see M1.md, M2.md and M3.md for evidence. M4 awaits approval.** The owner approved M3 local implementation with mocked provider responses only. This plan does not authorize push, deployment, hosted migrations, live inference or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
+Status: **M0–M4 complete locally; see M1.md through M4.md for evidence. Release and live qualification await separate approval.** The owner approved M4 local presentation/accessibility/release-readiness review only. This does not authorize push, deployment, hosted migrations, live inference or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
 
 ## Design and architecture decision
 

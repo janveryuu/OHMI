@@ -1,7 +1,7 @@
 import { PROTOCOL, validateRequest } from "../../../public/vendor/design-electronics/protocol.mjs";
 
 export type EngineRequest = { operation: string; [key: string]: unknown };
-export type EngineStatus = { ready: boolean; catalogCount: number; protocol: number; documentId: string };
+export type EngineStatus = { ready: boolean; catalogCount: number; protocol: number; documentId: string; running: boolean; view: number };
 
 export class ElectronicsBridge {
   private port: MessagePort;

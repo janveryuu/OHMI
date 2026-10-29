@@ -5,6 +5,12 @@ description: Surface notes for OHMI's beginner circuit workbench within the exis
 
 # Design System: OHMI Playground
 
+## Experimental electronics workspace (M1–M4)
+
+The original Playground described below remains default. The separate `/app/playground/electronics/` route retains the same OHMI shell/tokens around the pinned native designElectronics engine. See `../../docs/playground-upgrade/design/DESIGN.md` for the scoped record and `../../docs/playground-upgrade/CAPABILITIES.md` for actual limits.
+
+M4 adds a search-first full native catalog and DOM inspector/wiring/code forms in a desktop dialog or phone sheet. Core view/run/zoom controls precede the canvas; files/private projects/help follow it. Explicit Focus canvas brings the phone editor above fixed navigation without replacing its runtime; Return to controls restores focus. Light remains default, charcoal/mint dark mode remains persistent, and canonical mascot assets are unchanged. Native technical canvas rendering stays native. These locally verified controls do not establish whole-native-editor accessibility or production approval.
+
 ## Overview
 
 Operate mode. The Playground extends the existing calm mint study workspace with a circuit editor. It preserves the app shell, self-hosted Geist, approved Library Soft Voxel WebP illustrations, and exact pixel mascot. No approved visual comp exists; these notes describe the implemented surface rather than a proposed replacement identity.

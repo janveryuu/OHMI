@@ -26,7 +26,7 @@ export function validateRequest(request) {
   boundedJson(request);
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Invalid bridge request.");
   const fields = {
-    status: [], catalog: [], capture: [], snapshot: [], undo: [], redo: [],
+    status: [], catalog: ["presets"], zoom: ["direction"], capture: [], snapshot: [], undo: [], redo: [],
     tool: ["name", "arguments"], open: ["document"], observe: ["seconds"], compile: ["spec"],
     theme: ["theme"], view: ["view"], running: ["running"], export: ["format", "view"],
   };
@@ -34,6 +34,8 @@ export function validateRequest(request) {
   if (request.operation === "tool" && (!TOOLS.has(request.name) || !request.arguments || typeof request.arguments !== "object" || Array.isArray(request.arguments))) throw new Error("Tool is not allowed.");
   if (request.operation === "compile" && (!request.spec || request.spec.version !== 1 || request.spec.status !== "draft" || !Array.isArray(request.spec.parts) || request.spec.parts.length > 24 || !Array.isArray(request.spec.connections) || request.spec.connections.length > 64)) throw new Error("Invalid circuit specification.");
   if (request.operation === "theme" && !["light", "dark"].includes(request.theme)) throw new Error("Invalid theme.");
+  if (request.operation === "catalog" && request.presets !== undefined && typeof request.presets !== "boolean") throw new Error("Invalid catalog options.");
+  if (request.operation === "zoom" && !["in", "out", "fit"].includes(request.direction)) throw new Error("Invalid zoom direction.");
   if (request.operation === "view" && ![0, 1, 2].includes(request.view)) throw new Error("Invalid view.");
   if (request.operation === "running" && typeof request.running !== "boolean") throw new Error("Invalid simulation state.");
   if (request.operation === "observe" && (typeof request.seconds !== "number" || request.seconds < 0.05 || request.seconds > 5)) throw new Error("Observation must be 0.05 to 5 seconds.");
