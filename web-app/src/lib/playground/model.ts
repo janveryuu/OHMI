@@ -275,13 +275,28 @@ export function buildTrafficLightProject(): Project {
 }
 
 export function isTrafficLightMatch(msgText: string, userText?: string): boolean {
-  const combined = `${userText || ""} ${msgText}`.toLowerCase();
-  const hasTrafficLight = combined.includes("traffic light") || combined.includes("traffic-light");
+  const combined = `${userText || ""} ${msgText || ""}`.toLowerCase();
+  const hasTrafficLight =
+    combined.includes("traffic light") ||
+    combined.includes("traffic-light") ||
+    combined.includes("traffic lights");
+
   const hasArduinoAndLeds =
     combined.includes("arduino") &&
     (combined.includes("three led") ||
       combined.includes("3 led") ||
       combined.includes("3 leds") ||
-      combined.includes("three leds"));
-  return hasTrafficLight || hasArduinoAndLeds;
+      combined.includes("three leds") ||
+      combined.includes("traffic"));
+
+  // Check for circuit building, wiring, coding, or playground context to avoid
+  // false triggers on historical or conceptual questions (e.g. "Why is a traffic light red?")
+  const hasCircuitOrBuildIntent =
+    /build|make|create|wire|wiring|circuit|code|sketch|playground|connect|setup|project|simulate|tinkercad|gawa|buo|ikabit/i.test(
+      combined,
+    ) ||
+    combined.includes("arduino") ||
+    combined.includes("led");
+
+  return hasArduinoAndLeds || (hasTrafficLight && hasCircuitOrBuildIntent);
 }

@@ -148,4 +148,69 @@ test("isTrafficLightMatch correctly identifies traffic light building queries", 
     isTrafficLightMatch("Connect the potentiometer signal pin to A0.", "Potentiometer reading"),
     false,
   );
+  assert.equal(
+    isTrafficLightMatch("Traffic lights use red for stop because red has the longest wavelength.", "Why is a traffic light red, yellow, and green?"),
+    false,
+  );
 });
+
+test("evaluate supports a single-LED series circuit powered by Arduino Uno", () => {
+  const p = {
+    version: 1,
+    name: "Arduino Single LED",
+    parts: [
+      newPart("arduino", "uno", 48, 144),
+      newPart("resistor", "r1", 288, 144, { value: 330 }),
+      newPart("led", "led1", 528, 144),
+    ],
+    wires: [
+      { id: "w1", from: { part: "uno", pin: "p" }, to: { part: "r1", pin: "a" } },
+      { id: "w2", from: { part: "r1", pin: "b" }, to: { part: "led1", pin: "a" } },
+      { id: "w3", from: { part: "led1", pin: "k" }, to: { part: "uno", pin: "n" } },
+    ],
+    mission: "",
+    hints: 0,
+    completed: [],
+    switchSeen: [],
+  };
+
+  const res = evaluate(p);
+  assert.equal(res.status, "lit");
+  assert.ok(res.currentMa && Math.abs(res.currentMa - 9.09) < 0.1);
+});
+
+test("evaluate supports Arduino Uno with single LED and switch in both states", () => {
+  const openSwitch = newPart("switch", "sw", 288, 288);
+  openSwitch.closed = false;
+
+  const p = {
+    version: 1,
+    name: "Arduino Switch Circuit",
+    parts: [
+      newPart("arduino", "uno", 48, 144),
+      newPart("resistor", "r1", 288, 144, { value: 330 }),
+      newPart("led", "led1", 528, 144),
+      openSwitch,
+    ],
+    wires: [
+      { id: "w1", from: { part: "uno", pin: "p" }, to: { part: "r1", pin: "a" } },
+      { id: "w2", from: { part: "r1", pin: "b" }, to: { part: "sw", pin: "a" } },
+      { id: "w3", from: { part: "sw", pin: "b" }, to: { part: "led1", pin: "a" } },
+      { id: "w4", from: { part: "led1", pin: "k" }, to: { part: "uno", pin: "n" } },
+    ],
+    mission: "",
+    hints: 0,
+    completed: [],
+    switchSeen: [],
+  };
+
+  const openRes = evaluate(p);
+  assert.equal(openRes.status, "open");
+
+  // Close switch
+  p.parts[3].closed = true;
+  const closedRes = evaluate(p);
+  assert.equal(closedRes.status, "lit");
+  assert.ok(closedRes.currentMa && Math.abs(closedRes.currentMa - 9.09) < 0.1);
+});
+

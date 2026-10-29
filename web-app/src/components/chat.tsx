@@ -32,6 +32,7 @@ import {
 } from "./ui/dialog";
 import { RichText } from "./rich-text";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CircuitBuild } from "./circuit-build";
 
 import { askBackend } from "@/lib/backend/ai";
@@ -42,11 +43,14 @@ export { isTrafficLightMatch };
 
 export function CircuitActionCard({
   onDirectToPlayground,
+  forceShowCode = false,
 }: {
   onDirectToPlayground: () => void;
+  forceShowCode?: boolean;
 }) {
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const isCodeVisible = showCode || forceShowCode;
 
   const trafficLightCode = `// Arduino Traffic Light (3 LEDs)
 const int RED_PIN = 8;
@@ -119,14 +123,14 @@ void loop() {
         <button
           type="button"
           className="circuit-action-btn-secondary"
-          onClick={() => setShowCode((v) => !v)}
+          onClick={() => setShowCode((v) => !isCodeVisible)}
         >
           <Code size={16} />
-          <span>{showCode ? "Hide Arduino Code" : "View Arduino Code"}</span>
+          <span>{isCodeVisible ? "Hide Arduino Code" : "View Arduino Code"}</span>
         </button>
       </div>
 
-      {showCode && (
+      {isCodeVisible && (
         <div className="circuit-code-panel">
           <div className="circuit-code-header">
             <span>Arduino C++ Sketch (Traffic Light)</span>
@@ -157,12 +161,14 @@ void loop() {
 
 export function Chat() {
   const app = useApp(),
+    router = useRouter(),
     [draft, setDraft] = useState(""),
     [pending, setPending] = useState(false),
     [expanded, setExpanded] = useState(false),
     [history, setHistory] = useState(false),
     [attachment, setAttachment] = useState<File | null>(null),
     [error, setError] = useState(""),
+    [showTrafficCode, setShowTrafficCode] = useState(false),
     [optimisticUser, setOptimisticUser] = useState<{
       id: string;
       text: string;
@@ -209,6 +215,7 @@ export function Chat() {
     setAttachment(null);
     setOptimisticUser(null);
     setError("");
+    setShowTrafficCode(false);
     uploaded.current = null;
     retry.current = null;
   }, [app.user?.id]);
@@ -233,6 +240,7 @@ export function Chat() {
     setPending(false);
     setOptimisticUser(null);
     setError("");
+    setShowTrafficCode(false);
     try {
       await app.newConversation();
       setDraft("");
@@ -248,24 +256,44 @@ export function Chat() {
     try {
       sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
     } catch {}
-    window.location.assign("/app/playground/?template=arduino-traffic-light");
+    if (router && typeof router.push === "function") {
+      router.push("/playground/?template=arduino-traffic-light");
+    } else {
+      window.location.assign("/app/playground/?template=arduino-traffic-light");
+    }
   }
   async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {
     event?.preventDefault();
     const value = text.trim();
     if (!value || submitting.current) return;
+
+    const isTrafficContext = conversation.messages.some((m) =>
+      isTrafficLightMatch(m.text),
+    );
+
+    // Natural detection of student selecting "Playground" in response to circuit builder prompt
+    const isPlaygroundSelection =
+      /\b(?:playground|play\s*ground)\b/i.test(value) &&
+      !/\b(?:what\s+is|explain|info\s+about)\s+playground\b/i.test(value);
+
     if (
-      /^(?:please\s+)?(?:yes[, ]+)?(?:build\s+(?:it\s+)?in\s+(?:the\s+|my\s+)?|open\s+(?:in\s+)?(?:the\s+|my\s+)?|go\s+to\s+(?:the\s+)?|in\s+(?:the\s+|my\s+)?)?playground\b/i.test(value) ||
-      /^(?:(?:i[- ]?build|gawa|buksan|open|punta)\s+)?(?:sa\s+)?playground\b/i.test(value)
+      isPlaygroundSelection &&
+      (isTrafficContext || /traffic|light|arduino|led/i.test(value))
     ) {
-      const isTrafficContext = conversation.messages.some((m) =>
-        isTrafficLightMatch(m.text),
-      );
-      if (isTrafficContext || /traffic|light|arduino|led/i.test(value)) {
-        setDraft("");
-        handleDirectToPlayground();
-        return;
-      }
+      setDraft("");
+      handleDirectToPlayground();
+      return;
+    }
+
+    // Natural detection of student selecting "Code" in response to circuit builder prompt
+    const isCodeSelection =
+      /^(?:(?:i\s+(?:want|choose)|give\s+me|show\s+me|view|see|get|just|the)\s+)?(?:arduino\s+)?code\b/i.test(value) ||
+      /^(?:view\s+code|show\s+code|code\s+please)\b/i.test(value);
+
+    if (isCodeSelection && isTrafficContext) {
+      setDraft("");
+      setShowTrafficCode(true);
+      return;
     }
     if (!app.user) {
       setError("Sign in to ask OHMI and save your conversation.");
@@ -470,6 +498,7 @@ export function Chat() {
                 {isTraffic && (
                   <CircuitActionCard
                     onDirectToPlayground={handleDirectToPlayground}
+                    forceShowCode={showTrafficCode}
                   />
                 )}
                 {message.role === "assistant" ? (

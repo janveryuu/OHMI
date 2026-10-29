@@ -128,6 +128,12 @@ function Workbench() {
         setNotice(
           "Arduino Traffic Light created! Red, Yellow, and Green LEDs connected to Arduino Uno with 220 Ω resistors. Click 'Check circuit' to test.",
         );
+        if (typeof window !== "undefined" && window.history?.replaceState) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("template");
+          url.searchParams.delete("circuit");
+          window.history.replaceState({}, "", url.pathname + (url.search || ""));
+        }
       }
     } catch {}
   }, []);
@@ -645,7 +651,7 @@ function Workbench() {
         <aside className="pg-tray">
           <div className="pg-panel-title">
             <h2>Components</h2>
-            <span>4 essentials</span>
+            <span>{kinds.length} essentials</span>
           </div>
           <p className="pg-muted">
             Drag onto the board, or choose and tap to place.

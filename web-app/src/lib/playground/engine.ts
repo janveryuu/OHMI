@@ -202,7 +202,7 @@ export function evaluate(raw: unknown): Evaluation {
       "Short circuit across the supply. Remove the bypass connection before powering anything.",
     );
   const edges = p.parts
-    .filter((c) => c.kind !== "battery")
+    .filter((c) => c.kind !== "battery" && c.kind !== "arduino")
     .map((c) => ({ part: c, nets: ends(c) }));
   if (edges.some((e) => e.nets[0] === e.nets[1]))
     return result(
