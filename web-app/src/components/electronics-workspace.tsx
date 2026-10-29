@@ -368,9 +368,9 @@ function Editor({
       <header className={styles.header}>
         <div>
           <h1 id="electronics-title">Electronics workspace</h1>
-          <p>Local preview · Your original Playground remains available.</p>
+          <p>Your circuit workspace · Your original Playground remains available.</p>
         </div>
-        <Link href="/playground/">Back to Playground</Link>
+        <Link href="/playground/?legacy=1">Open original Playground</Link>
         <Button
           ref={focusButton}
           variant="outline"
