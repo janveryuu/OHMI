@@ -242,3 +242,54 @@ test("traffic light project parts do not overlap on canvas workbench", () => {
   }
 });
 
+test("traffic light parts remain within the 1000x640 workbench canvas bounds", () => {
+  const p = buildTrafficLightProject();
+  for (const part of p.parts) {
+    assert.ok(part.x >= 0, `Part ${part.id} x (${part.x}) must be >= 0`);
+    assert.ok(part.y >= 0, `Part ${part.id} y (${part.y}) must be >= 0`);
+    assert.ok(
+      part.x + 144 <= 1000,
+      `Part ${part.id} right edge (${part.x + 144}) exceeds world width 1000`,
+    );
+    assert.ok(
+      part.y + 144 <= 640,
+      `Part ${part.id} bottom edge (${part.y + 144}) exceeds world height 640`,
+    );
+  }
+});
+
+test("traffic light wiring routes each branch through 5V, resistor, LED, and GND", () => {
+  const p = buildTrafficLightProject();
+  const colors = ["red", "yellow", "green"];
+
+  for (const color of colors) {
+    const supplyWire = p.wires.find(
+      (w) =>
+        w.from.part === "arduino-uno" &&
+        w.from.pin === "p" &&
+        w.to.part === `resistor-${color}` &&
+        w.to.pin === "a",
+    );
+    assert.ok(supplyWire, `Missing 5V supply wire for ${color} branch`);
+
+    const seriesWire = p.wires.find(
+      (w) =>
+        w.from.part === `resistor-${color}` &&
+        w.from.pin === "b" &&
+        w.to.part === `led-${color}` &&
+        w.to.pin === "a",
+    );
+    assert.ok(seriesWire, `Missing series resistor-to-LED wire for ${color} branch`);
+
+    const gndWire = p.wires.find(
+      (w) =>
+        w.from.part === `led-${color}` &&
+        w.from.pin === "k" &&
+        w.to.part === "arduino-uno" &&
+        w.to.pin === "n",
+    );
+    assert.ok(gndWire, `Missing GND return wire for ${color} branch`);
+  }
+});
+
+

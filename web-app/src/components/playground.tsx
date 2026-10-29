@@ -51,6 +51,7 @@ import {
   snap,
   terminalKey,
   terminalPoint,
+  validateProject,
   type Kind,
   type Part,
   type Project,
@@ -79,8 +80,7 @@ function getRequestedTemplate(): string | null {
     const template =
       search.get("template") ||
       search.get("circuit") ||
-      sessionStorage.getItem("ohmi_playground_template") ||
-      sessionStorage.getItem("ohmi_playground_active_template");
+      sessionStorage.getItem("ohmi_playground_template");
     if (template === "arduino-traffic-light" || template === "traffic-light") {
       return "arduino-traffic-light";
     }
@@ -88,20 +88,28 @@ function getRequestedTemplate(): string | null {
   return null;
 }
 
-export function Playground() {
-  return <Workbench />;
+export function Playground({ initialTemplate }: { initialTemplate?: string }) {
+  return <Workbench initialTemplate={initialTemplate} />;
 }
 
-function Workbench() {
+function Workbench({ initialTemplate }: { initialTemplate?: string }) {
   const [ready, setReady] = useState(false);
   const app = useApp();
 
+  const isTrafficTemplate =
+    initialTemplate === "arduino-traffic-light" ||
+    initialTemplate === "traffic-light";
+
   const [history, setHistory] = useState<History>(() => {
-    const template = getRequestedTemplate();
-    if (template === "arduino-traffic-light") {
-      try {
-        sessionStorage.setItem("ohmi_playground_active_template", template);
-      } catch {}
+    if (isTrafficTemplate) {
+      return {
+        past: [],
+        present: buildTrafficLightProject(),
+        future: [],
+      };
+    }
+    const clientTemplate = getRequestedTemplate();
+    if (clientTemplate === "arduino-traffic-light") {
       return {
         past: [],
         present: buildTrafficLightProject(),
@@ -116,11 +124,17 @@ function Workbench() {
   });
 
   const [checked, setChecked] = useState(() => {
-    return getRequestedTemplate() === "arduino-traffic-light";
+    return (
+      isTrafficTemplate ||
+      getRequestedTemplate() === "arduino-traffic-light"
+    );
   });
 
   const [notice, setNotice] = useState(() => {
-    if (getRequestedTemplate() === "arduino-traffic-light") {
+    if (
+      isTrafficTemplate ||
+      getRequestedTemplate() === "arduino-traffic-light"
+    ) {
       return "Arduino Traffic Light active! All 3 LEDs are protected by current-limiting resistors and safely powered at ~13.6 mA per branch.";
     }
     return "Choose a component, then tap the workbench to place it.";
@@ -129,9 +143,11 @@ function Workbench() {
   useEffect(() => {
     setReady(true);
     try {
-      const template = getRequestedTemplate();
+      const template =
+        (isTrafficTemplate ? "arduino-traffic-light" : null) ||
+        getRequestedTemplate();
+
       if (template === "arduino-traffic-light") {
-        sessionStorage.setItem("ohmi_playground_active_template", template);
         const trafficProject = buildTrafficLightProject();
         setHistory({ past: [], present: trafficProject, future: [] });
         setChecked(true);
@@ -146,9 +162,38 @@ function Workbench() {
             JSON.stringify(trafficProject),
           );
         } catch {}
+      } else {
+        try {
+          const saved = localStorage.getItem("ohmi_playground_project");
+          if (saved) {
+            const parsed = validateProject(JSON.parse(saved));
+            if (parsed.parts.length > 0) {
+              setHistory({ past: [], present: parsed, future: [] });
+              const evalResult = evaluate(parsed);
+              if (evalResult.status === "lit") {
+                setChecked(true);
+                setNotice(evalResult.message);
+              }
+            }
+          }
+        } catch {}
       }
+
+      // Consume one-time template triggers
+      try {
+        sessionStorage.removeItem("ohmi_playground_template");
+        sessionStorage.removeItem("ohmi_playground_active_template");
+        if (typeof window !== "undefined" && window.history?.replaceState) {
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("template") || url.searchParams.has("circuit")) {
+            url.searchParams.delete("template");
+            url.searchParams.delete("circuit");
+            window.history.replaceState({}, "", url.pathname + (url.search || ""));
+          }
+        }
+      } catch {}
     } catch {}
-  }, []);
+  }, [initialTemplate, isTrafficTemplate]);
 
   const p = history.present;
 
@@ -161,6 +206,7 @@ function Workbench() {
     try {
       sessionStorage.removeItem("ohmi_playground_template");
       sessionStorage.removeItem("ohmi_playground_active_template");
+      localStorage.setItem("ohmi_playground_project", JSON.stringify(value));
     } catch {}
     setNotice(
       "Saved project reopened. Check the circuit to see its current behavior.",
@@ -197,6 +243,9 @@ function Workbench() {
     if (signature(value) !== signature(p)) value = { ...value, switchSeen: [] };
     setHistory((h) => commit(h, value));
     setChecked(false);
+    try {
+      localStorage.setItem("ohmi_playground_project", JSON.stringify(value));
+    } catch {}
   };
 
   const remove = () => {

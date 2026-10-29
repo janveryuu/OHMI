@@ -58,6 +58,8 @@ function Editor({
           template === "arduino-traffic-light" ||
           template === "traffic-light"
         ) {
+          sessionStorage.removeItem("ohmi_playground_template");
+          sessionStorage.removeItem("ohmi_playground_active_template");
           window.location.replace(
             "/app/playground/?template=arduino-traffic-light&legacy=1",
           );
