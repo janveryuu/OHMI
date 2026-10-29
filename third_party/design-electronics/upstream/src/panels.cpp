@@ -4,6 +4,9 @@
 
 #include "app.h"
 #include "logo.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 namespace {
 MenuItem item(const std::string& l, std::function<void()> a, const std::string& sc = "", bool enabled = true, bool checked = false) {
@@ -188,6 +191,16 @@ void App::drawTopBar() {
     g.fillRect({0, r.b() - std::max(1.f, s), (float)winW, std::max(1.f, s)}, ui.th.border);
     float x = r.x + 8 * s;
     float h = 36 * s, y = r.y + (r.h - h) / 2;
+#ifdef __EMSCRIPTEN__
+    // Align the approved PNG with native coordinates, including display scaling.
+    EM_ASM({
+        const image = document.getElementById('ohmi-toolbar-logo');
+        if (!image) return;
+        image.hidden = !!$0;
+        image.style.left = $1+'%'; image.style.top = $2+'%';
+        image.style.width = $3+'%'; image.style.height = $4+'%';
+    }, compact, (x - s) / winW * 100, (r.center().y - 15*s) / winH * 100, 30*s / winW * 100, 30*s / winH * 100);
+#endif
     if (compact) {
         Rect mb(x, y, h, h);
         if (ui.iconButton("menu", mb, "menu", "", false, true, "Menu")) ui.openMenu(mb, allMenus());
@@ -195,7 +208,9 @@ void App::drawTopBar() {
     } else {
         // logo mark
         Vec2 c(x + 14 * s, r.center().y);
+#ifndef __EMSCRIPTEN__
         drawLogo(g, Rect(c.x - 15 * s, c.y - 15 * s, 30 * s, 30 * s));
+#endif
         x += 34 * s;
         const char* names[] = {"File", "Edit", "Part", "View", "Routing", "Help"};
         for (int i = 0; i < 6; i++) {

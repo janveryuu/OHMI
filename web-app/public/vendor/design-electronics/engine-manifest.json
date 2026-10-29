@@ -17,7 +17,7 @@
     },
     {
       "file": "src/panels.cpp",
-      "sha256": "3aca81efea631fa6b76f0a1e9221c70f653eff201c8890a2c12f2ac5526ebf42"
+      "sha256": "839013866b3e3226b5bb9b962fbffa7c58a1b90464de1ac704981f82c293f6eb"
     },
     {
       "file": "src/app.h",
@@ -35,13 +35,13 @@
   "artifacts": [
     {
       "file": "designElectronics.js",
-      "bytes": 217308,
-      "sha256": "79aab7d58bd80504b5f9de8cfea31c5d6559144e90e28decfe3fae14632c5fb4"
+      "bytes": 217525,
+      "sha256": "081ca72e315904d0fb22b50426cf7d911a53d0fae3ff2f26e0e4308e16dd82c6"
     },
     {
       "file": "designElectronics.wasm",
-      "bytes": 5328006,
-      "sha256": "884c49d38a58abd98fd9685dbff358dd08b3d3da9b6d608c22e414baf5e8233a"
+      "bytes": 5328049,
+      "sha256": "1d03cea99157cc7ba158f8a83be4a995ee0f4966643d8ea8d96c53ddf85e9803"
     },
     {
       "file": "designElectronics.data",
