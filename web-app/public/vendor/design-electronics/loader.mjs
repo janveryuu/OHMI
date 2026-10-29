@@ -34,6 +34,9 @@ window.addEventListener("message", event => {
   emit({ kind: "connected", protocol: PROTOCOL, nonce, ready });
   if (ready) emit({ kind: "ready", protocol: PROTOCOL, nonce, result: engine({ operation: "status" }) });
 });
+try {
+  parent?.postMessage({ kind: "ohmi-loader-ready", protocol: PROTOCOL }, "*");
+} catch {}
 window.Module = {
   canvas: document.getElementById("canvas"),
   locateFile: name => new URL(name, import.meta.url).href,

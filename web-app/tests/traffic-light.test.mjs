@@ -368,6 +368,18 @@ test("isTrafficLightMatch recognizes workspace, build in playground, and natural
   assert.ok(
     isTrafficLightMatch("gawa tayo ng traffic light gamit ang arduino"),
   );
+  assert.ok(
+    isTrafficLightMatch("build an arduino circuit"),
+  );
+  assert.ok(
+    isTrafficLightMatch("can you build me an arduino?"),
+  );
+  assert.ok(
+    isTrafficLightMatch("build in playground", "arduino"),
+  );
+  assert.ok(
+    isTrafficLightMatch("make an arduino circuit with 3 leds"),
+  );
 });
 
 

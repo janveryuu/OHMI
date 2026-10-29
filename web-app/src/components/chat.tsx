@@ -278,7 +278,20 @@ export function Chat() {
 
     if (
       isPlaygroundSelection &&
-      (isTrafficContext || /traffic|light|arduino|led/i.test(value))
+      (isTrafficContext ||
+        /traffic|light|arduino|led|circuit|build|open|take|switch|breadboard/i.test(
+          value,
+        ))
+    ) {
+      setDraft("");
+      handleDirectToPlayground();
+      return;
+    }
+
+    if (
+      /build|open|make|create|launch|try/i.test(value) &&
+      isPlaygroundSelection &&
+      /arduino|traffic|circuit|led/i.test(value)
     ) {
       setDraft("");
       handleDirectToPlayground();

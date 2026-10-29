@@ -13,6 +13,22 @@ import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
 
+const ENGINE_DOCUMENT_HTML = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OHMI electronics engine</title>
+  <link rel="stylesheet" href="/app/vendor/design-electronics/engine.css">
+</head>
+<body>
+  <img id="ohmi-toolbar-logo" src="/app/mascot.png" alt="OHMI" hidden>
+  <canvas id="canvas" tabindex="0" aria-label="Electronics editor. Use the OHMI controls outside this frame for keyboard actions."></canvas>
+  <p id="status" role="status">Loading electronics engine…</p>
+  <script type="module" src="/app/vendor/design-electronics/loader.mjs"></script>
+</body>
+</html>`;
+
 export function ElectronicsWorkspace({
   buildId,
   initialTemplate,
@@ -72,9 +88,17 @@ function Editor({
           sessionStorage.getItem("ohmi_playground_template");
       } catch {}
     }
+    const isArduinoTrafficTemplate =
+      templateName === "arduino-traffic-light" ||
+      templateName === "traffic-light" ||
+      templateName === "arduino" ||
+      templateName === "arduino-uno" ||
+      (typeof templateName === "string" &&
+        (templateName.toLowerCase().includes("traffic") ||
+          templateName.toLowerCase().includes("arduino")));
+
     if (
-      (templateName === "arduino-traffic-light" ||
-        templateName === "traffic-light") &&
+      isArduinoTrafficTemplate &&
       lastLoadedTemplate.current !== templateName
     ) {
       lastLoadedTemplate.current = templateName;
@@ -90,6 +114,11 @@ function Editor({
           await bridge.current
             ?.request({ operation: "zoom", direction: "fit" })
             .catch(() => {});
+          setTimeout(() => {
+            bridge.current
+              ?.request({ operation: "zoom", direction: "fit" })
+              .catch(() => {});
+          }, 150);
           await bridge.current
             ?.request({ operation: "running", running: true })
             .catch(() => {});
@@ -618,6 +647,7 @@ function Editor({
         data-focused={canvasFocus}
         title="designElectronics circuit editor"
         src="/app/vendor/design-electronics/index.html"
+        srcDoc={ENGINE_DOCUMENT_HTML}
         sandbox="allow-scripts allow-downloads"
         onLoad={connect}
       />

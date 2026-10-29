@@ -276,27 +276,65 @@ export function buildTrafficLightProject(): Project {
 
 export function isTrafficLightMatch(msgText: string, userText?: string): boolean {
   const combined = `${userText || ""} ${msgText || ""}`.toLowerCase();
+
+  // Negative guards for unrelated hardware and purely conceptual questions
+  if (
+    combined.includes("hc-sr04") ||
+    combined.includes("ultrasonic") ||
+    combined.includes("potentiometer") ||
+    combined.includes("servo") ||
+    combined.includes("ohm's law") ||
+    combined.includes("ohms law") ||
+    (combined.includes("why is a traffic light") &&
+      !/build|wire|connect|code|sketch|playground|workspace/i.test(combined))
+  ) {
+    return false;
+  }
+
   const hasTrafficLight =
     combined.includes("traffic light") ||
     combined.includes("traffic-light") ||
     combined.includes("traffic lights");
 
+  const hasCircuitOrBuildIntent =
+    /\b(?:build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|set\s+up|project|simulate|tinkercad|gawa|buo|ikabit)\b/i.test(
+      combined,
+    ) ||
+    combined.includes("circuit");
+
+  const hasArduino = combined.includes("arduino");
+
   const hasArduinoAndLeds =
-    combined.includes("arduino") &&
+    hasArduino &&
     (combined.includes("three led") ||
       combined.includes("3 led") ||
       combined.includes("3 leds") ||
       combined.includes("three leds") ||
-      combined.includes("traffic"));
+      combined.includes("traffic") ||
+      (combined.includes("led") && hasCircuitOrBuildIntent));
 
-  // Check for circuit building, wiring, coding, or playground context to avoid
-  // false triggers on historical or conceptual questions (e.g. "Why is a traffic light red?")
-  const hasCircuitOrBuildIntent =
-    /build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|project|simulate|tinkercad|gawa|buo|ikabit/i.test(
-      combined,
-    ) ||
-    combined.includes("arduino") ||
-    combined.includes("led");
+  // General Arduino circuit building request (e.g. "build me an arduino circuit", "build an arduino")
+  const hasArduinoBuild =
+    hasArduino &&
+    hasCircuitOrBuildIntent &&
+    (combined.includes("circuit") ||
+      combined.includes("build") ||
+      combined.includes("make") ||
+      combined.includes("create") ||
+      combined.includes("wire") ||
+      combined.includes("playground") ||
+      combined.includes("workspace") ||
+      combined.includes("led"));
 
-  return hasArduinoAndLeds || (hasTrafficLight && hasCircuitOrBuildIntent);
+  // Explicit user playground intent in circuit context
+  const hasPlaygroundIntent =
+    /\b(?:playground|workspace)\b/i.test(combined) &&
+    (hasTrafficLight || hasArduino || combined.includes("circuit"));
+
+  return (
+    hasArduinoAndLeds ||
+    (hasTrafficLight && (hasCircuitOrBuildIntent || combined.includes("arduino") || combined.includes("led"))) ||
+    hasArduinoBuild ||
+    hasPlaygroundIntent
+  );
 }
