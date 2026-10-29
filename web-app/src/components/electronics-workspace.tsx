@@ -46,6 +46,25 @@ function Editor({
         frame.current?.focus();
       });
   }, [canvasFocus]);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const search = new URLSearchParams(window.location.search);
+        const template =
+          search.get("template") ||
+          search.get("circuit") ||
+          sessionStorage.getItem("ohmi_playground_template");
+        if (
+          template === "arduino-traffic-light" ||
+          template === "traffic-light"
+        ) {
+          window.location.replace(
+            "/app/playground/?template=arduino-traffic-light&legacy=1",
+          );
+        }
+      } catch {}
+    }
+  }, []);
   const [engineState, setEngineState] = useState<Pick<
     EngineStatus,
     "running" | "view"

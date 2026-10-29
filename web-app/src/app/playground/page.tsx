@@ -7,6 +7,6 @@ export const metadata: Metadata = {
 };
 export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}) {
   const query=await searchParams;
-  if(query.legacy==='1')return <Playground />;
+  if(query.legacy==='1' || query.template || query.circuit)return <Playground />;
   return <ElectronicsWorkspace buildId={typeof query.build==='string'?query.build:undefined}/>;
 }

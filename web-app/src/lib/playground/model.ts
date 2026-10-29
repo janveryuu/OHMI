@@ -248,14 +248,14 @@ export function validateProject(raw: unknown): Project {
 export function buildTrafficLightProject(): Project {
   const p = emptyProject();
   p.name = "Arduino Traffic Light (3 LEDs)";
-  const arduino = newPart("arduino", "arduino-uno", 48, 144, { label: "Arduino Uno" });
+  const arduino = newPart("arduino", "arduino-uno", 48, 216, { label: "Arduino Uno" });
   const rRed = newPart("resistor", "resistor-red", 288, 48, { label: "220 Ω (Red)", value: 220 });
-  const rYellow = newPart("resistor", "resistor-yellow", 288, 192, { label: "220 Ω (Yellow)", value: 220 });
-  const rGreen = newPart("resistor", "resistor-green", 288, 336, { label: "220 Ω (Green)", value: 220 });
+  const rYellow = newPart("resistor", "resistor-yellow", 288, 216, { label: "220 Ω (Yellow)", value: 220 });
+  const rGreen = newPart("resistor", "resistor-green", 288, 384, { label: "220 Ω (Green)", value: 220 });
 
   const ledRed = newPart("led", "led-red", 528, 48, { label: "Red LED", color: "red" });
-  const ledYellow = newPart("led", "led-yellow", 528, 192, { label: "Yellow LED", color: "yellow" });
-  const ledGreen = newPart("led", "led-green", 528, 336, { label: "Green LED", color: "green" });
+  const ledYellow = newPart("led", "led-yellow", 528, 216, { label: "Yellow LED", color: "yellow" });
+  const ledGreen = newPart("led", "led-green", 528, 384, { label: "Green LED", color: "green" });
 
   p.parts = [arduino, rRed, rYellow, rGreen, ledRed, ledYellow, ledGreen];
   p.wires = [

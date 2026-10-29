@@ -257,9 +257,9 @@ export function Chat() {
       sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
     } catch {}
     if (router && typeof router.push === "function") {
-      router.push("/playground/?template=arduino-traffic-light");
+      router.push("/playground/?template=arduino-traffic-light&legacy=1");
     } else {
-      window.location.assign("/app/playground/?template=arduino-traffic-light");
+      window.location.assign("/app/playground/?template=arduino-traffic-light&legacy=1");
     }
   }
   async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {

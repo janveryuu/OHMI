@@ -214,3 +214,31 @@ test("evaluate supports Arduino Uno with single LED and switch in both states", 
   assert.ok(closedRes.currentMa && Math.abs(closedRes.currentMa - 9.09) < 0.1);
 });
 
+test("traffic light project parts do not overlap on canvas workbench", () => {
+  const p = buildTrafficLightProject();
+  const box = (c) => ({
+    left: c.x,
+    right: c.x + 144,
+    top: c.y,
+    bottom: c.y + 144,
+  });
+
+  for (let i = 0; i < p.parts.length; i++) {
+    for (let j = i + 1; j < p.parts.length; j++) {
+      const a = box(p.parts[i]);
+      const b = box(p.parts[j]);
+      const overlaps = !(
+        a.right <= b.left ||
+        b.right <= a.left ||
+        a.bottom <= b.top ||
+        b.bottom <= a.top
+      );
+      assert.equal(
+        overlaps,
+        false,
+        `Parts ${p.parts[i].id} and ${p.parts[j].id} overlap on canvas`,
+      );
+    }
+  }
+});
+
