@@ -292,4 +292,49 @@ test("traffic light wiring routes each branch through 5V, resistor, LED, and GND
   }
 });
 
+test("getTrafficLightElectronicsDocument returns valid designElectronics document with Arduino, 3 resistors, 3 LEDs and C++ code", async () => {
+  const { getTrafficLightElectronicsDocument } = await import(
+    "../src/lib/playground/traffic-light-template.ts"
+  );
+  const doc = getTrafficLightElectronicsDocument();
+  assert.equal(doc.format, "designElectronics");
+  assert.equal(doc.version, 1);
+  assert.equal(doc.title, "Arduino Traffic Light (3 LEDs)");
+
+  const parts = doc.parts;
+  const uno = parts.find((p) => p.type === "arduino_uno");
+  assert.ok(uno, "Must contain Arduino Uno board");
+  assert.ok(typeof uno.code === "string" && uno.code.includes("RED_PIN = 8"));
+  assert.ok(uno.code.includes("YELLOW_PIN = 9"));
+  assert.ok(uno.code.includes("GREEN_PIN = 10"));
+  assert.ok(uno.code.includes("pinMode(RED_PIN, OUTPUT)"));
+
+  const resistors = parts.filter((p) => p.type === "resistor");
+  assert.equal(resistors.length, 3, "Must have 3 current-limiting resistors");
+  for (const r of resistors) {
+    assert.equal(r.props?.resistance, "330Ω");
+  }
+
+  const leds = parts.filter((p) => p.type === "led");
+  assert.equal(leds.length, 3, "Must have 3 LEDs");
+  const colors = leds.map((l) => l.props?.color).sort();
+  assert.deepEqual(colors, ["Green", "Red", "Yellow"]);
+
+  // Verify wires
+  const wires = doc.wires;
+  assert.ok(wires.length >= 18, "Must contain wires across views");
+  const schematicWires = wires.filter((w) => w.view === "schematic");
+  const breadboardWires = wires.filter((w) => w.view === "breadboard");
+  assert.equal(schematicWires.length, 9, "Schematic must connect all 3 branches");
+  assert.equal(breadboardWires.length, 9, "Breadboard must connect all 3 branches");
+
+  // Check pin 8, 9, 10 are wired to resistors
+  for (const pin of ["D8", "D9", "D10"]) {
+    const wire = schematicWires.find(
+      (w) => w.from.part === uno.id && w.from.pin === pin,
+    );
+    assert.ok(wire, `Uno pin ${pin} must be wired to a resistor`);
+  }
+});
+
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
@@ -12,20 +11,34 @@ import { ElectronicsTools } from "./electronics-tools";
 import type { EngineStatus } from "@/lib/playground/bridge";
 import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
+import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
 
-export function ElectronicsWorkspace({ buildId }: { buildId?: string }) {
+export function ElectronicsWorkspace({
+  buildId,
+  initialTemplate,
+}: {
+  buildId?: string;
+  initialTemplate?: string;
+}) {
   const { user } = useApp();
-  return user ? (
-    <Editor key={user.id} accountId={user.id} buildId={buildId} />
-  ) : null;
+  return (
+    <Editor
+      key={user?.id || "guest"}
+      accountId={user?.id || ""}
+      buildId={buildId}
+      initialTemplate={initialTemplate}
+    />
+  );
 }
 
 function Editor({
   accountId,
   buildId,
+  initialTemplate,
 }: {
   accountId: string;
   buildId?: string;
+  initialTemplate?: string;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const bridge = useRef<ElectronicsBridge | null>(null);
@@ -46,27 +59,44 @@ function Editor({
         frame.current?.focus();
       });
   }, [canvasFocus]);
+  const templateLoaded = useRef(false);
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (!ready || templateLoaded.current || !bridge.current) return;
+    let templateName: string | null = initialTemplate || null;
+    if (!templateName && typeof window !== "undefined") {
       try {
         const search = new URLSearchParams(window.location.search);
-        const template =
+        templateName =
           search.get("template") ||
           search.get("circuit") ||
           sessionStorage.getItem("ohmi_playground_template");
-        if (
-          template === "arduino-traffic-light" ||
-          template === "traffic-light"
-        ) {
-          sessionStorage.removeItem("ohmi_playground_template");
-          sessionStorage.removeItem("ohmi_playground_active_template");
-          window.location.replace(
-            "/app/playground/?template=arduino-traffic-light&legacy=1",
-          );
-        }
       } catch {}
     }
-  }, []);
+    if (
+      templateName === "arduino-traffic-light" ||
+      templateName === "traffic-light"
+    ) {
+      templateLoaded.current = true;
+      try {
+        sessionStorage.removeItem("ohmi_playground_template");
+        sessionStorage.removeItem("ohmi_playground_active_template");
+      } catch {}
+      const doc = getTrafficLightElectronicsDocument();
+      bridge.current
+        ?.request({ operation: "open", document: doc })
+        .then(() => {
+          cloud.detach();
+          setMessage(
+            "Arduino Traffic Light circuit loaded. Red (pin 8), Yellow (pin 9), Green (pin 10) connected with 330 Ω resistors.",
+          );
+        })
+        .catch((err) => {
+          setError(
+            err instanceof Error ? err.message : "Failed to load template",
+          );
+        });
+    }
+  }, [ready, initialTemplate]);
   const [engineState, setEngineState] = useState<Pick<
     EngineStatus,
     "running" | "view"
@@ -399,9 +429,8 @@ function Editor({
       <header className={styles.header}>
         <div>
           <h1 id="electronics-title">Electronics workspace</h1>
-          <p>Your circuit workspace · Your original Playground remains available.</p>
+          <p>Interactive circuit workspace</p>
         </div>
-        <Link href="/playground/?legacy=1">Open original Playground</Link>
         <Button
           ref={focusButton}
           variant="outline"

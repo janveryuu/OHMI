@@ -257,9 +257,9 @@ export function Chat() {
       sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
     } catch {}
     if (router && typeof router.push === "function") {
-      router.push("/playground/?template=arduino-traffic-light&legacy=1");
+      router.push("/playground/?template=arduino-traffic-light");
     } else {
-      window.location.assign("/app/playground/?template=arduino-traffic-light&legacy=1");
+      window.location.assign("/app/playground/?template=arduino-traffic-light");
     }
   }
   async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {
@@ -507,7 +507,7 @@ export function Chat() {
                   <p className="user-text">{message.text}</p>
                 )}
                 {message.role === "assistant" && message.requestId && message.structured?.kind === "circuit_build" && message.structured?.status === "draft" && (
-                  <Link href={"/playground/electronics/?build=" + message.requestId}>Open new editable circuit draft</Link>
+                  <Link href={"/playground/?build=" + message.requestId}>Open new editable circuit draft</Link>
                 )}
                 {message.role === "assistant" && message.structured?.mode === "limited" && message.id === conversation.messages.at(-1)?.id && (
                   <Button variant="outline" disabled={pending} onClick={() => {
