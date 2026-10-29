@@ -7,13 +7,23 @@ import { Button } from "./ui/button";
 import { ElectronicsBridge, type EngineRequest } from "@/lib/playground/bridge";
 import { useElectronicsProject } from "@/lib/playground/use-electronics-project";
 import styles from "./electronics-workspace.module.css";
+import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
+import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 
-export function ElectronicsWorkspace() {
+export function ElectronicsWorkspace({ buildId }: { buildId?: string }) {
   const { user } = useApp();
-  return user ? <Editor key={user.id} accountId={user.id} /> : null;
+  return user ? (
+    <Editor key={user.id} accountId={user.id} buildId={buildId} />
+  ) : null;
 }
 
-function Editor({ accountId }: { accountId: string }) {
+function Editor({
+  accountId,
+  buildId,
+}: {
+  accountId: string;
+  buildId?: string;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const bridge = useRef<ElectronicsBridge | null>(null);
   const [generation, setGeneration] = useState(0);
@@ -25,6 +35,122 @@ function Editor({ accountId }: { accountId: string }) {
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
   const cloud = useElectronicsProject(bridge, ready, accountId);
+  const [observations, setObservations] = useState<
+    { time: number; leds: Record<string, number> }[]
+  >([]);
+  const [buildWarnings, setBuildWarnings] = useState<string[]>([]);
+  const buildAbort = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      buildAbort.current?.abort();
+    },
+    [],
+  );
+  async function openBuild() {
+    if (!buildId || !bridge.current || busy || cloud.busy) return;
+    const session = bridge.current,
+      abort = new AbortController();
+    buildAbort.current = abort;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(
+        "/app/api/playground/build/?id=" + encodeURIComponent(buildId),
+        {
+          headers: { "x-ohmi-account": accountId },
+          cache: "no-store",
+          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(20000)]),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Build unavailable.");
+      if (
+        data.accountId !== accountId ||
+        data.requestId !== buildId ||
+        data.status !== "completed"
+      )
+        throw new Error(
+          "This build is not complete for your account. Check its status in Ask OHMI.",
+        );
+      const result = validateCircuitBuildResult(data.result);
+      if (result.status !== "draft") throw new Error(result.answer);
+      if (abort.signal.aborted || bridge.current !== session) return;
+      setBuildWarnings(result.circuitSpec.warnings);
+      if (
+        !window.confirm(
+          [
+            "Open a new AI draft? Download your current circuit first. Undo can restore this local circuit; saved projects stay unchanged.",
+            ...result.circuitSpec.warnings.map(
+              (warning) => "Planner caveat: " + warning,
+            ),
+          ].join("\n\n"),
+        )
+      )
+        return;
+      const compiled = await session.request<{
+        document: unknown;
+        observations: {
+          samples: {
+            time: number;
+            leds: Record<string, number>;
+            errors: unknown[];
+            warnings: unknown[];
+            damaged: unknown[];
+          }[];
+        };
+      }>({ operation: "compile", spec: result.circuitSpec });
+      const document = validateElectronicsDocument(compiled.document);
+      if (
+        !compiled.observations.samples.length ||
+        compiled.observations.samples.some(
+          (sample) =>
+            sample.errors.length ||
+            sample.warnings.length ||
+            sample.damaged.length,
+        )
+      )
+        throw new Error(
+          "The engine reported a sketch or circuit problem. Your active circuit is unchanged.",
+        );
+      if (abort.signal.aborted || bridge.current !== session) return;
+      await session.request({ operation: "open", document });
+      cloud.detach();
+      setObservations(compiled.observations.samples);
+      setMessage(
+        "New editable draft opened. Engine sampled 4 seconds without reported errors, warnings or damage. This does not verify hardware or prove your full requirements. Save a separate private copy or download .dez and .ino.",
+      );
+    } catch (cause) {
+      if (!abort.signal.aborted)
+        setError(
+          cause instanceof Error ? cause.message : "Build could not be opened.",
+        );
+    } finally {
+      if (!abort.signal.aborted) setBusy(false);
+    }
+  }
+  async function downloadSketches() {
+    const document = await perform<{
+      parts: { type: string; id: number; code?: string }[];
+    }>({ operation: "snapshot" });
+    if (!document) return;
+    const boards = document.parts.filter(
+      (part) => part.type.startsWith("arduino_") && part.code,
+    );
+    if (!boards.length) {
+      setError("No Arduino sketch in this circuit.");
+      return;
+    }
+    for (const board of boards) {
+      const url = URL.createObjectURL(
+          new Blob([board.code!], { type: "text/plain;charset=utf-8" }),
+        ),
+        anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = "ohmi-board-" + board.id + ".ino";
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
 
   useEffect(() => {
     let leaving = false;
@@ -206,9 +332,24 @@ function Editor({ accountId }: { accountId: string }) {
         {cloud.available
           ? "Save a private snapshot or download .dez before leaving."
           : "Download your circuit before leaving. Private saving requires the separately approved storage rollout."}{" "}
-        AI building is not connected in this preview. Simulation uses an Arduino
-        subset interpreter; it does not verify real hardware.
+        AI drafts require a separately enabled planner. Simulation uses an
+        Arduino subset interpreter; it does not verify real hardware.
       </p>
+      {buildId && (
+        <Button
+          disabled={!ready || busy || cloud.busy}
+          onClick={() => void openBuild()}
+        >
+          Open requested AI draft
+        </Button>
+      )}
+      {buildWarnings.length > 0 && (
+        <ul aria-label="Planner caveats">
+          {buildWarnings.map((warning, index) => (
+            <li key={index}>{warning}</li>
+          ))}
+        </ul>
+      )}
       <details className={styles.projects}>
         <summary>Private projects</summary>
         <div className={styles.toolbar}>
@@ -363,6 +504,13 @@ function Editor({ accountId }: { accountId: string }) {
           >
             Download .dez
           </Button>
+          <Button
+            variant="outline"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => void downloadSketches()}
+          >
+            Download .ino
+          </Button>
           <input
             ref={file}
             type="file"
@@ -378,6 +526,44 @@ function Editor({ accountId }: { accountId: string }) {
       <p role="status" className={styles.status}>
         {message}
       </p>
+      {observations.length > 0 && (
+        <details className={styles.projects}>
+          <summary>Engine observations from the opened draft</summary>
+          <p>
+            Captured before opening, not live after edits. Brightness is a
+            simulator value from 0 (off) to 1 (full). This is not hardware
+            verification.
+          </p>
+          <div
+            className={styles.observations}
+            tabIndex={0}
+            role="region"
+            aria-label="Four-second engine timeline"
+          >
+            <table>
+              <caption>Four seconds, sampled every 50 ms</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time (s)</th>
+                  <th scope="col">LED native ID: brightness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {observations.map((sample) => (
+                  <tr key={sample.time}>
+                    <td>{sample.time.toFixed(2)}</td>
+                    <td>
+                      {Object.entries(sample.leds)
+                        .map(([id, value]) => id + ": " + value.toFixed(3))
+                        .join(" · ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
       {error && (
         <p role="alert" className={styles.error}>
           {error}

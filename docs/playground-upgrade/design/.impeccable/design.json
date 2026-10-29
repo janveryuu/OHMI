@@ -1,16 +1,26 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-28T19:00:56.2693739Z",
-  "title": "Design System: OHMI electronics workspace — M1–M2 local preview",
+  "generatedAt": "2026-10-29T03:42:26.6997847Z",
+  "title": "Design System: OHMI electronics workspace — M1–M3 local preview",
   "extensions": {
     "motion": [
-      { "name": "shared-button-feedback", "value": "background-color 0.18s, color 0.18s, transform 0.15s", "purpose": "Inherited shared Button state feedback; active scale is 0.98 and global reduced-motion rules apply." }
+      {
+        "name": "shared-button-feedback",
+        "value": "background-color 0.18s, color 0.18s, transform 0.15s",
+        "purpose": "Inherited shared Button state feedback; active scale is 0.98 and global reduced-motion rules apply."
+      }
     ],
     "breakpoints": [
-      { "name": "stacked-footer", "value": "640px" }
+      {
+        "name": "stacked-footer",
+        "value": "640px"
+      }
     ],
     "typographyMeta": {
-      "body": { "displayName": "Supporting copy", "purpose": "React shell notice, status and footer. The native editor retains its own bundled fonts." }
+      "body": {
+        "displayName": "Supporting copy",
+        "purpose": "React shell notice, status and footer. The native editor retains its own bundled fonts."
+      }
     }
   },
   "components": [
@@ -34,7 +44,7 @@
       "kind": "card",
       "refersTo": "local-notice",
       "description": "A flat secondary surface distinguishes captured private saving from download fallback and states simulation limits.",
-      "html": "<p class=\"ds-notice\">Download your circuit before leaving. Private saving requires the separately approved storage rollout. AI building is not connected in this preview.</p>",
+      "html": "<p class=\"ds-notice\">Download your circuit before leaving. Private saving requires the separately approved storage rollout. AI drafts require a separately enabled planner.</p>",
       "css": ".ds-notice{max-width:75ch;padding:14px 16px;background:var(--secondary);color:var(--foreground);border-radius:var(--radius);font:14px/1.6 var(--font-geist),sans-serif}"
     },
     {
@@ -57,30 +67,63 @@
       "description": "Native details/summary reveals account-scoped project operations without introducing a new palette or card hierarchy.",
       "html": "<details class=\"ds-projects\"><summary>Private projects</summary><p>Save a private snapshot or download .dez before leaving.</p></details>",
       "css": ".ds-projects{border-block:1px solid var(--border);padding-block:12px;margin-bottom:20px;color:var(--foreground);font-family:var(--font-geist),sans-serif}.ds-projects summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:600}.ds-projects summary:focus-visible{outline:2px solid var(--ring);outline-offset:3px}.ds-projects p{margin-block:12px;font-size:14px;line-height:1.6}"
+    },
+    {
+      "name": "Explicit circuit build disclosure",
+      "kind": "custom",
+      "refersTo": "build-disclosure",
+      "description": "Separate optional build prompt and outline actions preserve the chat composer; availability, recovery and planner caveats stay visible.",
+      "html": "<details class=\"ds-build\"><summary>Build a circuit with OHMI</summary><p>Qualified preview: Uno or battery, 1–8 LEDs with dedicated resistors.</p><label for=\"ds-build-prompt\">Describe your circuit</label><textarea id=\"ds-build-prompt\" rows=\"3\"></textarea><p role=\"status\">Check the same request before starting another build.</p><ul aria-label=\"Planner caveats\"><li>Simulator results do not verify hardware.</li></ul><a href=\"#draft\">Open new editable draft</a></details>",
+      "css": ".ds-build{margin-top:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius);color:var(--foreground);font:14px/1.6 var(--font-geist),sans-serif;text-align:left}.ds-build summary{min-height:44px;align-content:center;cursor:pointer;font-weight:600}.ds-build p{margin-block:12px;max-width:75ch}.ds-build label{display:block;margin-block:12px 6px;font-weight:600}.ds-build textarea{width:100%;min-height:100px;margin-bottom:12px;color:var(--foreground);background:transparent;font:inherit}.ds-build a{display:inline-flex;min-height:44px;align-items:center;color:var(--primary);text-decoration:underline;text-underline-offset:4px}.ds-build summary:focus-visible,.ds-build textarea:focus-visible,.ds-build a:focus-visible{outline:2px solid var(--ring);outline-offset:3px}.ds-build a:hover{text-decoration-thickness:2px}"
+    },
+    {
+      "name": "Captured engine timeline",
+      "kind": "custom",
+      "description": "Historical simulator observations use a captioned, keyboard-scrollable table rather than implying live or hardware verification.",
+      "html": "<div class=\"ds-timeline\" tabindex=\"0\" role=\"region\" aria-label=\"Four-second engine timeline\"><table><caption>Four seconds, sampled every 50 ms</caption><thead><tr><th scope=\"col\">Time (s)</th><th scope=\"col\">LED native ID: brightness</th></tr></thead><tbody><tr><td>0.05</td><td>3: 1.000</td></tr></tbody></table></div>",
+      "css": ".ds-timeline{max-height:280px;overflow:auto;color:var(--foreground);font:14px var(--font-geist),sans-serif;font-variant-numeric:tabular-nums}.ds-timeline table{width:100%;text-align:left;border-collapse:collapse}.ds-timeline th,.ds-timeline td{padding:8px;border-bottom:1px solid var(--border)}.ds-timeline:focus-visible{outline:2px solid var(--ring);outline-offset:3px}"
     }
   ],
   "narrative": {
     "northStar": "Calm mint study workspace",
-    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M2 local implementation only. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
+    "overview": "This local preview inherits the existing OHMI Operate interface. A compact React control area surrounds the native designElectronics canvas; it does not introduce a new visual identity. This file records M1–M3 local implementation, including the explicit Ask OHMI build disclosure and workspace handoff. The application-wide authority remains web-app/DESIGN.md, with product constraints in web-app/PRODUCT.md and phase boundaries in ../PLAN.md.",
     "keyCharacteristics": [
       "Light mode by default; mint actions on pale study surfaces and neutral charcoal in dark mode.",
       "Familiar labeled controls, restrained borders and the unchanged canonical OHMI mascot in the shared shell.",
       "Native technical canvas retained; no new illustrations, mascot variants or decorative motion."
     ],
     "rules": [
-      { "name": "The Technical Canvas Rule", "body": "Theme the surrounding controls without recoloring physical part markings or making schematic symbols unreadable.", "section": "colors" },
-      { "name": "The Captured Work Rule", "body": "Saving records an explicit captured snapshot, not continuous autosave; later edits need another save. Keep .dez download available, and require it when private storage is unavailable. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.", "section": "components" },
-      { "name": "The Account and Document Rule", "body": "Account changes clear private project state and the engine runtime. A captured native replacement generation plus UID binds the current private record/revision; replacing a native document creates a separate project even if its UID matches. Ordinary edits can update the same record. This session identity prevents accidental overwrite; it is not an authentication credential. Server authorization remains separate.", "section": "components" }
+      {
+        "name": "The Technical Canvas Rule",
+        "body": "Theme the surrounding controls without recoloring physical part markings or making schematic symbols unreadable.",
+        "section": "colors"
+      },
+      {
+        "name": "The Captured Work Rule",
+        "body": "Saving records an explicit captured snapshot, not continuous autosave; later edits need another save. Keep .dez download available, and require it when private storage is unavailable. File replacement, reload and workspace exit require confirmation; canceling navigation retains the runtime and circuit.",
+        "section": "components"
+      },
+      {
+        "name": "The Account and Document Rule",
+        "body": "Account changes clear private project state and the engine runtime. A captured native replacement generation plus UID binds the current private record/revision; replacing a native document creates a separate project even if its UID matches. Ordinary edits can update the same record. This session identity prevents accidental overwrite; it is not an authentication credential. Server authorization remains separate.",
+        "section": "components"
+      },
+      {
+        "name": "The Explicit Draft Rule",
+        "body": "Building is a distinct action, never an automatic interpretation of chat text. Keep generation, stopping the wait, checking the same request and opening a new editable draft visibly separate. Do not imply that stopping the wait cancels server work or that a completed model answer has already opened or saved a circuit.",
+        "section": "components"
+      }
     ],
     "dos": [
       "Do reuse the existing semantic tokens, shared Button and exact approved mascot.",
       "Do preserve the native technical rendering and disclose simulation limits.",
-      "Do distinguish local-preview verification from production readiness."
+      "Do distinguish local-preview verification from production readiness.",
+      "Do preserve planner caveats and distinguish model narrative, captured simulation evidence and actual saved work."
     ],
     "donts": [
       "Don't infer full canvas accessibility from the surrounding DOM controls.",
       "Don't treat local heading exceptions, upstream canvas geometry or incidental test toasts as new application-wide design rules.",
-      "Don't add replacement mascot art, visual AI controls or unverified hosted-save claims to this preview."
+      "Don't add replacement mascot art, unapproved visual-analysis controls or unverified hosted-save/live-inference claims to this preview."
     ]
   }
 }

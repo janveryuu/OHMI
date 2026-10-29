@@ -5,6 +5,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { Buffer } from 'node:buffer';
 import { answerChat, providerConfigs, consumeChatBurst } from './copilot.ts';
+import { planCircuitBuild, CircuitBuildError, CIRCUIT_BUILD_ENV } from './circuit-builder.ts';
 import {
   calculateLedResistor,
   calculateOhmsLaw,
@@ -112,6 +113,8 @@ export interface AiHandlerDependencies {
     OHMI_GROQ_CHAT_ENABLED?: string;
     OHMI_GEMINI_MULTIMODAL_ENABLED?: string;
     OHMI_AI_PROVIDER?: string;
+    OHMI_CIRCUIT_BUILD_ENABLED?: string;
+    OHMI_CIRCUIT_BUILD_FREE_TIER_VERIFIED?: string;
   };
   createClient?: typeof createClient;
   fetch?: typeof fetch;
@@ -601,6 +604,21 @@ async function handleAiRequestWithinBudget(req: Request, deps?: AiHandlerDepende
     }
   } else {
     return errorResponse('invalid_request', 'Unsupported contract version. Expected version 1.', 400);
+  }
+
+  if (body.operation === 'circuit_build') {
+    try {
+      const result = await planCircuitBuild({
+        body, userId: user.id, ledger: adminClient,
+        env: Object.fromEntries(CIRCUIT_BUILD_ENV.map(key => [key, getEnv(key, deps)])),
+        signal: req.signal, fetch: deps?.fetch, deadline: deps?.deadline,
+      });
+      return jsonResponse(result);
+    } catch (error) {
+      if (error instanceof CircuitBuildError)
+        return errorResponse(error.code, error.message, error.status, error.retryAfterSeconds);
+      return errorResponse('unavailable', 'Circuit planning could not complete. Check the request before retrying.', 503);
+    }
   }
 
   const {

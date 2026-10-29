@@ -13,7 +13,7 @@
     },
     {
       "file": "src/ohmi_web.cpp",
-      "sha256": "211698af5897750a1e6280602076f9e4e51605284395fada3f0a442a98cb675f"
+      "sha256": "921481c5f0fa7238ed3430c8427db09ce95fa851e985c8d02599b54f9d9d9dc4"
     },
     {
       "file": "src/panels.cpp",
@@ -35,13 +35,13 @@
   "artifacts": [
     {
       "file": "designElectronics.js",
-      "bytes": 217492,
-      "sha256": "6be45b1a9a6d9728bcfb9287585249f2713a82271eb3786084b883845f560567"
+      "bytes": 217308,
+      "sha256": "197cf8c665901a60e63bec80f29902e820f9ebd94ac36d4064de6d09c778fa4d"
     },
     {
       "file": "designElectronics.wasm",
-      "bytes": 5308727,
-      "sha256": "2a6b0d623649d8ec9ba2ba438dbc022b76642da024fc04d23cf4d2489ab60c14"
+      "bytes": 5324238,
+      "sha256": "c1829fdb4dee9c0cbda3e630768689944e59b00dc5c98de100885faccd3c97b4"
     },
     {
       "file": "designElectronics.data",

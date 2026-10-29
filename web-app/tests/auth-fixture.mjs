@@ -1,6 +1,8 @@
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import {handleElectronicsRest} from "./electronics-store-fixture.mjs";
+import {planCircuitBuild} from '../../supabase/functions/ohmi-ai/circuit-builder.ts';
+import {buildEnv,mockGroq,memoryLedger} from './circuit-build-fixtures.mjs';
 
 export const testUser = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -102,6 +104,16 @@ export async function startAuthFixture() {
       if (url.pathname === '/functions/v1/ohmi-web') {
         if (ai.delayMs) await new Promise(resolve => setTimeout(resolve, ai.delayMs));
         ai.posts.push(body);
+        if(body.operation==='circuit_build'&&ai.buildSpec){
+          try{
+            const value=await planCircuitBuild({body,userId:user.id,ledger:memoryLedger(ai.jobs,ai.messages),env:buildEnv,fetch:async(url,init)=>{
+              ai.providerCalls=(ai.providerCalls||0)+1;ai.providerUrl=url;ai.providerBody=JSON.parse(init.body);
+              if(ai.providerDelay)await new Promise(resolve=>setTimeout(resolve,ai.providerDelay));
+              return mockGroq(ai.buildSpec,ai.buildOverride);
+            }});
+            return send(200,value);
+          }catch(error){return send(error.status||503,{error:error.message});}
+        }
         const result=ai.result || {status:'answer',answer:'Continued explanation from the original PDF.'};
         ai.jobs.push({id:body.requestId,user_id:user.id,status:'completed',operation:body.operation,language:body.language,model:'synthetic',result_payload:result,conversation_id:ai.conversationId,created_at:new Date().toISOString()});
         const position = Math.max(0, ...ai.messages.map(message => message.position || 0)) + 1;

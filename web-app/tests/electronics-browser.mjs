@@ -157,5 +157,6 @@ try {
   console.log(JSON.stringify({status:report.status,checks:report.checks,selftest:report.selftest.log.slice(-4)}));
 } finally {
   await writeFile(new URL("m1-browser.json",evidence),JSON.stringify(report,null,2));
+  for(const context of browser.contexts())await context.unrouteAll({behavior:'wait'});
   await browser.close(); if(fixture)await fixture.close();
 }

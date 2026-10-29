@@ -8,6 +8,8 @@ node_modules/
 .output/
 dist/
 build/
+!web-app/src/app/api/playground/build/
+!web-app/src/app/api/playground/build/route.ts
 coverage/
 *.tsbuildinfo
 

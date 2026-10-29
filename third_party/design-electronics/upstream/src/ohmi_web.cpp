@@ -35,15 +35,15 @@ void bounded(const Json& value, int depth = 0) {
     for (const auto& item : value.members()) bounded(item.second, depth + 1);
 }
 
-Json observe(double seconds) {
-    if (!std::isfinite(seconds) || seconds < 0.05 || seconds > 5 || app->doc.parts.size() > 100)
+Json observe(Document& document, double seconds) {
+    if (!std::isfinite(seconds) || seconds < 0.05 || seconds > 5 || document.parts.size() > 100)
         throw std::runtime_error("Observation supports 0.05 to 5 seconds and up to 100 parts.");
-    app->doc.syncWireEnds();
-    Connectivity connectivity; connectivity.build(app->doc);
+    document.syncWireEnds();
+    Connectivity connectivity; connectivity.build(document);
     Simulator simulator;
     Json samples = Json::array();
     for (double time = 0; time < seconds - 0.000001; time += 0.05) {
-        const auto result = simulator.step(app->doc, connectivity, {}, std::min(0.05, seconds - time));
+        const auto result = simulator.step(document, connectivity, {}, std::min(0.05, seconds - time));
         Json sample = Json::object(), leds = Json::object(), errors = Json::array(), warnings = Json::array(), damaged = Json::array();
         for (const auto& value : result.brightness) leds.set(std::to_string(value.first), value.second);
         for (const auto& value : result.code) if (!value.second.error.empty()) {
@@ -116,7 +116,52 @@ Json dispatch(const Json& request) {
         app->checkpoint(); app->doc = std::move(staged); app->changed(); replaced();
         Json result = Json::object(); result.set("opened", true); return result;
     }
-    if (operation == "observe") return observe(request["seconds"].num());
+    if (operation == "compile") {
+        const auto& spec = request["spec"];
+        if (spec["version"].i() != 1 || spec["status"].str() != "draft" || !spec["parts"].isArray() || spec["parts"].size() > 24 || !spec["connections"].isArray() || spec["connections"].size() > 64)
+            throw std::runtime_error("Invalid circuit specification.");
+        Document draft; draft.title = spec["title"].str();
+        McpSession builder(&draft);
+        const auto call = [&](const std::string& name, const Json& args) {
+            bool failed = false; const auto text = builder.callTool(name, args, failed);
+            if (failed) throw std::runtime_error(text);
+            return Json::parse(text);
+        };
+        static const std::map<std::string, std::set<std::string>> types = {
+            {"arduino_uno", {}}, {"battery", {"voltage"}}, {"resistor", {"resistance"}},
+            {"led", {"color"}}, {"switch", {"position"}}, {"breadboard", {"size"}}
+        };
+        std::set<std::string> ids;
+        for (const auto& part : spec["parts"].items()) {
+            const auto type = part["type"].str(), id = part["id"].str(), code = part["sketch"].str();
+            if (!types.count(type) || id.empty() || id.size() > 32 || !ids.insert(id).second || code.size() > 8000 || (type != "arduino_uno" && !code.empty()) || !part["properties"].isArray() || part["properties"].size() > 4)
+                throw std::runtime_error("Unsupported circuit component.");
+            Json args = Json::object(), props = Json::object();
+            for (const auto& property : part["properties"].items()) {
+                const auto key = property["key"].str();
+                if (!types.at(type).count(key) || props.has(key.c_str()) || !property["value"].isString() || property["value"].str().size() > 80)
+                    throw std::runtime_error("Unsupported circuit property.");
+                props.set(key, property["value"]);
+            }
+            args.set("type", type); args.set("label", id); args.set("properties", props);
+            const auto added = call("add_part", args);
+            draft.part(added["id"].i())->code = code;
+        }
+        for (const auto& wire : spec["connections"].items()) {
+            Json args = Json::object(), views = Json::array();
+            for (const auto* view : {"breadboard", "schematic", "pcb"}) views.push(view);
+            for (const auto* side : {"from", "to"}) {
+                const auto id = wire[side]["part"].str();
+                if (!ids.count(id)) throw std::runtime_error("Unknown circuit endpoint.");
+                args.set(std::string(side) + "_part", id); args.set(std::string(side) + "_pin", wire[side]["pin"].str());
+            }
+            args.set("views", views); call("connect", args);
+        }
+        history::ensureUid(draft); draft.syncWireEnds();
+        Json result = Json::object(); result.set("document", draft.toJson(true));
+        result.set("observations", observe(draft, 4)); return result;
+    }
+    if (operation == "observe") return observe(app->doc, request["seconds"].num());
     if (operation == "view") {
         int view = request["view"].i(-1);
         if (view < 0 || view >= NUM_VIEWS) throw std::runtime_error("Unknown view.");

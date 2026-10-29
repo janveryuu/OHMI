@@ -27,11 +27,12 @@ export function validateRequest(request) {
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Invalid bridge request.");
   const fields = {
     status: [], catalog: [], capture: [], snapshot: [], undo: [], redo: [],
-    tool: ["name", "arguments"], open: ["document"], observe: ["seconds"],
+    tool: ["name", "arguments"], open: ["document"], observe: ["seconds"], compile: ["spec"],
     theme: ["theme"], view: ["view"], running: ["running"], export: ["format", "view"],
   };
   if (!Object.hasOwn(fields, request.operation) || Object.keys(request).some(key => !["operation", ...fields[request.operation]].includes(key))) throw new Error("Unsupported bridge operation or field.");
   if (request.operation === "tool" && (!TOOLS.has(request.name) || !request.arguments || typeof request.arguments !== "object" || Array.isArray(request.arguments))) throw new Error("Tool is not allowed.");
+  if (request.operation === "compile" && (!request.spec || request.spec.version !== 1 || request.spec.status !== "draft" || !Array.isArray(request.spec.parts) || request.spec.parts.length > 24 || !Array.isArray(request.spec.connections) || request.spec.connections.length > 64)) throw new Error("Invalid circuit specification.");
   if (request.operation === "theme" && !["light", "dark"].includes(request.theme)) throw new Error("Invalid theme.");
   if (request.operation === "view" && ![0, 1, 2].includes(request.view)) throw new Error("Invalid view.");
   if (request.operation === "running" && typeof request.running !== "boolean") throw new Error("Invalid simulation state.");

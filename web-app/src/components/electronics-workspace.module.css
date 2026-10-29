@@ -2,6 +2,22 @@
   min-width: 0;
   padding: clamp(16px, 3vw, 32px);
 }
+.observations {
+  max-height: 280px;
+  overflow: auto;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.observations table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+.observations th,
+.observations td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
 .header {
   display: flex;
   justify-content: space-between;

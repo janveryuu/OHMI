@@ -1,6 +1,6 @@
 # Playground upgrade: file-level implementation plan
 
-Status: **M0/M1/M2 complete locally; see M1.md and M2.md for evidence. M3 not approved.** This plan covers the owner's attached major Playground/AI-builder brief. It does not authorize push, deployment, hosted migrations, provider changes or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
+Status: **M0–M3 complete locally; see M1.md, M2.md and M3.md for evidence. M4 awaits approval.** The owner approved M3 local implementation with mocked provider responses only. This plan does not authorize push, deployment, hosted migrations, live inference or paid work. Existing `AGENTS.md` requires reviewing each phase with the owner before starting the next. The current brief separately prohibits push/deployment/production-infrastructure changes without owner approval.
 
 ## Design and architecture decision
 
@@ -15,7 +15,8 @@ Ask OHMI explicit Build action
     strict circuit-spec + catalog/pin/electrical validation
     new draft; no overwrite of active/saved student work
     capability-scoped browser MessageChannel
-    existing upstream McpSession on the live C++ document
+    existing upstream McpSession constructs a scratch C++ document
+    actual engine observations, then explicit atomic open with undo
     same engine for observations, undo, .dez snapshots and exports
     private owner-scoped save with revision conflict handling
 ```

@@ -136,6 +136,10 @@ function partPins(
   );
 }
 
+export function electronicsPins(type:string,props:Record<string,unknown>={}) {
+  return partPins(type,props,new Map());
+}
+
 export function validateElectronicsDocument(raw: unknown): ElectronicsDocument {
   try {
     boundedJson(raw, MAX_BYTES);

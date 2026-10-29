@@ -28,6 +28,8 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { RichText } from "./rich-text";
+import Link from "next/link";
+import { CircuitBuild } from "./circuit-build";
 
 
 import { askBackend } from "@/lib/backend/ai";
@@ -323,6 +325,9 @@ export function Chat() {
                 ) : (
                   <p className="user-text">{message.text}</p>
                 )}
+                {message.role === "assistant" && message.requestId && message.structured?.kind === "circuit_build" && message.structured?.status === "draft" && (
+                  <Link href={"/playground/electronics/?build=" + message.requestId}>Open new editable circuit draft</Link>
+                )}
                 {message.role === "assistant" && message.structured?.mode === "limited" && message.id === conversation.messages.at(-1)?.id && (
                   <Button variant="outline" disabled={pending} onClick={() => {
                     const original = [...conversation.messages].reverse().find(item => item.role === "user");
@@ -592,6 +597,7 @@ export function Chat() {
               </p>
             )}
           </form>
+          <CircuitBuild conversationId={conversation.id} />
           <p className="small muted compose-note">
             Answers use your saved conversation and any assignment you choose to
             upload. Check uncertain wiring against the circuit and simulation.

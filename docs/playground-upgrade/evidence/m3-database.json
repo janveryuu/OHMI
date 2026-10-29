@@ -1,0 +1,34 @@
+{
+  "result": "PASS",
+  "image": "public.ecr.aws/supabase/postgres@sha256:7374d196da7e301512cc5329e18040e0f7bb856287b323777cdadecccbc6c7e4",
+  "network": "none",
+  "publishedPorts": [],
+  "hostedChanges": false,
+  "actualProjectMigrations": 22,
+  "storageApi": "not run; inert fixture tables only",
+  "checks": [
+    "owner-bound admission",
+    "pending/completed replay",
+    "cross-account denial",
+    "fixed120B provenance",
+    "single message pair",
+    "ambiguous acknowledgement recovery",
+    "service-only RPC",
+    "owner RLS recovery",
+    "existing AI reliability SQL"
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261029093000_circuit_build_admission.sql",
+      "sha256": "9dfb1193d86b36bfb39452a4e2b902e2c7576c77b7765704219bd4fc710ef0cd"
+    },
+    {
+      "path": "supabase/tests/circuit_build.sql",
+      "sha256": "1287e958b3b02c209cdd4ebe9f7b76f445fd039ba043ffc7820a49e2638f155a"
+    },
+    {
+      "path": "supabase/tests/ai_reliability.sql",
+      "sha256": "b05b77c923358ee4476b30caddc1f9dbcac40ed0c2cf30bf04b4f3d47109879d"
+    }
+  ]
+}

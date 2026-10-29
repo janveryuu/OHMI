@@ -22,6 +22,8 @@ export interface GroqRequestOptions {
   reasoningEffort?: 'low';
   timeoutMs?: number;
   fetchFn?: typeof fetch;
+  signal?: AbortSignal;
+  jsonSchema?: Record<string, unknown>;
 }
 
 export interface GroqSuccessResponse {
@@ -114,8 +116,11 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
+  if (options.jsonSchema) requestBody.response_format = { type: 'json_schema', json_schema: { name: 'ohmi_circuit_spec', strict: true, schema: options.jsonSchema } };
 
   try {
+    signal.throwIfAborted();
     const res = await abortable(fetchFn(GROQ_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -123,8 +128,8 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify(requestBody),
-      signal: controller.signal
-    }), controller.signal);
+      signal
+    }), signal);
 
     // Rate limit / 429
     if (res.status === 429) {
@@ -145,7 +150,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       };
     }
 
-    const responseText = await readBoundedBody(res, MAX_GROQ_RESPONSE_BYTES, controller.signal);
+    const responseText = await readBoundedBody(res, MAX_GROQ_RESPONSE_BYTES, signal);
 
     if (!res.ok) {
       let errorMsg = `Groq upstream error (${res.status})`;
@@ -193,7 +198,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
     }
 
     const finishReason = choice.finish_reason || 'stop';
-    if (finishReason !== 'stop' && finishReason !== 'length') {
+    if ((finishReason !== 'stop' && finishReason !== 'length') || (options.jsonSchema && finishReason !== 'stop')) {
       return {
         ok: false,
         status: 502,
@@ -240,7 +245,7 @@ export async function callGroqChatCompletions(options: GroqRequestOptions): Prom
       finishReason
     };
   } catch (err: any) {
-    if (err?.name === 'AbortError' || controller.signal.aborted) {
+    if (err?.name === 'AbortError' || signal.aborted) {
       return {
         ok: false,
         status: 504,

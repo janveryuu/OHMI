@@ -22,6 +22,7 @@ export type StoredMessage = {
   role: "user" | "assistant";
   text: string;
   position?: number;
+  requestId?: string;
   structured?: Record<string, unknown>;
   attachment?: string;
 };
@@ -128,7 +129,7 @@ export async function conversationMessages(
 ) {
   let query = client
     .from("ohmi_messages")
-    .select("id,role,content,position,structured_result")
+    .select("id,role,content,position,structured_result,request_id")
     .eq("user_id", userId)
     .eq("conversation_id", id)
     .order("position", { ascending: false })
@@ -143,6 +144,7 @@ export async function conversationMessages(
       role: m.role,
       text: m.content,
       position: m.position,
+      requestId: m.request_id || undefined,
       structured: m.structured_result,
     })) as StoredMessage[],
     hasOlder: rows.length === 50 && rows[0]?.position > 1,
