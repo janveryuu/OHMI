@@ -2,7 +2,7 @@ import { validateProject } from "./model.ts";
 import definitions from "./legacy-native-parts.json" with { type: "json" };
 import { validateElectronicsDocument } from "./electronics-document.ts";
 
-const pins = {
+const pins: Record<string, Record<string, string>> = {
   battery: { p: "plus", n: "minus" },
   resistor: { a: "pin0", b: "pin1" },
   led: { a: "anode", k: "cathode" },
@@ -14,6 +14,7 @@ export function convertLegacyProject(raw: unknown) {
   let nextId = legacy.parts.length + 1;
   const parts = legacy.parts.map((part) => {
     if (
+      part.kind === "arduino" ||
       (part.kind === "battery" && (part.value < 1.5 || part.value > 12)) ||
       (part.kind === "resistor" &&
         (part.value <= 0 || part.value > 10000000)) ||
@@ -47,10 +48,11 @@ export function convertLegacyProject(raw: unknown) {
     ["breadboard", "schematic", "pcb"].map((view) => {
       const terminal = (ref: typeof wire.from) => {
         const original = legacy.parts.find((part) => part.id === ref.part)!;
-        const pin =
-          pins[original.kind][
-            ref.pin as keyof (typeof pins)[typeof original.kind]
-          ];
+        const pinMap = pins[original.kind];
+        if (!pinMap) {
+          throw new Error(`Unsupported legacy part kind: ${original.kind}`);
+        }
+        const pin = pinMap[ref.pin];
         const definition = definitions.find(
           (definition) => definition.type === original.kind,
         )!;

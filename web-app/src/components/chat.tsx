@@ -8,6 +8,9 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  CircuitBoard,
+  Code,
+  Copy,
   File,
   History,
   Maximize2,
@@ -31,9 +34,126 @@ import { RichText } from "./rich-text";
 import Link from "next/link";
 import { CircuitBuild } from "./circuit-build";
 
-
 import { askBackend } from "@/lib/backend/ai";
 import { validateFile } from "@/lib/demo.mjs";
+
+import { isTrafficLightMatch } from "@/lib/playground/model";
+export { isTrafficLightMatch };
+
+export function CircuitActionCard({
+  onDirectToPlayground,
+}: {
+  onDirectToPlayground: () => void;
+}) {
+  const [showCode, setShowCode] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const trafficLightCode = `// Arduino Traffic Light (3 LEDs)
+const int RED_PIN = 8;
+const int YELLOW_PIN = 9;
+const int GREEN_PIN = 10;
+
+void setup() {
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(YELLOW_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+}
+
+void loop() {
+  // Red Light ON (5 seconds)
+  digitalWrite(RED_PIN, HIGH);
+  digitalWrite(YELLOW_PIN, LOW);
+  digitalWrite(GREEN_PIN, LOW);
+  delay(5000);
+
+  // Yellow Light ON (2 seconds)
+  digitalWrite(RED_PIN, LOW);
+  digitalWrite(YELLOW_PIN, HIGH);
+  digitalWrite(GREEN_PIN, LOW);
+  delay(2000);
+
+  // Green Light ON (5 seconds)
+  digitalWrite(RED_PIN, LOW);
+  digitalWrite(YELLOW_PIN, LOW);
+  digitalWrite(GREEN_PIN, HIGH);
+  delay(5000);
+}`;
+
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(trafficLightCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  return (
+    <div className="circuit-action-card" data-testid="circuit-action-card">
+      <div className="circuit-action-header">
+        <div className="circuit-action-badge">
+          <Sparkles size={12} className="text-primary" />
+          <span>Interactive Circuit Ready</span>
+        </div>
+        <span className="circuit-action-tag">Arduino Uno · 3 LEDs · 220 Ω</span>
+      </div>
+
+      <h3 className="circuit-action-title">
+        Arduino Traffic Light with Three LEDs
+      </h3>
+
+      <p className="circuit-action-prompt">
+        Would you like the <strong>Arduino C++ code</strong>, or should I build this circuit directly in your <strong>Playground workbench</strong>?
+      </p>
+
+      <div className="circuit-action-buttons">
+        <button
+          type="button"
+          className="circuit-action-btn-primary"
+          onClick={onDirectToPlayground}
+        >
+          <CircuitBoard size={16} />
+          <span>Build in Playground</span>
+          <ArrowRight size={14} />
+        </button>
+
+        <button
+          type="button"
+          className="circuit-action-btn-secondary"
+          onClick={() => setShowCode((v) => !v)}
+        >
+          <Code size={16} />
+          <span>{showCode ? "Hide Arduino Code" : "View Arduino Code"}</span>
+        </button>
+      </div>
+
+      {showCode && (
+        <div className="circuit-code-panel">
+          <div className="circuit-code-header">
+            <span>Arduino C++ Sketch (Traffic Light)</span>
+            <button
+              type="button"
+              className="circuit-copy-btn"
+              onClick={copyCode}
+              aria-label="Copy Arduino sketch"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              <span>{copied ? "Copied!" : "Copy code"}</span>
+            </button>
+          </div>
+          <pre>
+            <code>{trafficLightCode}</code>
+          </pre>
+          <ul className="circuit-wiring-list">
+            <li><strong>Red LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 8</li>
+            <li><strong>Yellow LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 9</li>
+            <li><strong>Green LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 10</li>
+            <li><strong>Ground:</strong> All 3 LED cathodes (−) → Arduino GND rail</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Chat() {
   const app = useApp(),
@@ -124,10 +244,29 @@ export function Chat() {
       );
     }
   }
+  function handleDirectToPlayground() {
+    try {
+      sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
+    } catch {}
+    window.location.assign("/app/playground/?template=arduino-traffic-light");
+  }
   async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {
     event?.preventDefault();
     const value = text.trim();
     if (!value || submitting.current) return;
+    if (
+      /^(?:please\s+)?(?:yes[, ]+)?(?:build\s+(?:it\s+)?in\s+(?:the\s+|my\s+)?|open\s+(?:in\s+)?(?:the\s+|my\s+)?|go\s+to\s+(?:the\s+)?|in\s+(?:the\s+|my\s+)?)?playground\b/i.test(value) ||
+      /^(?:(?:i[- ]?build|gawa|buksan|open|punta)\s+)?(?:sa\s+)?playground\b/i.test(value)
+    ) {
+      const isTrafficContext = conversation.messages.some((m) =>
+        isTrafficLightMatch(m.text),
+      );
+      if (isTrafficContext || /traffic|light|arduino|led/i.test(value)) {
+        setDraft("");
+        handleDirectToPlayground();
+        return;
+      }
+    }
     if (!app.user) {
       setError("Sign in to ask OHMI and save your conversation.");
       return;
@@ -310,7 +449,15 @@ export function Chat() {
             </Button>
           )}
 
-            {conversation.messages.map((message) => (
+            {conversation.messages.map((message, idx) => {
+              const prevUser = conversation.messages
+                .slice(0, idx)
+                .reverse()
+                .find((m) => m.role === "user");
+              const isTraffic =
+                message.role === "assistant" &&
+                isTrafficLightMatch(message.text, prevUser?.text);
+              return (
               <article
                 key={message.id}
                 className={`message ${message.role}`}
@@ -319,6 +466,11 @@ export function Chat() {
                 {message.role === "assistant" && <Image className="chat-reply-avatar mascot" src="/app/mascot.png" alt="" aria-hidden="true" width={25} height={29} />}
                 {message.role === "assistant" && (message.structured?.mode === "limited" || message.structured?.mode === "local") && (
                   <span className="chat-reply-note">{message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
+                )}
+                {isTraffic && (
+                  <CircuitActionCard
+                    onDirectToPlayground={handleDirectToPlayground}
+                  />
                 )}
                 {message.role === "assistant" ? (
                   <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
@@ -362,7 +514,8 @@ export function Chat() {
                   </span>
                 )}
               </article>
-            ))}
+              );
+            })}
 
             {optimisticUser && (
               <article

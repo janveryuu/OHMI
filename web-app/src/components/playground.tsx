@@ -42,6 +42,7 @@ import { PlaygroundHelp } from "./playground-help";
 import { useProjectAccount } from "@/lib/playground/use-project-account";
 
 import {
+  buildTrafficLightProject,
   catalog,
   connect,
   emptyProject,
@@ -78,15 +79,58 @@ export function Playground() {
 
 function Workbench() {
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-
   const app = useApp();
 
-  const [history, setHistory] = useState<History>({
-    past: [],
-    present: emptyProject(),
-    future: [],
+  const [history, setHistory] = useState<History>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const search = new URLSearchParams(window.location.search);
+        const template =
+          search.get("template") ||
+          search.get("circuit") ||
+          sessionStorage.getItem("ohmi_playground_template");
+        if (
+          template === "arduino-traffic-light" ||
+          template === "traffic-light"
+        ) {
+          sessionStorage.removeItem("ohmi_playground_template");
+          return {
+            past: [],
+            present: buildTrafficLightProject(),
+            future: [],
+          };
+        }
+      } catch {}
+    }
+    return {
+      past: [],
+      present: emptyProject(),
+      future: [],
+    };
   });
+
+  useEffect(() => {
+    setReady(true);
+    try {
+      const search = new URLSearchParams(window.location.search);
+      const template =
+        search.get("template") ||
+        search.get("circuit") ||
+        sessionStorage.getItem("ohmi_playground_template");
+      if (
+        template === "arduino-traffic-light" ||
+        template === "traffic-light"
+      ) {
+        sessionStorage.removeItem("ohmi_playground_template");
+        const trafficProject = buildTrafficLightProject();
+        setHistory({ past: [], present: trafficProject, future: [] });
+        setChecked(false);
+        setNotice(
+          "Arduino Traffic Light created! Red, Yellow, and Green LEDs connected to Arduino Uno with 220 Ω resistors. Click 'Check circuit' to test.",
+        );
+      }
+    } catch {}
+  }, []);
 
   const p = history.present;
 
@@ -864,13 +908,13 @@ function Workbench() {
               {p.parts.map((c) => (
                 <div
                   key={c.id}
-                  className={`pg-component ${selected === c.id ? "selected" : ""} ${checked && result.status === "lit" && c.kind === "led" ? "pg-lit" : ""}`}
+                  className={`pg-component ${selected === c.id ? "selected" : ""} ${checked && result.status === "lit" && c.kind === "led" ? `pg-lit ${c.color ? `pg-led-${c.color}` : ""}` : ""}`}
                   data-part={c.id}
                   style={{ transform: `translate(${c.x}px,${c.y}px)` }}
                 >
                   <button
                     className="pg-part-handle"
-                    aria-label={`Select ${catalog[c.kind].label} ${c.id.slice(0, 4)}`}
+                    aria-label={`Select ${c.label || catalog[c.kind].label} ${c.id.slice(0, 4)}`}
                     onClick={() => setSelected(c.id)}
                     onPointerDown={(e) => dragPart(e, c)}
                     onKeyDown={(e) => {
@@ -911,9 +955,14 @@ function Workbench() {
                       height={78}
                       draggable={false}
                     />
-                    <strong>{catalog[c.kind].label}</strong>
+                    <strong>
+                      {c.kind === "led" && c.color && (
+                        <span className={`pg-led-dot pg-led-dot-${c.color}`} aria-hidden="true" />
+                      )}
+                      {c.label || catalog[c.kind].label}
+                    </strong>
                     <small>
-                      {c.kind === "battery"
+                      {c.kind === "battery" || c.kind === "arduino"
                         ? `${c.value} V`
                         : c.kind === "resistor"
                           ? `${c.value} Ω`
@@ -924,7 +973,9 @@ function Workbench() {
                             : "2 V / 20 mA"}
                     </small>
                     {checked && result.status === "lit" && c.kind === "led" && (
-                      <span className="pg-lit-label">LED on</span>
+                      <span className="pg-lit-label">
+                        {c.color ? `${c.color.charAt(0).toUpperCase() + c.color.slice(1)} on` : "LED on"}
+                      </span>
                     )}
                   </button>
 
@@ -1018,7 +1069,7 @@ function Workbench() {
                 width={140}
                 height={100}
               />
-              <h3>{catalog[part.kind].label}</h3>
+              <h3>{part.label || catalog[part.kind].label}</h3>
               <p>{catalog[part.kind].detail}</p>
               {(part.kind === "battery" || part.kind === "resistor") && (
                 <label>

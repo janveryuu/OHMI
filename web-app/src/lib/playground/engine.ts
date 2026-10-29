@@ -29,22 +29,148 @@ export function evaluate(raw: unknown): Evaluation {
       "incomplete",
       "Place a DC supply, a resistor and a red LED to begin.",
     );
-  const supplies = p.parts.filter((c) => c.kind === "battery"),
+  const supplies = p.parts.filter((c) => c.kind === "battery" || c.kind === "arduino"),
     leds = p.parts.filter((c) => c.kind === "led"),
     resistors = p.parts.filter((c) => c.kind === "resistor");
-  if (supplies.length > 1 || leds.length > 1)
+  if (supplies.length > 1)
     return result(
       "unsupported",
-      "Only one DC source and one red LED are supported. Multiple sources or LEDs need a broader circuit model.",
+      "Only one DC source or Arduino Uno is supported. Multiple sources need a broader circuit model.",
     );
-  if (supplies.length !== 1 || leds.length !== 1)
-    return result("incomplete", "Add one DC supply and one red LED.");
+  if (supplies.length !== 1 || leds.length < 1)
+    return result("incomplete", "Add one DC supply or Arduino Uno and at least one LED.");
+
   const supply = supplies[0];
   if (supply.value < 1.5 || supply.value > 12)
     return result(
       "unsafe",
       "Supply voltage is outside the supported 1.5–12 V range. Do not power this configuration.",
     );
+
+  // Multi-LED traffic light evaluation
+  if (leds.length > 1) {
+    const parent = new Map<string, string>();
+    for (const c of p.parts)
+      for (const pin of catalog[c.kind].pins)
+        parent.set(
+          terminalKey({ part: c.id, pin }),
+          terminalKey({ part: c.id, pin }),
+        );
+    const root = (key: string): string => {
+      let n = key;
+      while (parent.get(n) !== n) n = parent.get(n)!;
+      return n;
+    };
+    for (const w of p.wires)
+      parent.set(root(terminalKey(w.from)), root(terminalKey(w.to)));
+
+    const ends = (c: Part) =>
+      catalog[c.kind].pins.map((pin) => root(terminalKey({ part: c.id, pin })));
+
+    const [positive, negative] = ends(supply);
+    if (positive === negative)
+      return result(
+        "unsafe",
+        "Short circuit across the supply. Remove the bypass connection before powering anything.",
+      );
+
+    for (const c of p.parts) {
+      const e = ends(c);
+      if (e[0] === e[1]) {
+        return result(
+          "unsafe",
+          "A component is bypassed by wiring. Remove the short across its terminals.",
+        );
+      }
+    }
+
+    let totalCurrentMa = 0;
+    let maxBranchPower = 0;
+
+    for (const led of leds) {
+      const ledAnode = root(terminalKey({ part: led.id, pin: "a" }));
+      const ledCathode = root(terminalKey({ part: led.id, pin: "k" }));
+
+      if (ledAnode === negative || ledCathode === positive) {
+        return result(
+          "unsafe",
+          "Incorrect LED polarity. Connect the anode (A +) toward supply positive and cathode (K −) toward negative.",
+        );
+      }
+
+      if (ledCathode !== negative) {
+        return result(
+          "incomplete",
+          "The power path is open. Connect the cathode (K −) of each LED to negative / GND.",
+        );
+      }
+
+      const branchResistors = resistors.filter((r) => {
+        const [rA, rB] = ends(r);
+        return (rA === ledAnode && rB === positive) || (rB === ledAnode && rA === positive);
+      });
+
+      if (!branchResistors.length) {
+        if (ledAnode === positive) {
+          return result(
+            "unsafe",
+            "Missing current-limiting resistor. Direct supply connection can damage the LED.",
+          );
+        }
+        return result(
+          "incomplete",
+          "The power path is open. Each LED requires a current-limiting resistor connected to the 5 V / supply positive rail.",
+        );
+      }
+
+      const branchR = branchResistors[0];
+      if (branchR.value <= 0 || branchR.value > 1_000_000) {
+        return result(
+          "unsafe",
+          "Use positive resistance up to 1 MΩ and standard current-limiting resistors.",
+        );
+      }
+
+      const currentA = Math.max(0, (supply.value - 2) / branchR.value);
+      const powerW = currentA * currentA * branchR.value;
+
+      if (currentA > 0.02 + 1e-12 || powerW > 0.25) {
+        return result(
+          "unsafe",
+          `Potential LED or resistor damage: estimated ${(currentA * 1000).toFixed(1)} mA on a branch exceeds 20 mA.`,
+          currentA * 1000,
+          powerW,
+        );
+      }
+
+      totalCurrentMa += currentA * 1000;
+      if (powerW > maxBranchPower) maxBranchPower = powerW;
+    }
+
+    const usedParts = new Set<string>([supply.id]);
+    for (const led of leds) usedParts.add(led.id);
+    for (const r of resistors) {
+      const [rA, rB] = ends(r);
+      if ((rA === positive || rB === positive) && leds.some((l) => ends(l)[0] === (rA === positive ? rB : rA))) {
+        usedParts.add(r.id);
+      }
+    }
+
+    if (usedParts.size !== p.parts.length) {
+      return result(
+        "incomplete",
+        "Some components are outside the power path. Connect or remove them before checking.",
+      );
+    }
+
+    const avgCurrentMa = totalCurrentMa / leds.length;
+    return result(
+      "lit",
+      `Arduino Traffic Light active! All ${leds.length} LEDs are protected by current-limiting resistors and safely powered at ~${avgCurrentMa.toFixed(1)} mA per branch.`,
+      avgCurrentMa,
+      maxBranchPower,
+    );
+  }
   if (
     resistors.some((c) => c.value <= 0 || c.value > 1_000_000) ||
     leds[0].value !== 2

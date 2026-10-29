@@ -323,6 +323,71 @@
   background: var(--accent);
   border-color: var(--primary);
 }
+.pg-lit.pg-led-red .pg-part-handle {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+}
+.pg-lit.pg-led-red .pg-lit-label {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.pg-lit.pg-led-yellow .pg-part-handle {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+}
+.pg-lit.pg-led-yellow .pg-lit-label {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.pg-lit.pg-led-green .pg-part-handle {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: #22c55e;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.45);
+}
+.pg-lit.pg-led-green .pg-lit-label {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+[data-theme="dark"] .pg-lit.pg-led-red .pg-lit-label {
+  background: #450a0a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+[data-theme="dark"] .pg-lit.pg-led-yellow .pg-lit-label {
+  background: #451a03;
+  color: #fde68a;
+  border-color: #78350f;
+}
+[data-theme="dark"] .pg-lit.pg-led-green .pg-lit-label {
+  background: #052e16;
+  color: #86efac;
+  border-color: #14532d;
+}
+.pg-led-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.pg-led-dot-red {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef444488;
+}
+.pg-led-dot-yellow {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b88;
+}
+.pg-led-dot-green {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e88;
+}
 .pg-lit-label {
   position: absolute;
   top: -28px;
@@ -332,6 +397,148 @@
   background: var(--accent);
   font-size: 12px;
   font-weight: 700;
+}
+
+/* Circuit Action Card inside Ask OHMI */
+.circuit-action-card {
+  margin-top: 14px;
+  padding: 16px 18px;
+  background: var(--card);
+  border: 1.5px solid var(--primary);
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 4px 18px rgba(8, 119, 107, 0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.circuit-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.circuit-action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  background: var(--accent);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.circuit-action-tag {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.circuit-action-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+.circuit-action-prompt {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+.circuit-action-prompt strong {
+  color: var(--foreground);
+}
+.circuit-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.circuit-action-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.circuit-action-btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.circuit-action-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.circuit-action-btn-secondary:hover {
+  background: var(--secondary);
+}
+.circuit-code-panel {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+.circuit-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.circuit-code-header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.circuit-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+}
+.circuit-code-panel pre {
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.circuit-wiring-list {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+  margin: 0;
+  padding-left: 18px;
 }
 .pg-empty {
   position: absolute;

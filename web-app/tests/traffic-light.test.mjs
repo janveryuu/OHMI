@@ -1,0 +1,151 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  buildTrafficLightProject,
+  validateProject,
+  isTrafficLightMatch,
+  newPart,
+} from "../src/lib/playground/model.ts";
+import { evaluate } from "../src/lib/playground/engine.ts";
+
+test("buildTrafficLightProject returns a valid project with Arduino Uno and 3 LED branches", () => {
+  const p = buildTrafficLightProject();
+  const validated = validateProject(p);
+  assert.equal(validated.name, "Arduino Traffic Light (3 LEDs)");
+  assert.equal(validated.parts.length, 7);
+
+  const arduino = validated.parts.find((c) => c.kind === "arduino");
+  assert.ok(arduino, "Arduino Uno part must exist");
+  assert.equal(arduino.value, 5);
+
+  const resistors = validated.parts.filter((c) => c.kind === "resistor");
+  assert.equal(resistors.length, 3);
+  for (const r of resistors) {
+    assert.equal(r.value, 220);
+    assert.ok(r.label?.includes("220 Ω"));
+  }
+
+  const leds = validated.parts.filter((c) => c.kind === "led");
+  assert.equal(leds.length, 3);
+  const colors = leds.map((l) => l.color).sort();
+  assert.deepEqual(colors, ["green", "red", "yellow"]);
+
+  assert.equal(validated.wires.length, 9);
+});
+
+test("evaluate(buildTrafficLightProject()) lights up all 3 LEDs safely at ~13.6 mA", () => {
+  const p = buildTrafficLightProject();
+  const res = evaluate(p);
+  assert.equal(res.status, "lit");
+  assert.ok(res.currentMa && Math.abs(res.currentMa - 13.636) < 0.1);
+  assert.ok(res.resistorWatts && res.resistorWatts < 0.1);
+  assert.match(res.message, /Arduino Traffic Light active! All 3 LEDs are protected/i);
+});
+
+test("traffic light evaluation catches missing current-limiting resistor", () => {
+  const p = buildTrafficLightProject();
+  // Bypass resistor-red: connect 5V directly to led-red anode
+  p.wires = p.wires.filter(
+    (w) => w.id !== "wire-5v-red" && w.id !== "wire-red-res-led",
+  );
+  p.wires.push({
+    id: "wire-direct-red",
+    from: { part: "arduino-uno", pin: "p" },
+    to: { part: "led-red", pin: "a" },
+  });
+  // Remove resistor-red from parts so it doesn't fail on unused parts check
+  p.parts = p.parts.filter((c) => c.id !== "resistor-red");
+
+  const res = evaluate(p);
+  assert.equal(res.status, "unsafe");
+  assert.match(res.message, /Missing current-limiting resistor/i);
+});
+
+test("traffic light evaluation catches reversed LED polarity", () => {
+  const p = buildTrafficLightProject();
+  const wireToAnode = p.wires.find((w) => w.id === "wire-red-res-led");
+  const wireToCathode = p.wires.find((w) => w.id === "wire-red-gnd");
+  assert.ok(wireToAnode && wireToCathode);
+  wireToAnode.to.pin = "k";
+  wireToCathode.from.pin = "a";
+
+  const res = evaluate(p);
+  assert.equal(res.status, "unsafe");
+  assert.match(res.message, /Incorrect LED polarity/i);
+});
+
+test("traffic light evaluation reports open circuit if an LED cathode is not grounded", () => {
+  const p = buildTrafficLightProject();
+  // Disconnect green LED cathode wire
+  p.wires = p.wires.filter((w) => w.id !== "wire-green-gnd");
+
+  const res = evaluate(p);
+  assert.equal(res.status, "incomplete");
+  assert.match(res.message, /Connect the cathode/i);
+});
+
+test("traffic light evaluation flags dangerous short circuit across 5V and GND", () => {
+  const p = buildTrafficLightProject();
+  p.wires.push({
+    id: "wire-short",
+    from: { part: "arduino-uno", pin: "p" },
+    to: { part: "arduino-uno", pin: "n" },
+  });
+
+  const res = evaluate(p);
+  assert.equal(res.status, "unsafe");
+  assert.match(res.message, /Short circuit across the supply/i);
+});
+
+test("traffic light evaluation catches excessive branch current if resistor is too low", () => {
+  const p = buildTrafficLightProject();
+  const redRes = p.parts.find((c) => c.id === "resistor-red");
+  assert.ok(redRes);
+  redRes.value = 10; // (5 - 2) / 10 = 300 mA > 20 mA
+
+  const res = evaluate(p);
+  assert.equal(res.status, "unsafe");
+  assert.match(res.message, /exceeds 20 mA/i);
+});
+
+test("traffic light evaluation reports incomplete if unrouted spare parts exist", () => {
+  const p = buildTrafficLightProject();
+  p.parts.push(newPart("switch", "spare-switch", 100, 100));
+
+  const res = evaluate(p);
+  assert.equal(res.status, "incomplete");
+  assert.match(res.message, /Some components are outside the power path/i);
+});
+
+test("isTrafficLightMatch correctly identifies traffic light building queries", () => {
+  assert.equal(
+    isTrafficLightMatch("I can help you build an Arduino traffic light with three LEDs.", "Build an Arduino traffic light with three LEDs"),
+    true,
+  );
+  assert.equal(
+    isTrafficLightMatch("Sure, here is how you build a traffic-light circuit.", "can you show me a traffic-light?"),
+    true,
+  );
+  assert.equal(
+    isTrafficLightMatch("Let's connect 3 LEDs to the Arduino Uno.", "Arduino with 3 leds"),
+    true,
+  );
+  assert.equal(
+    isTrafficLightMatch("We will set up an Arduino with three LEDs.", "three leds on arduino"),
+    true,
+  );
+
+  // Negative matches
+  assert.equal(
+    isTrafficLightMatch("Ohm's law relates voltage, current and resistance: V = I * R.", "What is Ohm's law?"),
+    false,
+  );
+  assert.equal(
+    isTrafficLightMatch("Here is how to wire an ultrasonic sensor to Arduino.", "How to use HC-SR04 with Arduino?"),
+    false,
+  );
+  assert.equal(
+    isTrafficLightMatch("Connect the potentiometer signal pin to A0.", "Potentiometer reading"),
+    false,
+  );
+});

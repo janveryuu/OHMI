@@ -1,4 +1,4 @@
-export type Kind = "battery" | "led" | "resistor" | "switch";
+export type Kind = "battery" | "led" | "resistor" | "switch" | "arduino";
 export type Part = {
   id: string;
   kind: Kind;
@@ -6,6 +6,8 @@ export type Part = {
   y: number;
   value: number;
   closed: boolean;
+  label?: string;
+  color?: string;
 };
 export type Terminal = { part: string; pin: string };
 export type Wire = { id: string; from: Terminal; to: Terminal };
@@ -26,6 +28,14 @@ export const catalog = {
     pins: ["p", "n"],
     names: ["+", "−"],
     detail: "Adjustable ideal DC source. Supported range: 1.5–12 V.",
+  },
+  arduino: {
+    label: "Arduino Uno",
+    image: "arduino-uno",
+    pins: ["p", "n"],
+    names: ["5V", "GND"],
+    detail:
+      "Microcontroller board supplying regulated 5 V and GND power rails for circuits.",
   },
   resistor: {
     label: "Resistor",
@@ -64,14 +74,29 @@ export function emptyProject(): Project {
     switchSeen: [],
   };
 }
-export function newPart(kind: Kind, id: string, x: number, y: number): Part {
+export function newPart(
+  kind: Kind,
+  id: string,
+  x: number,
+  y: number,
+  extra?: { label?: string; color?: string; value?: number },
+): Part {
   return {
     id,
     kind,
     x,
     y,
-    value: kind === "battery" ? 5 : kind === "resistor" ? 330 : 2,
+    value:
+      extra?.value !== undefined
+        ? extra.value
+        : kind === "battery" || kind === "arduino"
+          ? 5
+          : kind === "resistor"
+            ? 330
+            : 2,
     closed: false,
+    ...(extra?.label ? { label: extra.label } : {}),
+    ...(extra?.color ? { color: extra.color } : {}),
   };
 }
 export const terminalKey = (t: Terminal) => `${t.part}:${t.pin}`;
@@ -154,7 +179,9 @@ export function validateProject(raw: unknown): Project {
       c.x > 840 ||
       c.y < 0 ||
       c.y > 480 ||
-      typeof c.closed !== "boolean"
+      typeof c.closed !== "boolean" ||
+      (c.label !== undefined && (typeof c.label !== "string" || c.label.length > 40)) ||
+      (c.color !== undefined && (typeof c.color !== "string" || !["red", "yellow", "green", "blue"].includes(c.color.toLowerCase())))
     )
       return invalid();
     ids.add(c.id);
@@ -196,13 +223,15 @@ export function validateProject(raw: unknown): Project {
   return {
     version: 1,
     name: p.name.trim(),
-    parts: p.parts.map(({ id, kind, x, y, value, closed }) => ({
+    parts: p.parts.map(({ id, kind, x, y, value, closed, label, color }) => ({
       id,
       kind,
       x,
       y,
       value,
       closed,
+      ...(label ? { label: label.trim().slice(0, 40) } : {}),
+      ...(color ? { color: color.toLowerCase() } : {}),
     })),
     wires: p.wires.map(({ id, from, to }) => ({
       id,
@@ -214,4 +243,45 @@ export function validateProject(raw: unknown): Project {
     completed: [...new Set(p.completed)],
     switchSeen: [...new Set(p.switchSeen)],
   };
+}
+
+export function buildTrafficLightProject(): Project {
+  const p = emptyProject();
+  p.name = "Arduino Traffic Light (3 LEDs)";
+  const arduino = newPart("arduino", "arduino-uno", 48, 144, { label: "Arduino Uno" });
+  const rRed = newPart("resistor", "resistor-red", 288, 48, { label: "220 Ω (Red)", value: 220 });
+  const rYellow = newPart("resistor", "resistor-yellow", 288, 192, { label: "220 Ω (Yellow)", value: 220 });
+  const rGreen = newPart("resistor", "resistor-green", 288, 336, { label: "220 Ω (Green)", value: 220 });
+
+  const ledRed = newPart("led", "led-red", 528, 48, { label: "Red LED", color: "red" });
+  const ledYellow = newPart("led", "led-yellow", 528, 192, { label: "Yellow LED", color: "yellow" });
+  const ledGreen = newPart("led", "led-green", 528, 336, { label: "Green LED", color: "green" });
+
+  p.parts = [arduino, rRed, rYellow, rGreen, ledRed, ledYellow, ledGreen];
+  p.wires = [
+    { id: "wire-5v-red", from: { part: "arduino-uno", pin: "p" }, to: { part: "resistor-red", pin: "a" } },
+    { id: "wire-red-res-led", from: { part: "resistor-red", pin: "b" }, to: { part: "led-red", pin: "a" } },
+    { id: "wire-red-gnd", from: { part: "led-red", pin: "k" }, to: { part: "arduino-uno", pin: "n" } },
+
+    { id: "wire-5v-yellow", from: { part: "arduino-uno", pin: "p" }, to: { part: "resistor-yellow", pin: "a" } },
+    { id: "wire-yellow-res-led", from: { part: "resistor-yellow", pin: "b" }, to: { part: "led-yellow", pin: "a" } },
+    { id: "wire-yellow-gnd", from: { part: "led-yellow", pin: "k" }, to: { part: "arduino-uno", pin: "n" } },
+
+    { id: "wire-5v-green", from: { part: "arduino-uno", pin: "p" }, to: { part: "resistor-green", pin: "a" } },
+    { id: "wire-green-res-led", from: { part: "resistor-green", pin: "b" }, to: { part: "led-green", pin: "a" } },
+    { id: "wire-green-gnd", from: { part: "led-green", pin: "k" }, to: { part: "arduino-uno", pin: "n" } },
+  ];
+  return p;
+}
+
+export function isTrafficLightMatch(msgText: string, userText?: string): boolean {
+  const combined = `${userText || ""} ${msgText}`.toLowerCase();
+  const hasTrafficLight = combined.includes("traffic light") || combined.includes("traffic-light");
+  const hasArduinoAndLeds =
+    combined.includes("arduino") &&
+    (combined.includes("three led") ||
+      combined.includes("3 led") ||
+      combined.includes("3 leds") ||
+      combined.includes("three leds"));
+  return hasTrafficLight || hasArduinoAndLeds;
 }
