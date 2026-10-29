@@ -36,6 +36,11 @@
       "permanent": false
     },
     {
+      "source": "/playground/",
+      "destination": "/app/playground/",
+      "permanent": false
+    },
+    {
       "source": "/progress/",
       "destination": "/app/progress/",
       "permanent": false
