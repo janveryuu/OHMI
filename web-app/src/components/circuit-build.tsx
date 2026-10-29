@@ -221,7 +221,7 @@ function Builder({
             </ul>
           )}
           {result.status === "draft" && (
-            <Link href={"/playground/electronics/?build=" + requestId}>
+            <Link href={"/playground/?build=" + requestId}>
               Open new editable draft
             </Link>
           )}

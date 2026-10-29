@@ -64,23 +64,23 @@ void setup() {
 }
 
 void loop() {
-  // Red Light ON (5 seconds)
+  // Red Light ON (1 second)
   digitalWrite(RED_PIN, HIGH);
   digitalWrite(YELLOW_PIN, LOW);
   digitalWrite(GREEN_PIN, LOW);
-  delay(5000);
+  delay(1000);
 
-  // Yellow Light ON (2 seconds)
+  // Yellow Light ON (1 second)
   digitalWrite(RED_PIN, LOW);
   digitalWrite(YELLOW_PIN, HIGH);
   digitalWrite(GREEN_PIN, LOW);
-  delay(2000);
+  delay(1000);
 
-  // Green Light ON (5 seconds)
+  // Green Light ON (1 second)
   digitalWrite(RED_PIN, LOW);
   digitalWrite(YELLOW_PIN, LOW);
   digitalWrite(GREEN_PIN, HIGH);
-  delay(5000);
+  delay(1000);
 }`;
 
   const copyCode = async () => {
@@ -98,7 +98,7 @@ void loop() {
           <Sparkles size={12} className="text-primary" />
           <span>Interactive Circuit Ready</span>
         </div>
-        <span className="circuit-action-tag">Arduino Uno · 3 LEDs · 220 Ω</span>
+        <span className="circuit-action-tag">Arduino Uno · 3 LEDs · 330 Ω</span>
       </div>
 
       <h3 className="circuit-action-title">
@@ -106,7 +106,7 @@ void loop() {
       </h3>
 
       <p className="circuit-action-prompt">
-        Would you like the <strong>Arduino C++ code</strong>, or should I build this circuit directly in your <strong>Playground workbench</strong>?
+        Would you like the <strong>Arduino C++ code</strong>, or should I build this circuit directly in your <strong>Electronics workspace</strong>?
       </p>
 
       <div className="circuit-action-buttons">
@@ -148,9 +148,9 @@ void loop() {
             <code>{trafficLightCode}</code>
           </pre>
           <ul className="circuit-wiring-list">
-            <li><strong>Red LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 8</li>
-            <li><strong>Yellow LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 9</li>
-            <li><strong>Green LED:</strong> Anode (+) → 220 Ω resistor → Arduino Pin 10</li>
+            <li><strong>Red LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 8</li>
+            <li><strong>Yellow LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 9</li>
+            <li><strong>Green LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 10</li>
             <li><strong>Ground:</strong> All 3 LED cathodes (−) → Arduino GND rail</li>
           </ul>
         </div>
@@ -271,10 +271,10 @@ export function Chat() {
       isTrafficLightMatch(m.text),
     );
 
-    // Natural detection of student selecting "Playground" in response to circuit builder prompt
+    // Natural detection of student selecting "Playground" or "Electronics workspace" in response to circuit builder prompt
     const isPlaygroundSelection =
-      /\b(?:playground|play\s*ground)\b/i.test(value) &&
-      !/\b(?:what\s+is|explain|info\s+about)\s+playground\b/i.test(value);
+      /\b(?:playground|play\s*ground|workspace|electronic\s*workspace|electronics\s*workspace)\b/i.test(value) &&
+      !/\b(?:what\s+is|explain|info\s+about)\s+(?:playground|workspace)\b/i.test(value);
 
     if (
       isPlaygroundSelection &&

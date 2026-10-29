@@ -59,9 +59,9 @@ function Editor({
         frame.current?.focus();
       });
   }, [canvasFocus]);
-  const templateLoaded = useRef(false);
+  const lastLoadedTemplate = useRef<string | null>(null);
   useEffect(() => {
-    if (!ready || templateLoaded.current || !bridge.current) return;
+    if (!ready || !bridge.current) return;
     let templateName: string | null = initialTemplate || null;
     if (!templateName && typeof window !== "undefined") {
       try {
@@ -73,10 +73,11 @@ function Editor({
       } catch {}
     }
     if (
-      templateName === "arduino-traffic-light" ||
-      templateName === "traffic-light"
+      (templateName === "arduino-traffic-light" ||
+        templateName === "traffic-light") &&
+      lastLoadedTemplate.current !== templateName
     ) {
-      templateLoaded.current = true;
+      lastLoadedTemplate.current = templateName;
       try {
         sessionStorage.removeItem("ohmi_playground_template");
         sessionStorage.removeItem("ohmi_playground_active_template");
@@ -84,10 +85,20 @@ function Editor({
       const doc = getTrafficLightElectronicsDocument();
       bridge.current
         ?.request({ operation: "open", document: doc })
-        .then(() => {
+        .then(async () => {
           cloud.detach();
+          await bridge.current
+            ?.request({ operation: "zoom", direction: "fit" })
+            .catch(() => {});
+          await bridge.current
+            ?.request({ operation: "running", running: true })
+            .catch(() => {});
+          const status = await bridge.current
+            ?.request<EngineStatus>({ operation: "status" })
+            .catch(() => null);
+          if (status) setEngineState(status);
           setMessage(
-            "Arduino Traffic Light circuit loaded. Red (pin 8), Yellow (pin 9), Green (pin 10) connected with 330 Ω resistors.",
+            "Arduino Traffic Light circuit loaded. Red (pin 8), Yellow (pin 9), Green (pin 10) connected with 330 Ω resistors. Simulation running.",
           );
         })
         .catch((err) => {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ElectronicsWorkspace } from "@/components/electronics-workspace";
 
-export const metadata: Metadata = { title: "Electronics workspace preview" };
+export const metadata: Metadata = { title: "Electronics workspace" };
 
 export default async function Page({
   searchParams,

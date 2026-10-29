@@ -292,7 +292,7 @@ export function isTrafficLightMatch(msgText: string, userText?: string): boolean
   // Check for circuit building, wiring, coding, or playground context to avoid
   // false triggers on historical or conceptual questions (e.g. "Why is a traffic light red?")
   const hasCircuitOrBuildIntent =
-    /build|make|create|wire|wiring|circuit|code|sketch|playground|connect|setup|project|simulate|tinkercad|gawa|buo|ikabit/i.test(
+    /build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|project|simulate|tinkercad|gawa|buo|ikabit/i.test(
       combined,
     ) ||
     combined.includes("arduino") ||

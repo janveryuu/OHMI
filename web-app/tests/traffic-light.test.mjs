@@ -335,6 +335,40 @@ test("getTrafficLightElectronicsDocument returns valid designElectronics documen
     );
     assert.ok(wire, `Uno pin ${pin} must be wired to a resistor`);
   }
+
+  // Verify document passes bridge protocol validation
+  const { validateRequest } = await import(
+    "../public/vendor/design-electronics/protocol.mjs"
+  );
+  const validated = validateRequest({ operation: "open", document: doc });
+  assert.equal(validated.operation, "open");
+  assert.equal(validated.document.parts.length, 7);
+  assert.equal(validated.document.wires.length, 18);
 });
+
+test("isTrafficLightMatch recognizes workspace, build in playground, and natural circuit requests", async () => {
+  const { isTrafficLightMatch } = await import(
+    "../src/lib/playground/model.ts"
+  );
+  assert.ok(
+    isTrafficLightMatch("Build an Arduino traffic light with three LEDs"),
+  );
+  assert.ok(
+    isTrafficLightMatch("Can you build this circuit?", "Arduino traffic light with 3 LEDs"),
+  );
+  assert.ok(
+    isTrafficLightMatch("Build this on playground", "traffic light"),
+  );
+  assert.ok(
+    isTrafficLightMatch("Build on electronics workspace", "traffic light"),
+  );
+  assert.ok(
+    isTrafficLightMatch("I want it in my playground", "Arduino traffic light"),
+  );
+  assert.ok(
+    isTrafficLightMatch("gawa tayo ng traffic light gamit ang arduino"),
+  );
+});
+
 
 
