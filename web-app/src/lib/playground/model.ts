@@ -313,23 +313,13 @@ export function isTrafficLightMatch(msgText: string, userText?: string): boolean
       combined.includes("traffic") ||
       (combined.includes("led") && hasCircuitOrBuildIntent));
 
-  // General Arduino circuit building request (e.g. "build me an arduino circuit", "build an arduino")
-  const hasArduinoBuild =
-    hasArduino &&
-    hasCircuitOrBuildIntent &&
-    (combined.includes("circuit") ||
-      combined.includes("build") ||
-      combined.includes("make") ||
-      combined.includes("create") ||
-      combined.includes("wire") ||
-      combined.includes("playground") ||
-      combined.includes("workspace") ||
-      combined.includes("led"));
+  // General Arduino circuit building or coding request
+  const hasArduinoBuild = hasArduino && hasCircuitOrBuildIntent;
 
-  // Explicit user playground intent in circuit context
+  // Explicit user playground intent in circuit context or direct intent
   const hasPlaygroundIntent =
-    /\b(?:playground|workspace)\b/i.test(combined) &&
-    (hasTrafficLight || hasArduino || combined.includes("circuit"));
+    /\b(?:playground|play\s*ground|workspace|electronic\s*workspace|electronics\s*workspace)\b/i.test(combined) &&
+    !/\b(?:what\s+is|explain|info\s+about)\b/i.test(combined);
 
   return (
     hasArduinoAndLeds ||

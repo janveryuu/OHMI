@@ -20,7 +20,7 @@ export class ElectronicsBridge {
 
     let connected = false;
     let retryInterval: ReturnType<typeof setInterval> | null = null;
-    const channels: MessageChannel[] = [];
+    let currentChannel: MessageChannel | null = null;
 
     const handleMessage = ({ data }: MessageEvent) => {
       if (this.closed || data?.protocol !== PROTOCOL) return;
@@ -59,8 +59,13 @@ export class ElectronicsBridge {
     const tryInit = () => {
       if (this.closed || connected) return;
       try {
+        if (currentChannel) {
+          try {
+            currentChannel.port1.close();
+          } catch {}
+        }
         const channel = new MessageChannel();
-        channels.push(channel);
+        currentChannel = channel;
         channel.port1.onmessage = handleMessage;
         channel.port1.start();
         this.port = channel.port1;
@@ -93,6 +98,11 @@ export class ElectronicsBridge {
       if (retryInterval) clearInterval(retryInterval);
       if (typeof window !== "undefined") {
         window.removeEventListener("message", handleWindowMsg);
+      }
+      if (currentChannel && currentChannel.port1 !== this.port) {
+        try {
+          currentChannel.port1.close();
+        } catch {}
       }
     };
   }

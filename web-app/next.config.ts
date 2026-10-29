@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
       {
         source: "/vendor/design-electronics/index.html",
         headers: [
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'self' https://meetohmi.vercel.app https://ohmi-workspace.vercel.app; base-uri 'none'; form-action 'none'; object-src 'none'" },
         ],
       },

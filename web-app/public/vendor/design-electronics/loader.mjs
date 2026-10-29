@@ -11,7 +11,10 @@ const engine = request => {
   return response.result;
 };
 window.addEventListener("message", event => {
-  if (channel || event.source !== parent || event.data?.kind !== "ohmi-engine-init" || event.data.protocol !== PROTOCOL || !/^[a-f0-9]{32}$/.test(event.data.nonce) || event.ports.length !== 1) return;
+  if (event.source !== parent || event.data?.kind !== "ohmi-engine-init" || event.data.protocol !== PROTOCOL || !/^[a-f0-9]{32}$/.test(event.data.nonce) || event.ports.length !== 1) return;
+  if (channel) {
+    try { channel.close(); } catch {}
+  }
   channel = event.ports[0];
   const nonce = event.data.nonce;
   channel.onmessage = ({ data }) => {
@@ -19,6 +22,10 @@ window.addEventListener("message", event => {
     lastId = data.id;
     try {
       if (!ready) throw new Error("Engine is still loading.");
+      if (data.request?.operation === "theme" && typeof data.request.theme === "string") {
+        document.documentElement.dataset.theme = data.request.theme;
+        document.body.dataset.theme = data.request.theme;
+      }
       const result = engine(data.request);
       if (data.request.operation === "export" && data.request.format === "gerber") {
         const bytes = Module.FS.readFile("/tmp/ohmi-export.zip");
