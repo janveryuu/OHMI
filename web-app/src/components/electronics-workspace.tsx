@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 import { ElectronicsBridge, type EngineRequest } from "@/lib/playground/bridge";
 import { useElectronicsProject } from "@/lib/playground/use-electronics-project";
 import styles from "./electronics-workspace.module.css";
@@ -30,6 +31,8 @@ function Editor({
   const bridge = useRef<ElectronicsBridge | null>(null);
   const [generation, setGeneration] = useState(0);
   const [ready, setReady] = useState(false);
+  const [leaveOpen,setLeaveOpen]=useState(false);
+  const leaveAction=useRef<(()=>void)|null>(null);
   const [canvasFocus, setCanvasFocus] = useState(false);
   const focusButton = useRef<HTMLButtonElement>(null),
     focusBand = useRef<HTMLDivElement>(null);
@@ -193,14 +196,11 @@ function Editor({
   useEffect(() => {
     let leaving = false;
     const location = window.location.href;
-    const confirm = () =>
-      window.confirm(
-        "Leave the electronics workspace? Download your .dez circuit first to keep unsaved changes.",
-      );
     const warn = (event: BeforeUnloadEvent) => {
       if (!leaving) event.preventDefault();
     };
     const link = (event: MouseEvent) => {
+      if(leaving)return;
       const anchor = (event.target as Element)?.closest?.(
         "a[href]",
       ) as HTMLAnchorElement | null;
@@ -216,10 +216,10 @@ function Editor({
         anchor.href.split("#")[0] === location.split("#")[0]
       )
         return;
-      if (!confirm()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      } else leaving = true;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      leaveAction.current=()=>{leaving=true;anchor.click();};
+      setLeaveOpen(true);
     };
     // A same-URL history entry lets Back be canceled before Next unmounts the editor.
     const guard = () =>
@@ -232,10 +232,9 @@ function Editor({
     const back = (event: PopStateEvent) => {
       if (leaving) return;
       event.stopImmediatePropagation();
-      if (confirm()) {
-        leaving = true;
-        window.history.back();
-      } else guard();
+      guard();
+      leaveAction.current=()=>{leaving=true;window.history.go(-2);};
+      setLeaveOpen(true);
     };
     window.addEventListener("beforeunload", warn);
     document.addEventListener("click", link, true);
@@ -365,6 +364,17 @@ function Editor({
 
   return (
     <section className={styles.workspace} aria-labelledby="electronics-title">
+      <Dialog open={leaveOpen} onOpenChange={value=>{setLeaveOpen(value);if(!value)leaveAction.current=null;}}>
+        <DialogContent showCloseButton={false} onOpenAutoFocus={event=>{event.preventDefault();document.getElementById('stay-in-playground')?.focus();}}>
+          <img src="/app/mascot.png" alt="" width={56} height={64} style={{objectFit:'contain',imageRendering:'pixelated'}}/>
+          <DialogTitle>Keep your bright ideas safe.</DialogTitle>
+          <DialogDescription>Leaving the Playground? Save a private snapshot or download your .dez circuit first. Unsaved changes will be lost.</DialogDescription>
+          <div className={styles.group}>
+            <Button id="stay-in-playground" onClick={()=>{leaveAction.current=null;setLeaveOpen(false);}}>Keep building</Button>
+            <Button variant="outline" onClick={()=>{const action=leaveAction.current;leaveAction.current=null;setLeaveOpen(false);action?.();}}>Leave Playground</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <header className={styles.header}>
         <div>
           <h1 id="electronics-title">Electronics workspace</h1>
