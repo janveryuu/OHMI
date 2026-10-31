@@ -67,10 +67,13 @@ export function modifyExistingCircuit(
       };
     }
 
-    const maxPartId = Math.max(0, ...parts.map((pt) => Number(pt.id) || 0));
-    const maxWireId = Math.max(0, ...wires.map((w) => Number(w.id) || 0));
-    let nextWireId = maxWireId + 1;
-    const switchId = maxPartId + 1;
+    const existingIds = new Set([
+      ...parts.map((pt) => Number(pt.id) || 0),
+      ...wires.map((w) => Number(w.id) || 0),
+    ]);
+    let nextAvailableId = Math.max(0, ...existingIds) + 1;
+    const switchId = nextAvailableId++;
+    let nextWireId = nextAvailableId;
 
     if (unoPart) {
       // Find used digital pins

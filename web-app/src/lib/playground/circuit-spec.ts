@@ -9,6 +9,11 @@ export const BUILD_TYPES = [
   "resistor",
   "led",
   "switch",
+  "pushbutton",
+  "potentiometer",
+  "photocell",
+  "buzzer",
+  "74hc595",
   "breadboard",
 ] as const;
 type PartType = (typeof BUILD_TYPES)[number];
@@ -152,6 +157,11 @@ const propertyKeys: Record<PartType, string[]> = {
   resistor: ["resistance"],
   led: ["color"],
   switch: ["position"],
+  pushbutton: [],
+  potentiometer: ["resistance"],
+  photocell: [],
+  buzzer: [],
+  "74hc595": [],
   breadboard: ["size"],
 };
 
@@ -238,6 +248,12 @@ export function validateCircuitSpec(raw: unknown): CircuitSpec {
       !["half+", "full+", "mini"].includes(props.size)
     )
       invalid("unsupported breadboard size.");
+    if (
+      type === "potentiometer" &&
+      props.resistance !== undefined &&
+      !/^\d+(?:\.\d+)?(?:k|M)?(?:Ω|ohm)?$/i.test(props.resistance)
+    )
+      invalid("unsupported potentiometer resistance.");
     terminals.set(id, electronicsPins(type, props));
   }
   const connections = new Set<string>();
@@ -313,6 +329,14 @@ function validateElectricalSpec(
       join(part.id + ":common", part.id + ":a");
       join(part.id + ":common", part.id + ":b");
     }
+    if (part.type === "pushbutton") {
+      join(part.id + ":pin1", part.id + ":pin2");
+      join(part.id + ":pin3", part.id + ":pin4");
+    }
+    if (part.type === "74hc595") {
+      join(part.id + ":pin16", part.id + ":pin10");
+      join(part.id + ":pin8", part.id + ":pin13");
+    }
     if (part.type === "breadboard") {
       const groups = new Map<string, string>();
       for (const pin of terminals.get(part.id)!) {
@@ -351,6 +375,12 @@ function validateElectricalSpec(
       add(source, "5V", 5, 5);
       add(source, "3V3", 3.3, 3.3);
       for (let pin = 0; pin <= 13; pin++) add(source, "D" + pin, 0, 5, true);
+    }
+  }
+  for (const part of spec.parts) {
+    if (part.type === "74hc595") {
+      const qPins = ["pin15", "pin1", "pin2", "pin3", "pin4", "pin5", "pin6", "pin7"];
+      for (const q of qPins) add(part, q, 0, 5, true);
     }
   }
   const edges = new Map<string, { node: string; ohms: number; id: string }[]>();
@@ -432,7 +462,10 @@ function validateElectricalSpec(
         gpioCurrent.set(path.source.key, total);
       }
   }
-  if (resistors.some((part) => !used.has(part.id)))
+  const hasAdvancedParts = spec.parts.some((p) =>
+    ["potentiometer", "photocell", "buzzer", "74hc595", "pushbutton"].includes(p.type),
+  );
+  if (!hasAdvancedParts && resistors.some((part) => !used.has(part.id)))
     invalid(
       "this qualified builder requires every resistor to be part of a dedicated LED path; use the manual editor for other networks.",
     );
