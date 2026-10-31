@@ -184,6 +184,7 @@
   width: 310px;
   display: flex;
   flex-direction: column;
+  z-index: 5;
 }
 
 .assistantToggleBtn {
