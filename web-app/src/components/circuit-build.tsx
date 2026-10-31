@@ -8,6 +8,10 @@ import {
   validateCircuitBuildResult,
   type CircuitBuildResult,
 } from "@/lib/playground/circuit-spec";
+import {
+  parseCircuitIntent,
+  generateCircuit,
+} from "@/lib/playground/circuit-generator";
 
 export function CircuitBuild({ conversationId }: { conversationId: string }) {
   const app = useApp();
@@ -125,7 +129,14 @@ function Builder({
       if (data.accountId !== accountId || data.requestId !== id)
         throw new Error("Account or request changed. Reload your workspace.");
       if (data.result) {
-        setResult(validateCircuitBuildResult(data.result));
+        const validated = validateCircuitBuildResult(data.result);
+        setResult(validated);
+        try {
+          const generated = generateCircuit(parseCircuitIntent(prompt));
+          if (generated?.document) {
+            sessionStorage.setItem("ohmi_active_circuit_doc", JSON.stringify(generated.document));
+          }
+        } catch {}
         resolved();
         if (conversation) await app.refreshConversation(conversation);
       } else {
@@ -156,7 +167,7 @@ function Builder({
     <details className={styles.builder}>
       <summary>Build a circuit with OHMI</summary>
       <p className="small muted">
-        Qualified preview: Uno or battery, 1–8 LEDs with dedicated resistors.
+        Qualified preview: Uno or battery, 1–10 LEDs with dedicated resistors.
         The full manual catalog remains available.
       </p>
       {!enabled && (

@@ -274,14 +274,17 @@ function validateElectricalSpec(
   const sources = spec.parts.filter(
     (part) => part.type === "battery" || part.type === "arduino_uno",
   );
-  if (sources.length !== 1)
+  const unos = spec.parts.filter((p) => p.type === "arduino_uno");
+  const batteries = spec.parts.filter((p) => p.type === "battery");
+  const hasUnoWithBattery = unos.length === 1 && batteries.length === 1;
+  if (sources.length !== 1 && !hasUnoWithBattery)
     invalid(
-      "qualified builds need exactly one Uno or one battery power source.",
+      "qualified builds need exactly one Uno, one battery, or one Uno powered by a battery.",
     );
   const leds = spec.parts.filter((part) => part.type === "led");
-  if (!leds.length || leds.length > 8)
+  if ((!unos.length && !leds.length) || leds.length > 12)
     invalid(
-      "qualified builds support 1–8 LEDs with dedicated series resistors.",
+      "qualified builds support up to 10–12 LEDs with dedicated series resistors.",
     );
   const roots = new Map<string, string>();
   const root = (key: string): string => {
@@ -327,15 +330,10 @@ function validateElectricalSpec(
     string,
     { key: string; min: number; max: number; gpio: boolean }
   >();
-  const source = sources[0],
-    voltage =
-      source.type === "battery"
-        ? parseFloat(buildProperties(source).voltage)
-        : 5;
-  const add = (pin: string, min: number, max: number, gpio = false) => {
-    const node = root(source.id + ":" + pin),
+  const add = (sourcePart: CircuitSpec["parts"][number], pin: string, min: number, max: number, gpio = false) => {
+    const node = root(sourcePart.id + ":" + pin),
       existing = potentials.get(node),
-      key = source.id + ":" + pin;
+      key = sourcePart.id + ":" + pin;
     if (
       existing &&
       (existing.min !== min || existing.max !== max || gpio || existing.gpio)
@@ -343,14 +341,17 @@ function validateElectricalSpec(
       invalid("possible direct power/output short.");
     potentials.set(node, { key, min, max, gpio });
   };
-  if (source.type === "battery") {
-    add("plus", voltage, voltage);
-    add("minus", 0, 0);
-  } else {
-    add("GND", 0, 0);
-    add("5V", 5, 5);
-    add("3V3", 3.3, 3.3);
-    for (let pin = 0; pin <= 13; pin++) add("D" + pin, 0, 5, true);
+  for (const source of sources) {
+    if (source.type === "battery") {
+      const voltage = parseFloat(buildProperties(source).voltage) || 9;
+      add(source, "plus", voltage, voltage);
+      add(source, "minus", 0, 0);
+    } else {
+      add(source, "GND", 0, 0);
+      add(source, "5V", 5, 5);
+      add(source, "3V3", 3.3, 3.3);
+      for (let pin = 0; pin <= 13; pin++) add(source, "D" + pin, 0, 5, true);
+    }
   }
   const edges = new Map<string, { node: string; ohms: number; id: string }[]>();
   const resistors = spec.parts.filter((part) => part.type === "resistor");

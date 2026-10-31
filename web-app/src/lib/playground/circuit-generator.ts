@@ -1,5 +1,5 @@
 import { validateElectronicsDocument } from "./electronics-document.ts";
-import type { CircuitSpec } from "./circuit-spec.ts";
+import { validateCircuitSpec, type CircuitSpec } from "./circuit-spec.ts";
 
 export interface CircuitIntent {
   isCircuitRequest: boolean;
@@ -22,14 +22,15 @@ export interface GeneratedCircuit {
   arduinoCode: string;
   document: Record<string, unknown>;
   spec: CircuitSpec;
+  intent: CircuitIntent;
 }
 
-const COLOR_ROTATION = ["Red", "Yellow", "Green", "Blue", "White", "Red", "Yellow", "Green"];
+const COLOR_ROTATION = ["Red", "Yellow", "Green", "Blue", "White", "Red", "Yellow", "Green", "Blue", "White"];
 
 export function parseCircuitIntent(userText: string, assistantText?: string): CircuitIntent {
   const combined = `${userText || ""} ${assistantText || ""}`.toLowerCase();
 
-  const hasBuildIntent = /\b(?:build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|set\s+up|project|simulate|tinkercad|gawa|buo|ikabit|kabit)\b/i.test(combined);
+  const hasBuildIntent = /\b(?:build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|set\s+up|project|simulate|tinkercad|working|work|gawa|buo|ikabit|kabit)\b/i.test(combined);
   const mentionsArduino = /\barduino\b/i.test(combined);
   const mentionsBattery = /\b(?:battery|bat|dc\s*source|dc\s*supply|9v|cell|power\s*pack)\b/i.test(combined);
   const mentionsLed = /\bleds?\b/i.test(combined);
@@ -40,7 +41,7 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
 
   // Extract explicit LED count
   let count = 0;
-  const numMatch = combined.match(/\b([1-8])\s*(?:x\s*)?leds?\b/i) || combined.match(/\bleds?\s*:\s*([1-8])\b/i);
+  const numMatch = combined.match(/\b([1-9]|10)\s*(?:x\s*)?leds?\b/i) || combined.match(/\bleds?\s*:\s*([1-9]|10)\b/i);
   if (numMatch) {
     count = parseInt(numMatch[1], 10);
   } else {
@@ -53,22 +54,25 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
     else if (/\b(?:six|6)\s+leds?\b/i.test(combined)) count = 6;
     else if (/\b(?:seven|7)\s+leds?\b/i.test(combined)) count = 7;
     else if (/\b(?:eight|8)\s+leds?\b/i.test(combined)) count = 8;
+    else if (/\b(?:nine|9)\s+leds?\b/i.test(combined)) count = 9;
+    else if (/\b(?:ten|10)\s+leds?\b/i.test(combined)) count = 10;
   }
 
   // If no count specified, default reasonably
   if (count === 0) {
     if (mentionsTraffic) count = 3;
     else if (mentionsLed) count = /\bleds\b/i.test(combined) ? 3 : 1;
-    else count = 3;
+    else if (mentionsArduino && mentionsBattery) count = 0; // Pure Arduino + battery request
+    else count = mentionsArduino ? 3 : 1;
   }
-  count = Math.max(1, Math.min(8, count));
+  count = Math.max(0, Math.min(10, count));
 
   // Extract colors
   const extractedColors: string[] = [];
   const colorMatches = combined.matchAll(/\b(red|yellow|green|blue|white)\b/gi);
   for (const match of colorMatches) {
     const capitalized = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-    if (!extractedColors.includes(capitalized) && extractedColors.length < count) {
+    if (!extractedColors.includes(capitalized) && extractedColors.length < Math.max(1, count)) {
       extractedColors.push(capitalized);
     }
   }
@@ -79,7 +83,7 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
     colors = ["Red", "Yellow", "Green"];
   } else {
     colors = [...extractedColors];
-    while (colors.length < count) {
+    while (colors.length < Math.max(1, count)) {
       colors.push(COLOR_ROTATION[colors.length % COLOR_ROTATION.length]);
     }
   }
@@ -94,14 +98,14 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
   const voltMatch = combined.match(/\b(1\.5|3|5|9|12)\s*v\b/i);
   if (voltMatch) batteryVoltage = `${voltMatch[1]}V`;
 
-  // Resistor: 220 for 5V Uno, 330 for 9V battery
-  let resistorOhms = isArduino ? 220 : 330;
+  // Resistor: 220 for 5V Uno, 470 for 9V battery, 330 for lower DC
+  let resistorOhms = isArduino ? 220 : batteryVoltage === "9V" || batteryVoltage === "12V" ? 470 : 330;
   const ohmMatch = combined.match(/\b(\d{2,4})\s*(?:ohm|Ω)\b/i);
   if (ohmMatch) resistorOhms = parseInt(ohmMatch[1], 10);
 
   let behavior: CircuitIntent["behavior"] = "chaser";
   if (mentionsTraffic && count === 3) behavior = "traffic_light";
-  else if (/\b(?:blink|blinking|flash)\b/i.test(combined)) behavior = "blink";
+  else if (/\b(?:blink|blinking|flash)\b/i.test(combined) || count === 0) behavior = "blink";
   else if (isBattery) behavior = "dc";
 
   return {
@@ -118,8 +122,29 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
 }
 
 export function generateArduinoSketch(intent: CircuitIntent): string {
-  const { ledCount, colors, behavior } = intent;
-  const startPin = 8;
+  const { ledCount, behavior } = intent;
+
+  if (ledCount === 0) {
+    return `// Arduino Uno Working Battery Power Circuit
+// Powered via VIN and GND (7-12V DC input)
+// Built-in status indicator LED on digital pin 13
+
+const int STATUS_PIN = 13;
+
+void setup() {
+  pinMode(STATUS_PIN, OUTPUT);
+}
+
+void loop() {
+  // Blink status LED every 500 ms to confirm power and operation
+  digitalWrite(STATUS_PIN, HIGH);
+  delay(500);
+  digitalWrite(STATUS_PIN, LOW);
+  delay(500);
+}`;
+  }
+
+  const startPin = ledCount > 8 ? 2 : 8;
   const pins = Array.from({ length: ledCount }, (_, i) => startPin + i);
 
   if (behavior === "traffic_light" && ledCount === 3) {
@@ -182,8 +207,7 @@ void loop() {
   }
 
   // Running LED sequencer / chaser
-  return `// Arduino LED Sequencer (${ledCount} LEDs)
-// Connects pins ${pins[0]} through ${pins[pins.length - 1]} to dedicated 220 ohm resistors
+  return `// Arduino ${ledCount}-LED Sequencer (Pins D${pins[0]} through D${pins[pins.length - 1]})
 const int LED_PINS[] = {${pins.join(", ")}};
 const int NUM_LEDS = ${ledCount};
 
@@ -197,13 +221,13 @@ void loop() {
   // Forward running chaser
   for (int i = 0; i < NUM_LEDS; i++) {
     digitalWrite(LED_PINS[i], HIGH);
-    delay(150);
+    delay(100);
     digitalWrite(LED_PINS[i], LOW);
   }
   // Reverse running chaser
   for (int i = NUM_LEDS - 2; i > 0; i--) {
     digitalWrite(LED_PINS[i], HIGH);
-    delay(150);
+    delay(100);
     digitalWrite(LED_PINS[i], LOW);
   }
 }`;
@@ -211,15 +235,20 @@ void loop() {
 
 export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   const isArduino = intent.controller === "arduino";
+  const hasBattery = intent.hasBattery;
   const ledCount = intent.ledCount;
   const colors = intent.colors;
-  const startPin = 8;
+  const startPin = ledCount > 8 ? 2 : 8;
   const sketch = isArduino ? generateArduinoSketch(intent) : "";
 
   // Title and Tag
   let title = "";
   if (isArduino) {
-    if (intent.behavior === "traffic_light" && ledCount === 3) {
+    if (hasBattery && ledCount === 0) {
+      title = `Arduino Uno with ${intent.batteryVoltage} Battery Power`;
+    } else if (hasBattery) {
+      title = `Arduino Uno with ${intent.batteryVoltage} Battery & ${ledCount} LEDs`;
+    } else if (intent.behavior === "traffic_light" && ledCount === 3) {
       title = "Arduino Traffic Light with Three LEDs";
     } else {
       title = `Arduino Uno with ${ledCount} LEDs Sequencer`;
@@ -230,15 +259,26 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
 
   const tagParts = [
     isArduino ? "Arduino Uno" : `${intent.batteryVoltage} Battery`,
-    `${ledCount} LED${ledCount > 1 ? "s" : ""}`,
-    `${intent.resistorOhms} Ω`,
   ];
-  if (isArduino) tagParts.push(`Pins D${startPin}–D${startPin + ledCount - 1}`);
+  if (hasBattery && isArduino) tagParts.push(`${intent.batteryVoltage} Battery (VIN/GND)`);
+  if (ledCount > 0) {
+    tagParts.push(`${ledCount} LED${ledCount > 1 ? "s" : ""}`);
+    tagParts.push(`${intent.resistorOhms} Ω`);
+    if (isArduino) tagParts.push(`Pins D${startPin}–D${startPin + ledCount - 1}`);
+  } else {
+    tagParts.push("Status Blink Pin 13");
+  }
   if (intent.hasSwitch) tagParts.push("Switch");
   const tag = tagParts.join(" · ");
 
   // Wiring Guide
   const wiring: { label: string; detail: string }[] = [];
+  if (hasBattery && isArduino) {
+    wiring.push({
+      label: "Battery Power",
+      detail: `${intent.batteryVoltage} Battery (+) → Arduino VIN, Battery (−) → Arduino GND`,
+    });
+  }
   for (let i = 0; i < ledCount; i++) {
     const pinName = isArduino ? `Arduino Pin D${startPin + i}` : intent.hasSwitch ? "Switch Output" : "Battery (+)";
     wiring.push({
@@ -246,10 +286,12 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
       detail: `Anode (+) → ${intent.resistorOhms} Ω Resistor → ${pinName}`,
     });
   }
-  wiring.push({
-    label: "Ground Return",
-    detail: `All ${ledCount} LED Cathodes (−) → ${isArduino ? "Arduino GND" : "Battery (−)"}`,
-  });
+  if (ledCount > 0) {
+    wiring.push({
+      label: "Ground Return",
+      detail: `All ${ledCount} LED Cathodes (−) → ${isArduino ? "Arduino GND" : "Battery (−)"}`,
+    });
+  }
 
   // Construct valid designElectronics document
   const parts: Record<string, unknown>[] = [];
@@ -282,6 +324,60 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
         pcb: { at: [0, 0] },
       },
     });
+  }
+
+  // If Arduino with Battery, add battery as part 2
+  const batteryId = 2;
+  if (isArduino && hasBattery) {
+    parts.push({
+      id: batteryId,
+      type: "battery",
+      label: "BT1",
+      props: { voltage: intent.batteryVoltage },
+      views: {
+        breadboard: { at: [-1400, 400] },
+        schematic: { at: [-1800, 0] },
+        pcb: { at: [-1400, 400] },
+      },
+    });
+
+    // Wire battery plus to Arduino VIN
+    wires.push(
+      {
+        id: nextWireId++,
+        view: "schematic",
+        points: [[-1200, 0], [0, 0]],
+        from: { part: batteryId, pin: "plus" },
+        to: { part: 1, pin: "VIN" },
+      },
+      {
+        id: nextWireId++,
+        view: "breadboard",
+        points: [[-800, 400], [1200, 100]],
+        from: { part: batteryId, pin: "plus" },
+        to: { part: 1, pin: "VIN" },
+        color: "#d94343",
+      },
+    );
+
+    // Wire battery minus to Arduino GND_3
+    wires.push(
+      {
+        id: nextWireId++,
+        view: "schematic",
+        points: [[-1200, 200], [0, 200]],
+        from: { part: batteryId, pin: "minus" },
+        to: { part: 1, pin: "GND_3" },
+      },
+      {
+        id: nextWireId++,
+        view: "breadboard",
+        points: [[-800, 600], [1300, 100]],
+        from: { part: batteryId, pin: "minus" },
+        to: { part: 1, pin: "GND_3" },
+        color: "#222222",
+      },
+    );
   }
 
   let switchId = 0;
@@ -320,9 +416,9 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
 
   // Add Resistors and LEDs
   for (let i = 0; i < ledCount; i++) {
-    const resId = 2 + i * 2;
-    const ledId = 3 + i * 2;
-    const yOffset = i * 900;
+    const resId = 10 + i * 2;
+    const ledId = 11 + i * 2;
+    const yOffset = i * 700;
     const pinName = `D${startPin + i}`;
 
     parts.push({
@@ -461,6 +557,7 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   const document = validateElectronicsDocument(rawDocument);
 
   // Build CircuitSpec
+  const specId = (id: number | string) => "part" + id;
   const specParts = parts.map((p) => {
     const partType = p.type as CircuitSpec["parts"][number]["type"];
     const properties: { key: string; value: string }[] = [];
@@ -470,7 +567,7 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
     if (partType === "switch") properties.push({ key: "position", value: "left" });
 
     return {
-      id: String(p.id),
+      id: specId(p.id as number),
       type: partType,
       properties,
       sketch: isArduino && partType === "arduino_uno" ? sketch : "",
@@ -478,17 +575,29 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   });
 
   const specConnections: CircuitSpec["connections"] = [];
+  if (isArduino && hasBattery) {
+    specConnections.push(
+      { from: { part: specId(batteryId), pin: "plus" }, to: { part: specId(1), pin: "VIN" } },
+      { from: { part: specId(batteryId), pin: "minus" }, to: { part: specId(1), pin: "GND_3" } },
+    );
+  }
+  if (!isArduino && intent.hasSwitch && switchId) {
+    specConnections.push({
+      from: { part: specId(1), pin: "plus" },
+      to: { part: specId(switchId), pin: "common" },
+    });
+  }
   for (let i = 0; i < ledCount; i++) {
-    const resId = String(2 + i * 2);
-    const ledId = String(3 + i * 2);
+    const resId = specId(10 + i * 2);
+    const ledId = specId(11 + i * 2);
     const pinName = `D${startPin + i}`;
     if (isArduino) {
-      specConnections.push({ from: { part: "1", pin: pinName }, to: { part: resId, pin: "pin0" } });
+      specConnections.push({ from: { part: specId(1), pin: pinName }, to: { part: resId, pin: "pin0" } });
     } else {
-      specConnections.push({ from: { part: switchId ? String(switchId) : "1", pin: switchId ? "a" : "plus" }, to: { part: resId, pin: "pin0" } });
+      specConnections.push({ from: { part: switchId ? specId(switchId) : specId(1), pin: switchId ? "a" : "plus" }, to: { part: resId, pin: "pin0" } });
     }
     specConnections.push({ from: { part: resId, pin: "pin1" }, to: { part: ledId, pin: "anode" } });
-    specConnections.push({ from: { part: ledId, pin: "cathode" }, to: { part: "1", pin: isArduino ? "GND" : "minus" } });
+    specConnections.push({ from: { part: ledId, pin: "cathode" }, to: { part: specId(1), pin: isArduino ? "GND" : "minus" } });
   }
 
   const spec: CircuitSpec = {
@@ -501,6 +610,8 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
     connections: specConnections,
   };
 
+  const validatedSpec = validateCircuitSpec(spec);
+
   return {
     id: crypto.randomUUID(),
     title,
@@ -511,6 +622,7 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
     wiring,
     arduinoCode: sketch,
     document,
-    spec,
+    spec: validatedSpec,
+    intent,
   };
 }

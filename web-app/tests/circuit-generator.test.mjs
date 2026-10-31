@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseCircuitIntent, generateCircuit, generateArduinoSketch } from "../src/lib/playground/circuit-generator.ts";
 import { validateElectronicsDocument } from "../src/lib/playground/electronics-document.ts";
+import { validateCircuitSpec } from "../src/lib/playground/circuit-spec.ts";
 
 test("parseCircuitIntent parses 6 LEDs Arduino prompt", () => {
   const intent = parseCircuitIntent("build an arduino with six LEDs");
@@ -18,7 +19,23 @@ test("parseCircuitIntent parses 4 leds Arduino prompt", () => {
   assert.equal(intent.ledCount, 4);
 });
 
-test("parseCircuitIntent parses battery prompt", () => {
+test("parseCircuitIntent parses 10 leds Arduino prompt", () => {
+  const intent = parseCircuitIntent("build me a arduino that has 10 leds");
+  assert.equal(intent.isCircuitRequest, true);
+  assert.equal(intent.controller, "arduino");
+  assert.equal(intent.ledCount, 10);
+});
+
+test("parseCircuitIntent parses working arduino with battery prompt", () => {
+  const intent = parseCircuitIntent("give me a working arduino that has battery and it's working");
+  assert.equal(intent.isCircuitRequest, true);
+  assert.equal(intent.controller, "arduino");
+  assert.equal(intent.hasBattery, true);
+  assert.equal(intent.ledCount, 0);
+  assert.equal(intent.batteryVoltage, "9V");
+});
+
+test("parseCircuitIntent parses battery prompt with switch and LEDs", () => {
   const intent = parseCircuitIntent("build me a 9V battery circuit with two LEDs and a switch");
   assert.equal(intent.isCircuitRequest, true);
   assert.equal(intent.controller, "battery");
@@ -36,6 +53,43 @@ test("parseCircuitIntent parses traffic light prompt", () => {
   assert.deepEqual(intent.colors, ["Red", "Yellow", "Green"]);
 });
 
+test("generateCircuit builds valid working Arduino with Battery document & spec", () => {
+  const intent = parseCircuitIntent("give me a working arduino that has battery and it's working");
+  const result = generateCircuit(intent);
+
+  assert.match(result.title, /Arduino Uno with 9V Battery Power/);
+  assert.equal(result.document.parts.length, 2); // Uno + 9V Battery
+  assert.equal(result.wiring.length, 1);
+  assert.match(result.arduinoCode, /pinMode\(STATUS_PIN, OUTPUT\)/);
+
+  // Must pass both strict document and spec validation
+  const validatedDoc = validateElectronicsDocument(result.document);
+  assert.equal(validatedDoc.format, "designElectronics");
+  assert.equal(validatedDoc.version, 1);
+
+  const validatedSpec = validateCircuitSpec(result.spec);
+  assert.equal(validatedSpec.status, "draft");
+  assert.equal(validatedSpec.parts.length, 2);
+});
+
+test("generateCircuit builds valid 10-LED Arduino document & spec", () => {
+  const intent = parseCircuitIntent("build me a arduino that has 10 leds");
+  const result = generateCircuit(intent);
+
+  assert.match(result.title, /10 LEDs/);
+  assert.equal(result.wiring.length, 11); // 10 LEDs + ground return
+  assert.match(result.arduinoCode, /2, 3, 4, 5, 6, 7, 8, 9, 10, 11/);
+  assert.equal(result.document.parts.length, 21); // 1 Uno + 10 Resistors + 10 LEDs
+
+  const validatedDoc = validateElectronicsDocument(result.document);
+  assert.equal(validatedDoc.format, "designElectronics");
+  assert.equal(validatedDoc.version, 1);
+
+  const validatedSpec = validateCircuitSpec(result.spec);
+  assert.equal(validatedSpec.status, "draft");
+  assert.equal(validatedSpec.parts.length, 21);
+});
+
 test("generateCircuit builds valid 6-LED Arduino document", () => {
   const intent = parseCircuitIntent("build an arduino with six LEDs");
   const result = generateCircuit(intent);
@@ -45,22 +99,9 @@ test("generateCircuit builds valid 6-LED Arduino document", () => {
   assert.match(result.arduinoCode, /8, 9, 10, 11, 12, 13/);
   assert.equal(result.document.parts.length, 13); // 1 Uno + 6 Resistors + 6 LEDs
 
-  // Document must pass strict electronics document validation
   const validated = validateElectronicsDocument(result.document);
   assert.equal(validated.format, "designElectronics");
   assert.equal(validated.version, 1);
-});
-
-test("generateCircuit builds valid 4-LED Arduino document", () => {
-  const intent = parseCircuitIntent("build an arduino with 4 leds");
-  const result = generateCircuit(intent);
-
-  assert.match(result.title, /4 LEDs/);
-  assert.match(result.arduinoCode, /8, 9, 10, 11/);
-  assert.equal(result.document.parts.length, 9); // 1 Uno + 4 Resistors + 4 LEDs
-
-  const validated = validateElectronicsDocument(result.document);
-  assert.equal(validated.format, "designElectronics");
 });
 
 test("generateCircuit builds valid Battery circuit with switch and 2 LEDs", () => {

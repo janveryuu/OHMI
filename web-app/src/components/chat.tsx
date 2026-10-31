@@ -238,14 +238,21 @@ export function Chat() {
       );
     }
   }
-  function handleDirectToPlayground() {
+  function handleDirectToPlayground(circuit?: GeneratedCircuit | null) {
     try {
-      sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
+      if (circuit) {
+        sessionStorage.setItem("ohmi_active_circuit_doc", JSON.stringify(circuit.document));
+        sessionStorage.setItem("ohmi_active_circuit_spec", JSON.stringify(circuit.spec));
+        sessionStorage.setItem("ohmi_playground_template", circuit.intent.behavior === "traffic_light" ? "arduino-traffic-light" : "custom");
+      } else {
+        sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
+      }
     } catch {}
+    const templateParam = circuit?.intent.behavior === "traffic_light" ? "arduino-traffic-light" : "custom";
     if (router && typeof router.push === "function") {
-      router.push("/playground/?template=arduino-traffic-light");
+      router.push("/playground/?template=" + templateParam);
     } else {
-      window.location.assign("/app/playground/?template=arduino-traffic-light");
+      window.location.assign("/app/playground/?template=" + templateParam);
     }
   }
   async function send(event?: FormEvent, text = draft, continuation?: Record<string, unknown>, retryFile?: File | null) {
@@ -262,15 +269,30 @@ export function Chat() {
       /\b(?:playground|play\s*ground|workspace|electronic\s*workspace|electronics\s*workspace)\b/i.test(value) &&
       !/\b(?:what\s+is|explain|info\s+about)\s+(?:playground|workspace)\b/i.test(value);
 
+    const lastUserMsg = conversation.messages
+      .slice()
+      .reverse()
+      .find((m) => m.role === "user");
+    const activeCircuitIntent = parseCircuitIntent((lastUserMsg?.text || "") + " " + value);
+    const isCircuitContext =
+      isTrafficContext ||
+      activeCircuitIntent.isCircuitRequest ||
+      conversation.messages.some((m) => parseCircuitIntent(m.text).isCircuitRequest);
+
     if (
       isPlaygroundSelection &&
-      (isTrafficContext ||
+      (isCircuitContext ||
         /traffic|light|arduino|led|circuit|build|open|take|switch|breadboard/i.test(
           value,
         ))
     ) {
       setDraft("");
-      handleDirectToPlayground();
+      const resolvedCircuit = generateCircuit(
+        activeCircuitIntent.isCircuitRequest
+          ? activeCircuitIntent
+          : parseCircuitIntent("traffic light")
+      );
+      handleDirectToPlayground(resolvedCircuit);
       return;
     }
 
@@ -280,7 +302,12 @@ export function Chat() {
       /arduino|traffic|circuit|led/i.test(value)
     ) {
       setDraft("");
-      handleDirectToPlayground();
+      const resolvedCircuit = generateCircuit(
+        activeCircuitIntent.isCircuitRequest
+          ? activeCircuitIntent
+          : parseCircuitIntent("traffic light")
+      );
+      handleDirectToPlayground(resolvedCircuit);
       return;
     }
 
@@ -481,9 +508,16 @@ export function Chat() {
                 .slice(0, idx)
                 .reverse()
                 .find((m) => m.role === "user");
-              const isTraffic =
+              const circuitIntent = parseCircuitIntent(
+                (prevUser?.text || "") + " " + (message.text || "")
+              );
+              const isCircuitMatch =
                 message.role === "assistant" &&
-                isTrafficLightMatch(message.text, prevUser?.text);
+                (circuitIntent.isCircuitRequest ||
+                  isTrafficLightMatch(message.text, prevUser?.text));
+              const dynamicCircuit = isCircuitMatch
+                ? generateCircuit(circuitIntent)
+                : null;
               return (
               <article
                 key={message.id}
@@ -494,9 +528,10 @@ export function Chat() {
                 {message.role === "assistant" && (message.structured?.mode === "limited" || message.structured?.mode === "local") && (
                   <span className="chat-reply-note">{message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
                 )}
-                {isTraffic && (
+                {isCircuitMatch && dynamicCircuit && (
                   <CircuitActionCard
-                    onDirectToPlayground={handleDirectToPlayground}
+                    circuit={dynamicCircuit}
+                    onDirectToPlayground={() => handleDirectToPlayground(dynamicCircuit)}
                     forceShowCode={showTrafficCode}
                   />
                 )}
