@@ -506,6 +506,18 @@ function Editor({
   return (
     <section className={styles.workspace} aria-labelledby="electronics-title">
       <div className={styles.workbenchGrid}>
+        {!isAssistantCollapsed && (
+          <div className={styles.assistantSidebar}>
+            <PlaygroundAssistant
+              bridge={bridge}
+              ready={ready}
+              busy={busy}
+              setBusy={setBusy}
+              isCollapsed={false}
+              onToggleCollapse={() => setIsAssistantCollapsed(true)}
+            />
+          </div>
+        )}
         <div className={styles.canvasContainer}>
       <Dialog open={leaveOpen} onOpenChange={value=>{setLeaveOpen(value);if(!value)leaveAction.current=null;}}>
         <DialogContent showCloseButton={false} onOpenAutoFocus={event=>{event.preventDefault();document.getElementById('stay-in-playground')?.focus();}}>
@@ -899,18 +911,6 @@ function Editor({
         </Button>
       </footer>
         </div>
-        {!isAssistantCollapsed && (
-          <div className={styles.assistantSidebar}>
-            <PlaygroundAssistant
-              bridge={bridge}
-              ready={ready}
-              busy={busy}
-              setBusy={setBusy}
-              isCollapsed={false}
-              onToggleCollapse={() => setIsAssistantCollapsed(true)}
-            />
-          </div>
-        )}
       </div>
     </section>
   );

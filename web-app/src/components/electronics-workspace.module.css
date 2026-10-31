@@ -162,7 +162,7 @@
 .workbenchGrid {
   display: flex;
   gap: 20px;
-  align-items: stretch;
+  align-items: flex-start;
   width: 100%;
   position: relative;
 }
@@ -180,10 +180,13 @@
 }
 
 .assistantSidebar {
-  flex: 0 0 380px;
-  width: 380px;
+  flex: 0 0 310px;
+  width: 310px;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 16px;
+  z-index: 10;
 }
 
 .assistantToggleBtn {
@@ -199,6 +202,9 @@
   .assistantSidebar {
     width: 100%;
     flex: none;
-    height: 520px;
+    height: auto;
+    max-height: 440px;
+    margin-bottom: 16px;
+    position: static;
   }
 }

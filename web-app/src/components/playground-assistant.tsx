@@ -10,7 +10,6 @@ import {
   Code,
   ArrowUp,
   Sidebar,
-  Sparkles,
   Bot,
   AlertCircle,
   RotateCcw,
@@ -81,6 +80,73 @@ export function PlaygroundAssistant({
     prompt: string;
     resolve: (confirm: boolean) => void;
   } | null>(null);
+
+  // Floating pill draggable position & state
+  const [pillOffset, setPillOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    initOffsetX: number;
+    initOffsetY: number;
+    hasMoved: boolean;
+  } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    dragStartRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      initOffsetX: pillOffset.x,
+      initOffsetY: pillOffset.y,
+      hasMoved: false,
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
+    const dx = e.clientX - dragStartRef.current.startX;
+    const dy = e.clientY - dragStartRef.current.startY;
+    if (!dragStartRef.current.hasMoved && Math.hypot(dx, dy) > 4) {
+      dragStartRef.current.hasMoved = true;
+      setIsDragging(true);
+    }
+    if (dragStartRef.current.hasMoved) {
+      setPillOffset({
+        x: dragStartRef.current.initOffsetX + dx,
+        y: dragStartRef.current.initOffsetY + dy,
+      });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
+    const hadMoved = dragStartRef.current.hasMoved;
+    dragStartRef.current = null;
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    if (!hadMoved) {
+      onToggleCollapse();
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragStartRef.current && dragStartRef.current.pointerId === e.pointerId) {
+      dragStartRef.current = null;
+      setIsDragging(false);
+    }
+  };
 
   const feedRef = useRef<HTMLDivElement>(null);
 
@@ -319,16 +385,24 @@ export function PlaygroundAssistant({
     return (
       <button
         type="button"
-        className={styles.floatingTrigger}
-        onClick={onToggleCollapse}
-        aria-label="Open Build with OHMI assistant"
+        className={`${styles.floatingTrigger} ${isDragging ? styles.dragging : ""}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        style={{
+          transform: `translate3d(${pillOffset.x}px, ${pillOffset.y}px, 0)`,
+        }}
+        aria-label="Open Build with OHMI assistant (Drag to reposition)"
+        title="Click to open or drag to reposition"
       >
         <Image
           src="/app/mascot.png"
           alt=""
-          width={22}
-          height={26}
+          width={20}
+          height={24}
           className={styles.mascotIcon}
+          draggable={false}
         />
         <span>Build with OHMI</span>
       </button>
