@@ -184,9 +184,6 @@
   width: 310px;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 16px;
-  z-index: 10;
 }
 
 .assistantToggleBtn {
@@ -205,6 +202,5 @@
     height: auto;
     max-height: 440px;
     margin-bottom: 16px;
-    position: static;
   }
 }
