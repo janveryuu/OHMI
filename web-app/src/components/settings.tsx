@@ -26,7 +26,6 @@ import { PwaControls } from "./pwa-controls";
 import { Companion } from "./companion";
 import { UserAvatar } from "./ui/user-avatar";
 import { AvatarModal } from "./avatar-modal";
-import { Sparkles } from "lucide-react";
 
 export function Settings() {
   const app = useApp(),
@@ -72,9 +71,6 @@ export function Settings() {
               className="profile-avatar"
               priority
             />
-            <span className="profile-avatar-badge" aria-hidden="true">
-              <Sparkles size={13} />
-            </span>
           </button>
         </div>
         <div className="profile-details">
@@ -93,7 +89,6 @@ export function Settings() {
             aria-label="Change avatar"
             className="avatar-change-btn"
           >
-            <Sparkles size={14} className="mr-1.5" aria-hidden="true" />
             Change avatar
           </Button>
           <Button

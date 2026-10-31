@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, Sparkles, User, X } from "lucide-react";
+import { Check, User, X } from "lucide-react";
 import { AVATARS, type AvatarId, getAvatar } from "@/lib/avatars";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
@@ -60,7 +60,6 @@ export function AvatarModal({ open, onOpenChange }: AvatarModalProps) {
       <DialogContent className="avatar-modal-content">
         <div className="avatar-modal-header">
           <div className="avatar-modal-badge">
-            <Sparkles size={13} aria-hidden="true" />
             <span>Mascot Collection</span>
           </div>
           <DialogTitle className="avatar-modal-title">
