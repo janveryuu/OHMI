@@ -14,7 +14,7 @@ import {
   MessageCircle,
   Plus,
   ScanLine,
-  Zap,
+  Minus,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useApp } from "./app-provider";
@@ -71,7 +71,7 @@ export function Dashboard() {
             <Plus size={21} />
           </span>
           <span className="float-symbol symbol-two">
-            <Zap size={23} />
+            <Minus size={21} />
           </span>
           <span className="welcome-mascot dashboard-mascot" data-playing={animateMascot && playing}>
             <Image

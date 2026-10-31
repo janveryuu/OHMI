@@ -1024,7 +1024,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
                     <div style={{ fontSize: '13px', display: 'inline' }}><MessageContent content={activeTutorial.steps[tutorialStep].why} /></div>
                   </div>
                   <div className="ohmi-tip">
-                    <Icon name="spark" size={18} />
+                    <Icon name="info" size={18} />
                     <p><strong>Check: </strong>{activeTutorial.steps[tutorialStep].check}</p>
                   </div>
                   {activeTutorial.steps[tutorialStep].code && (
@@ -1150,7 +1150,7 @@ export function AssistantPanel({ imageUrl, preferences, onPreferencesChange, onM
           </div>
         )}
         <div className="ohmi-guide-progress"><div><span>{completed.length} of 5 done</span><span>Step {step + 1} of 5</span></div><progress aria-label="Sample guide progress" value={completed.length} max={5} /></div>
-        <div className="ohmi-guide-step"><span className="ohmi-step-number" aria-hidden="true">{step + 1}</span><h4>{currentStep.title}</h4><p>{currentStep.text}</p><div className="ohmi-tip"><Icon name="spark" size={18} /><p>{currentStep.tip}</p></div></div>
+        <div className="ohmi-guide-step"><span className="ohmi-step-number" aria-hidden="true">{step + 1}</span><h4>{currentStep.title}</h4><p>{currentStep.text}</p><div className="ohmi-tip"><Icon name="info" size={18} /><p>{currentStep.tip}</p></div></div>
         <button type="button" className={`ohmi-button ohmi-full-width ${completed.includes(step) ? 'ohmi-secondary' : 'ohmi-primary'}`} onClick={() => {
           setCompleted((current) => current.includes(step) ? current.filter((index) => index !== step) : [...current, step]);
           if (!completed.includes(step)) onMotion('happy');

@@ -14,7 +14,6 @@ import {
   Lightbulb,
   Plus,
   RotateCcw,
-  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { steps as defaultSteps } from "@/lib/content";
@@ -401,7 +400,6 @@ export function Guide() {
                 Build in Playground ↗
               </Link>
             </div>
-            <Zap size={19} className="muted" />
           </div>
 
           <AnimatePresence mode="wait">

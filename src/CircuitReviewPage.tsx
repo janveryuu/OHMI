@@ -1598,7 +1598,7 @@ export function CircuitReviewPage() {
                         <strong>Why: </strong>{activeResult.steps[currentStepIndex].why}
                       </p>
                       <div className="ohmi-tip" style={{ marginTop: '8px' }}>
-                        <Icon name="spark" size={16} />
+                        <Icon name="info" size={16} />
                         <p style={{ margin: 0, fontSize: '12px' }}>
                           <strong>Check: </strong>{activeResult.steps[currentStepIndex].check}
                         </p>

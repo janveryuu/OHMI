@@ -28,7 +28,7 @@ export function LearningProgress() {
       title: "First connection",
       description: "Complete your first guide step.",
       earned: done > 0,
-      icon: ZapIcon,
+      icon: Check,
     },
     {
       title: "Curious mind",
@@ -160,7 +160,4 @@ export function LearningProgress() {
       </section>
     </div>
   );
-}
-function ZapIcon() {
-  return <Lightbulb size={18} aria-hidden="true" />;
 }
