@@ -19,7 +19,7 @@ import {
   Paperclip,
   Plus,
   RotateCcw,
-  Sparkles,
+  BookOpen,
   X,
 } from "lucide-react";
 import { useApp, type Conversation } from "./app-provider";
@@ -39,12 +39,19 @@ import { askBackend } from "@/lib/backend/ai";
 import { validateFile } from "@/lib/demo.mjs";
 
 import { isTrafficLightMatch } from "@/lib/playground/model";
+import {
+  parseCircuitIntent,
+  generateCircuit,
+  type GeneratedCircuit,
+} from "@/lib/playground/circuit-generator";
 export { isTrafficLightMatch };
 
 export function CircuitActionCard({
+  circuit,
   onDirectToPlayground,
   forceShowCode = false,
 }: {
+  circuit?: GeneratedCircuit | null;
   onDirectToPlayground: () => void;
   forceShowCode?: boolean;
 }) {
@@ -52,40 +59,11 @@ export function CircuitActionCard({
   const [copied, setCopied] = useState(false);
   const isCodeVisible = showCode || forceShowCode;
 
-  const trafficLightCode = `// Arduino Traffic Light (3 LEDs)
-const int RED_PIN = 8;
-const int YELLOW_PIN = 9;
-const int GREEN_PIN = 10;
-
-void setup() {
-  pinMode(RED_PIN, OUTPUT);
-  pinMode(YELLOW_PIN, OUTPUT);
-  pinMode(GREEN_PIN, OUTPUT);
-}
-
-void loop() {
-  // Red Light ON (1 second)
-  digitalWrite(RED_PIN, HIGH);
-  digitalWrite(YELLOW_PIN, LOW);
-  digitalWrite(GREEN_PIN, LOW);
-  delay(1000);
-
-  // Yellow Light ON (1 second)
-  digitalWrite(RED_PIN, LOW);
-  digitalWrite(YELLOW_PIN, HIGH);
-  digitalWrite(GREEN_PIN, LOW);
-  delay(1000);
-
-  // Green Light ON (1 second)
-  digitalWrite(RED_PIN, LOW);
-  digitalWrite(YELLOW_PIN, LOW);
-  digitalWrite(GREEN_PIN, HIGH);
-  delay(1000);
-}`;
+  const activeCircuit = circuit || generateCircuit(parseCircuitIntent("traffic light"));
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(trafficLightCode);
+      await navigator.clipboard.writeText(activeCircuit.arduinoCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {}
@@ -95,14 +73,14 @@ void loop() {
     <div className="circuit-action-card" data-testid="circuit-action-card">
       <div className="circuit-action-header">
         <div className="circuit-action-badge">
-          <Sparkles size={12} className="text-primary" />
-          <span>Interactive Circuit Ready</span>
+          <CircuitBoard size={12} strokeWidth={2.2} />
+          <span>Circuit Ready</span>
         </div>
-        <span className="circuit-action-tag">Arduino Uno · 3 LEDs · 330 Ω</span>
+        <span className="circuit-action-tag">{activeCircuit.tag}</span>
       </div>
 
       <h3 className="circuit-action-title">
-        Arduino Traffic Light with Three LEDs
+        {activeCircuit.title}
       </h3>
 
       <p className="circuit-action-prompt">
@@ -115,43 +93,51 @@ void loop() {
           className="circuit-action-btn-primary"
           onClick={onDirectToPlayground}
         >
-          <CircuitBoard size={16} />
+          <CircuitBoard size={15} strokeWidth={2} />
           <span>Build in Playground</span>
-          <ArrowRight size={14} />
+          <ArrowRight size={13} strokeWidth={2.2} />
         </button>
 
-        <button
-          type="button"
-          className="circuit-action-btn-secondary"
-          onClick={() => setShowCode((v) => !isCodeVisible)}
-        >
-          <Code size={16} />
-          <span>{isCodeVisible ? "Hide Arduino Code" : "View Arduino Code"}</span>
-        </button>
+        {activeCircuit.arduinoCode ? (
+          <button
+            type="button"
+            className="circuit-action-btn-secondary"
+            onClick={() => setShowCode((v) => !isCodeVisible)}
+          >
+            <Code size={15} strokeWidth={2} />
+            <span>{isCodeVisible ? "Hide Arduino Code" : "View Arduino Code"}</span>
+          </button>
+        ) : null}
       </div>
 
-      {isCodeVisible && (
+      {isCodeVisible && activeCircuit.arduinoCode && (
         <div className="circuit-code-panel">
           <div className="circuit-code-header">
-            <span>Arduino C++ Sketch (Traffic Light)</span>
+            <div className="circuit-window-bar">
+              <span className="circuit-window-dot close" />
+              <span className="circuit-window-dot minimize" />
+              <span className="circuit-window-dot zoom" />
+            </div>
+            <span>sketch.ino (Arduino C++)</span>
             <button
               type="button"
               className="circuit-copy-btn"
               onClick={copyCode}
               aria-label="Copy Arduino sketch"
             >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              <span>{copied ? "Copied!" : "Copy code"}</span>
+              {copied ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} />}
+              <span>{copied ? "Copied" : "Copy code"}</span>
             </button>
           </div>
           <pre>
-            <code>{trafficLightCode}</code>
+            <code>{activeCircuit.arduinoCode}</code>
           </pre>
           <ul className="circuit-wiring-list">
-            <li><strong>Red LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 8</li>
-            <li><strong>Yellow LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 9</li>
-            <li><strong>Green LED:</strong> Anode (+) → 330 Ω resistor → Arduino Pin 10</li>
-            <li><strong>Ground:</strong> All 3 LED cathodes (−) → Arduino GND rail</li>
+            {activeCircuit.wiring.map((w, idx) => (
+              <li key={idx}>
+                <strong>{w.label}:</strong> {w.detail}
+              </li>
+            ))}
           </ul>
         </div>
       )}
@@ -531,7 +517,7 @@ export function Chat() {
                 {message.role === "assistant" && message.structured?.incomplete === true && (
                   <div className="incomplete-continuation-card">
                     <div className="incomplete-header">
-                      <Sparkles size={14} className="text-primary" />
+                      <BookOpen size={14} className="text-primary" strokeWidth={2} />
                       <span>Explanation paused at length limit</span>
                     </div>
                     <p className="incomplete-hint">

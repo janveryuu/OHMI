@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeft,
@@ -14,7 +14,6 @@ import {
   Lightbulb,
   Plus,
   RotateCcw,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -40,7 +39,9 @@ export function Guide() {
     [error, setError] = useState(""),
     [touch, setTouch] = useState<number | null>(null),
     [showGenerator, setShowGenerator] = useState(false),
+    [checkedBlocks, setCheckedBlocks] = useState<Record<string, boolean>>({}),
     reduced = useReducedMotion();
+
 
   // Filter saved assignment tutorials
   const savedGuides = app.analyses.filter(
@@ -163,6 +164,20 @@ export function Guide() {
 
   const safeStep = Math.max(0, Math.min(guideSteps.length - 1, step));
   const current = guideSteps[safeStep] || guideSteps[0];
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowRight") {
+        setStep((s) => Math.min(guideSteps.length - 1, s + 1));
+      } else if (e.key === "ArrowLeft") {
+        setStep((s) => Math.max(0, s - 1));
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [guideSteps.length]);
+
 
   function move(next: number) {
     setStep(Math.max(0, Math.min(guideSteps.length - 1, next)));
@@ -318,14 +333,43 @@ export function Guide() {
             })}
           </nav>
           <div className="separator" />
-          <h3 className="materials-title">Your building blocks</h3>
-          <ul className="materials-list">
-            {buildingBlocks.map((item, idx) => (
-              <li key={idx}>
-                <Circle size={10} />
-                {item}
-              </li>
-            ))}
+          <div className="between">
+            <h3 className="materials-title">Your building blocks</h3>
+            <span className="small muted">
+              {Object.values(checkedBlocks).filter(Boolean).length}/{buildingBlocks.length}
+            </span>
+          </div>
+          <ul className="materials-list" style={{ listStyle: "none", padding: 0 }}>
+            {buildingBlocks.map((item, idx) => {
+              const isChecked = !!checkedBlocks[`${activeGuideId}-${idx}`];
+              return (
+                <li
+                  key={idx}
+                  onClick={() =>
+                    setCheckedBlocks((prev) => ({
+                      ...prev,
+                      [`${activeGuideId}-${idx}`]: !isChecked,
+                    }))
+                  }
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    opacity: isChecked ? 0.6 : 1,
+                    transition: "opacity 0.15s ease",
+                  }}
+                  title="Click to check off component"
+                >
+                  {isChecked ? (
+                    <CheckCircle2 size={13} className="text-primary shrink-0" />
+                  ) : (
+                    <Circle size={10} className="muted shrink-0" />
+                  )}
+                  <span style={{ textDecoration: isChecked ? "line-through" : "none" }}>{item}</span>
+                </li>
+              );
+            })}
           </ul>
           <p className="small muted">
             Suggested components only. Confirm ratings with your instructor.
@@ -344,9 +388,19 @@ export function Guide() {
           }}
         >
           <div className="between">
-            <span className="badge">
-              Step {safeStep + 1} of {guideSteps.length}
-            </span>
+            <div className="row gap-2">
+              <span className="badge">
+                Step {safeStep + 1} of {guideSteps.length}
+              </span>
+              <Link
+                href="/playground/?template=arduino-traffic-light"
+                className="badge"
+                title="Launch in interactive electronics playground"
+                style={{ textDecoration: "none", cursor: "pointer" }}
+              >
+                Build in Playground ↗
+              </Link>
+            </div>
             <Zap size={19} className="muted" />
           </div>
 

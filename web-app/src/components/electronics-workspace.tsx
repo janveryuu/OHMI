@@ -78,6 +78,52 @@ function Editor({
   const lastLoadedTemplate = useRef<string | null>(null);
   useEffect(() => {
     if (!ready || !bridge.current) return;
+
+    // Check for custom dynamically generated circuit from Ask OHMI
+    let customDoc: Record<string, unknown> | null = null;
+    try {
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem("ohmi_active_circuit_doc") : null;
+      if (stored) {
+        customDoc = validateElectronicsDocument(JSON.parse(stored));
+        sessionStorage.removeItem("ohmi_active_circuit_doc");
+      }
+    } catch (err) {
+      console.warn("Failed to parse custom circuit document:", err);
+    }
+
+    if (customDoc) {
+      lastLoadedTemplate.current = "custom";
+      const doc = customDoc;
+      bridge.current
+        ?.request({ operation: "open", document: doc })
+        .then(async () => {
+          cloud.detach();
+          await bridge.current
+            ?.request({ operation: "zoom", direction: "fit" })
+            .catch(() => {});
+          setTimeout(() => {
+            bridge.current
+              ?.request({ operation: "zoom", direction: "fit" })
+              .catch(() => {});
+          }, 150);
+          await bridge.current
+            ?.request({ operation: "running", running: true })
+            .catch(() => {});
+          const status = await bridge.current
+            ?.request<EngineStatus>({ operation: "status" })
+            .catch(() => null);
+          if (status) setEngineState(status);
+          setMessage(
+            `${doc.title || "Custom circuit"} loaded. Simulation running.`,
+          );
+        })
+        .catch((err) => {
+          setError(
+            err instanceof Error ? err.message : "Failed to load custom circuit",
+          );
+        });
+      return;
+    }
     let templateName: string | null = initialTemplate || null;
     if (!templateName && typeof window !== "undefined") {
       try {

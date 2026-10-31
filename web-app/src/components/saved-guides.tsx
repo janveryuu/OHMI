@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, AlertCircle } from "lucide-react";
+import { Cpu, X, AlertCircle } from "lucide-react";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
 import { LoadingSpinner } from "./ui/loading-spinner";
@@ -135,7 +135,7 @@ export function GuideGenerator({ onCreated, onCancel }: GuideGeneratorProps) {
     >
       <div className="between">
         <div className="row">
-          <Sparkles size={20} className="text-primary" />
+          <Cpu size={20} className="text-primary" strokeWidth={2} />
           <h3>Generate an Interactive Guide</h3>
         </div>
         {onCancel && (

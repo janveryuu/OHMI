@@ -181,8 +181,10 @@ export function CircuitChecker() {
           "Choose an image up to 3 MB and 4 megapixels, or apply a smaller crop.",
         );
       let uploadBlob = blob;
-      if (img.naturalWidth > 1920 || img.naturalHeight > 1920) {
-        const scale = 1920 / Math.max(img.naturalWidth, img.naturalHeight);
+      let uploadMime = blob.type;
+      const MAX_DIM = 1280;
+      if (img.naturalWidth > MAX_DIM || img.naturalHeight > MAX_DIM || blob.size > 700 * 1024) {
+        const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
         const w = Math.round(img.naturalWidth * scale);
         const h = Math.round(img.naturalHeight * scale);
         const canvas = document.createElement("canvas");
@@ -190,11 +192,16 @@ export function CircuitChecker() {
         canvas.height = h;
         const ctx = canvas.getContext("2d");
         if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, w, h);
           const scaled = await new Promise<Blob | null>((res) =>
-            canvas.toBlob(res, blob.type === "image/jpeg" ? "image/jpeg" : "image/png"),
+            canvas.toBlob(res, "image/jpeg", 0.88),
           );
-          if (scaled) uploadBlob = scaled;
+          if (scaled) {
+            uploadBlob = scaled;
+            uploadMime = "image/jpeg";
+          }
         }
       }
       const data = await new Promise<string>((resolve, reject) => {
@@ -216,7 +223,7 @@ export function CircuitChecker() {
         mode: "check",
         message:
           "Review the visible circuit. Explain uncertainty and safe next steps.",
-        images: [{ id: "overview", mimeType: blob.type, data }],
+        images: [{ id: "overview", mimeType: uploadMime, data }],
         board: "unknown",
         ...(code.trim() ? { code: code.trim() } : {}),
         ...(requirements.trim()
