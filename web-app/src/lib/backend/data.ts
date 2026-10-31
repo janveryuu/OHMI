@@ -57,20 +57,35 @@ export async function workspaceData(
   userId: string,
   signal: AbortSignal,
 ) {
-  checked(
+  try {
     await client
       .from("ohmi_profiles")
       .upsert({ id: userId }, { onConflict: "id", ignoreDuplicates: true })
-      .abortSignal(signal),
-  );
+      .abortSignal(signal);
+  } catch {}
   const [profile, files, conversations, analyses, progress] = await Promise.all(
     [
       client
         .from("ohmi_profiles")
-        .select("id,display_name,language")
+        .select("id,display_name,language,avatar")
         .eq("id", userId)
         .abortSignal(signal)
-        .single(),
+        .maybeSingle()
+        .then(async (res) => {
+          if (res.error && res.error.message?.includes("avatar")) {
+            const fallback = await client
+              .from("ohmi_profiles")
+              .select("id,display_name,language")
+              .eq("id", userId)
+              .abortSignal(signal)
+              .maybeSingle();
+            return {
+              data: fallback.data ? { ...fallback.data, avatar: "" } : null,
+              error: fallback.error,
+            };
+          }
+          return res;
+        }),
       client
         .from("ohmi_assignments")
         .select("id,original_name,mime_type,size_bytes,status")
@@ -103,7 +118,12 @@ export async function workspaceData(
     ],
   );
   return {
-    profile: checked(profile),
+    profile: checked(profile) || {
+      id: userId,
+      display_name: "",
+      language: "english",
+      avatar: "",
+    },
     files: (checked(files) || []).map((f) => ({
       id: f.id,
       name: f.original_name,

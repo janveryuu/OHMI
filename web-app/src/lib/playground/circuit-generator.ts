@@ -250,6 +250,8 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
       title = `Arduino Uno with ${intent.batteryVoltage} Battery & ${ledCount} LEDs`;
     } else if (intent.behavior === "traffic_light" && ledCount === 3) {
       title = "Arduino Traffic Light with Three LEDs";
+    } else if (intent.behavior === "blink" || ledCount === 1) {
+      title = `Arduino LED Blink (${ledCount} LED${ledCount > 1 ? "s" : ""})`;
     } else {
       title = `Arduino Uno with ${ledCount} LEDs Sequencer`;
     }

@@ -44,7 +44,9 @@ type State = {
   refresh: () => Promise<void>;
   signIn: (next?: string) => Promise<void>;
   signOut: () => Promise<void>;
-  saveProfile: (value: { name?: string; language?: string }) => Promise<void>;
+  saveProfile: (value: { name?: string; language?: string; avatar?: string }) => Promise<void>;
+  saveAvatar: (avatarId: string) => Promise<void>;
+  avatar: string;
   uploadFile: (
     file: File,
     options?: {
@@ -92,6 +94,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [reduceMotion, setReduceMotion] = useState(false),
     [largeText, setLargeText] = useState(false);
   const [language, updateLanguage] = useState("English"),
+    [avatar, updateAvatar] = useState<string>(() => {
+      if (typeof window !== "undefined") {
+        try {
+          return localStorage.getItem("ohmi-avatar") || "";
+        } catch {
+          return "";
+        }
+      }
+      return "";
+    }),
     [name, updateName] = useState(""),
     [conversations, setConversations] = useState<Conversation[]>([]),
     [activeChat, setActiveChat] = useState(""),
@@ -128,6 +140,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCompleted(Array(5).fill(false));
     updateName("");
     updateLanguage("English");
+    updateAvatar("");
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("ohmi-avatar");
+      } catch {}
+    }
     setError("");
   }, []);
   const refresh = useCallback(async () => {
@@ -145,6 +163,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateName(
         data.profile?.display_name || owner.user_metadata?.full_name || "",
       );
+      const resolvedAvatar = data.profile?.avatar || owner.user_metadata?.avatar || "";
+      updateAvatar(resolvedAvatar);
+      if (typeof window !== "undefined") {
+        try {
+          if (resolvedAvatar) localStorage.setItem("ohmi-avatar", resolvedAvatar);
+          else localStorage.removeItem("ohmi-avatar");
+        } catch {}
+      }
       updateLanguage(
         (
           {
@@ -298,13 +324,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null);
     window.location.replace("/app/login/");
   }
-  async function saveProfile(value: { name?: string; language?: string }) {
+  async function saveProfile(value: { name?: string; language?: string; avatar?: string }) {
     const { client, owner, generation } = await requireAccount();
-    const fields = {
+    if (value.avatar !== undefined) {
+      updateAvatar(value.avatar);
+      if (typeof window !== "undefined") {
+        try {
+          if (value.avatar) localStorage.setItem("ohmi-avatar", value.avatar);
+          else localStorage.removeItem("ohmi-avatar");
+        } catch {}
+      }
+    }
+    const fields: { display_name?: string; language?: string; avatar?: string } = {
       ...(value.name !== undefined
         ? { display_name: value.name.trim().slice(0, 80) }
         : {}),
       ...(value.language ? { language: value.language.toLowerCase() } : {}),
+      ...(value.avatar !== undefined ? { avatar: value.avatar } : {}),
     };
     checked(
       await client
@@ -315,6 +351,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .single(),
     );
     if (epoch.current.current(generation)) await refresh();
+  }
+  async function saveAvatar(avatarId: string) {
+    const previous = avatar;
+    const validated = (avatarId || "").trim().toLowerCase();
+    updateAvatar(validated);
+    if (typeof window !== "undefined") {
+      try {
+        if (validated) localStorage.setItem("ohmi-avatar", validated);
+        else localStorage.removeItem("ohmi-avatar");
+      } catch {}
+    }
+    if (!currentUser.current) {
+      return;
+    }
+    try {
+      const response = await fetch("/app/api/profile/avatar/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: validated }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Avatar could not be saved.");
+      }
+      await refresh();
+    } catch (cause) {
+      updateAvatar(previous);
+      if (typeof window !== "undefined") {
+        try {
+          if (previous) localStorage.setItem("ohmi-avatar", previous);
+          else localStorage.removeItem("ohmi-avatar");
+        } catch {}
+      }
+      throw cause;
+    }
   }
   function setLanguage(value: string) {
     const previous = language;
@@ -585,6 +656,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         files,
         completed,
         name,
+        avatar,
+        saveAvatar,
         toast: setNotice,
       }}
     >

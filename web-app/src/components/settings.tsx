@@ -24,6 +24,9 @@ import {
 } from "./ui/dialog";
 import { PwaControls } from "./pwa-controls";
 import { Companion } from "./companion";
+import { UserAvatar } from "./ui/user-avatar";
+import { AvatarModal } from "./avatar-modal";
+import { Sparkles } from "lucide-react";
 
 export function Settings() {
   const app = useApp(),
@@ -32,7 +35,8 @@ export function Settings() {
     [reset, setReset] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [aiEnabled, setAiEnabled] = useState(false);
+    [aiEnabled, setAiEnabled] = useState(false),
+    [avatarModalOpen, setAvatarModalOpen] = useState(false);
   useEffect(() => {
     void fetch("/app/api/ai/", { cache: "no-store" })
       .then((r) => r.json())
@@ -53,10 +57,27 @@ export function Settings() {
         <p>Your workspace, a little more you.</p>
       </div>
       <section className="panel profile-panel">
-        <span className="avatar profile-avatar">
-          {app.name.slice(0, 1) || "A"}
-        </span>
-        <div>
+        <div className="profile-avatar-container">
+          <button
+            type="button"
+            className="profile-avatar-btn"
+            onClick={() => setAvatarModalOpen(true)}
+            aria-label="Change OHMI avatar"
+            title="Change your OHMI avatar"
+          >
+            <UserAvatar
+              avatarId={app.avatar}
+              name={app.name}
+              size={72}
+              className="profile-avatar"
+              priority
+            />
+            <span className="profile-avatar-badge" aria-hidden="true">
+              <Sparkles size={13} />
+            </span>
+          </button>
+        </div>
+        <div className="profile-details">
           <h2>{app.name || "Your account"}</h2>
           <p className="muted">Curious mind. Circuit builder.</p>
           <span className="badge">
@@ -64,19 +85,31 @@ export function Settings() {
           </span>
           {app.user && <p className="small muted">{app.user.email}</p>}
         </div>
-        <Button
-          disabled={!app.user || busy}
-          variant="outline"
-          onClick={() => {
-            setName(app.name);
-            setEdit(true);
-          }}
-        >
-          Edit profile
-        </Button>
+        <div className="profile-actions">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAvatarModalOpen(true)}
+            aria-label="Change avatar"
+            className="avatar-change-btn"
+          >
+            <Sparkles size={14} className="mr-1.5" aria-hidden="true" />
+            Change avatar
+          </Button>
+          <Button
+            disabled={!app.user || busy}
+            variant="outline"
+            onClick={() => {
+              setName(app.name);
+              setEdit(true);
+            }}
+          >
+            Edit profile
+          </Button>
+        </div>
       </section>
       <section className="panel tour-help" aria-label="Workspace help">
-        <div><h2>Find your way around</h2><p className="muted">A short introduction to OHMI’s learning tools.</p></div>
+        <div><h2>Find your way around</h2><p className="muted">A short introduction to OHMI's learning tools.</p></div>
         <Button variant="outline" disabled={!app.user || app.loading} onClick={() => window.dispatchEvent(new Event("ohmi-start-tour"))}>Take a Tour</Button>
       </section>
       {error && (
@@ -305,6 +338,7 @@ export function Settings() {
           </form>
         </DialogContent>
       </Dialog>
+      <AvatarModal open={avatarModalOpen} onOpenChange={setAvatarModalOpen} />
       <Dialog open={reset} onOpenChange={setReset}>
         <DialogContent>
           <DialogTitle>Start fresh?</DialogTitle>

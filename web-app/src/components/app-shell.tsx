@@ -24,6 +24,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { navigation } from "@/lib/content";
+import { UserAvatar } from "./ui/user-avatar";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
 import {
@@ -172,9 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             href="/settings"
             aria-label="Open account profile"
           >
-            <span className="avatar">
-              {app.name.slice(0, 1).toUpperCase() || "A"}
-            </span>
+            <UserAvatar avatarId={app.avatar} name={app.name} size={38} className="avatar" />
             <span className="profile-meta">
               <strong>{app.name || "Your account"}</strong>
               <small>{app.user?.email || "Sign in to save your work"}</small>
@@ -232,13 +231,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               {app.theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
             </Button>
-            <Link prefetch={pathname === "/playground" ? false : undefined}
-              href="/settings"
-              aria-label="Open profile"
-              className="avatar small-avatar"
-            >
-              {app.name.slice(0, 1) || "A"}
-            </Link>
+            <Link prefetch={pathname === "/playground" ? false : undefined} href="/settings" aria-label="Open profile" className="avatar small-avatar"><UserAvatar avatarId={app.avatar} name={app.name} size={32} className="avatar-in-topbar" /></Link>
           </div>
         </header>
         <main id="main" className="main-content" tabIndex={-1}>
@@ -300,7 +293,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <DialogContent>
           <DialogTitle>Find your next step</DialogTitle>
           <DialogDescription>
-            Search the app’s pages and tools.
+            Search the app's pages and tools.
           </DialogDescription>
           <label className="field">
             Search workspace
@@ -336,7 +329,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               n.label.toLowerCase().includes(query.toLowerCase()),
             ) && (
               <p className="muted">
-                No pages found. Try “guide” or “assignments”.
+                No pages found. Try â€œguideâ€ or â€œassignmentsâ€.
               </p>
             )}
           </div>

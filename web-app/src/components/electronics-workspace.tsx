@@ -12,6 +12,8 @@ import type { EngineStatus } from "@/lib/playground/bridge";
 import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
+import { PlaygroundAssistant } from "./playground-assistant";
+import { Bot } from "lucide-react";
 
 const ENGINE_DOCUMENT_HTML = `<!doctype html>
 <html lang="en">
@@ -63,6 +65,7 @@ function Editor({
   const [leaveOpen,setLeaveOpen]=useState(false);
   const leaveAction=useRef<(()=>void)|null>(null);
   const [canvasFocus, setCanvasFocus] = useState(false);
+  const [isAssistantCollapsed, setIsAssistantCollapsed] = useState(false);
   const focusButton = useRef<HTMLButtonElement>(null),
     focusBand = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -502,6 +505,8 @@ function Editor({
 
   return (
     <section className={styles.workspace} aria-labelledby="electronics-title">
+      <div className={styles.workbenchGrid}>
+        <div className={styles.canvasContainer}>
       <Dialog open={leaveOpen} onOpenChange={value=>{setLeaveOpen(value);if(!value)leaveAction.current=null;}}>
         <DialogContent showCloseButton={false} onOpenAutoFocus={event=>{event.preventDefault();document.getElementById('stay-in-playground')?.focus();}}>
           <img src="/app/mascot.png" alt="" width={56} height={64} style={{objectFit:'contain',imageRendering:'pixelated'}}/>
@@ -609,6 +614,17 @@ function Editor({
             </Button>
           ))}
         </div>
+        <div className={styles.group} aria-label="AI Circuit Assistant">
+          <Button
+            variant={isAssistantCollapsed ? "outline" : "default"}
+            className={styles.assistantToggleBtn}
+            onClick={() => setIsAssistantCollapsed((v) => !v)}
+            title={isAssistantCollapsed ? "Open Build with OHMI assistant" : "Collapse assistant"}
+          >
+            <Bot size={15} />
+            <span>Build with OHMI</span>
+          </Button>
+        </div>
       </div>
       <p role="status" className={styles.status}>
         <strong>
@@ -686,18 +702,30 @@ function Editor({
           </span>
         </div>
       )}
-      <iframe
-        key={generation}
-        ref={frame}
-        inert={busy || cloud.busy}
-        className={styles.frame}
-        data-focused={canvasFocus}
-        title="designElectronics circuit editor"
-        src="/app/vendor/design-electronics/index.html"
-        srcDoc={ENGINE_DOCUMENT_HTML}
-        sandbox="allow-scripts allow-downloads"
-        onLoad={connect}
-      />
+      <div className={styles.canvasFrameWrapper}>
+        <iframe
+          key={generation}
+          ref={frame}
+          inert={busy || cloud.busy}
+          className={styles.frame}
+          data-focused={canvasFocus}
+          title="designElectronics circuit editor"
+          src="/app/vendor/design-electronics/index.html"
+          srcDoc={ENGINE_DOCUMENT_HTML}
+          sandbox="allow-scripts allow-downloads"
+          onLoad={connect}
+        />
+        {isAssistantCollapsed && (
+          <PlaygroundAssistant
+            bridge={bridge}
+            ready={ready}
+            busy={busy}
+            setBusy={setBusy}
+            isCollapsed={true}
+            onToggleCollapse={() => setIsAssistantCollapsed(false)}
+          />
+        )}
+      </div>
       <div className={styles.toolbar} aria-label="Circuit files">
         <div className={styles.group}>
           <Button
@@ -870,6 +898,20 @@ function Editor({
           Reload engine
         </Button>
       </footer>
+        </div>
+        {!isAssistantCollapsed && (
+          <div className={styles.assistantSidebar}>
+            <PlaygroundAssistant
+              bridge={bridge}
+              ready={ready}
+              busy={busy}
+              setBusy={setBusy}
+              isCollapsed={false}
+              onToggleCollapse={() => setIsAssistantCollapsed(true)}
+            />
+          </div>
+        )}
+      </div>
     </section>
   );
 }
