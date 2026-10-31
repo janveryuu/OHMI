@@ -139,3 +139,28 @@ export function guideNeedsDetails(value) {
     value.steps.length === 0
   );
 }
+
+
+export const ALLOWED_AVATAR_IDS = [
+  "cowboy",
+  "engineer",
+  "professor",
+  "astronaut",
+  "gamer",
+  "detective",
+  "scientist",
+  "ninja",
+  "pilot",
+  "royal",
+];
+
+export function validateAvatarId(value) {
+  if (value === "" || value === null || value === undefined) return "";
+  if (
+    typeof value !== "string" ||
+    !ALLOWED_AVATAR_IDS.includes(value.trim().toLowerCase())
+  ) {
+    throw new Error("Choose a valid OHMI mascot avatar.");
+  }
+  return value.trim().toLowerCase();
+}

@@ -59,7 +59,14 @@ export function CircuitActionCard({
   const [copied, setCopied] = useState(false);
   const isCodeVisible = showCode || forceShowCode;
 
-  const activeCircuit = circuit || generateCircuit(parseCircuitIntent("traffic light"));
+  let fallbackCircuit: GeneratedCircuit | null = null;
+  if (!circuit) {
+    try {
+      fallbackCircuit = generateCircuit(parseCircuitIntent("traffic light"));
+    } catch {}
+  }
+  const activeCircuit = circuit || fallbackCircuit;
+  if (!activeCircuit) return null;
 
   const copyCode = async () => {
     try {
@@ -287,11 +294,16 @@ export function Chat() {
         ))
     ) {
       setDraft("");
-      const resolvedCircuit = generateCircuit(
-        activeCircuitIntent.isCircuitRequest
-          ? activeCircuitIntent
-          : parseCircuitIntent("traffic light")
-      );
+      let resolvedCircuit: GeneratedCircuit | null = null;
+      try {
+        resolvedCircuit = generateCircuit(
+          activeCircuitIntent.isCircuitRequest
+            ? activeCircuitIntent
+            : parseCircuitIntent("traffic light")
+        );
+      } catch (err) {
+        console.warn("Failed to generate circuit on playground command:", err);
+      }
       handleDirectToPlayground(resolvedCircuit);
       return;
     }
@@ -302,11 +314,16 @@ export function Chat() {
       /arduino|traffic|circuit|led/i.test(value)
     ) {
       setDraft("");
-      const resolvedCircuit = generateCircuit(
-        activeCircuitIntent.isCircuitRequest
-          ? activeCircuitIntent
-          : parseCircuitIntent("traffic light")
-      );
+      let resolvedCircuit: GeneratedCircuit | null = null;
+      try {
+        resolvedCircuit = generateCircuit(
+          activeCircuitIntent.isCircuitRequest
+            ? activeCircuitIntent
+            : parseCircuitIntent("traffic light")
+        );
+      } catch (err) {
+        console.warn("Failed to generate circuit on playground command:", err);
+      }
       handleDirectToPlayground(resolvedCircuit);
       return;
     }
@@ -515,9 +532,14 @@ export function Chat() {
                 message.role === "assistant" &&
                 (circuitIntent.isCircuitRequest ||
                   isTrafficLightMatch(message.text, prevUser?.text));
-              const dynamicCircuit = isCircuitMatch
-                ? generateCircuit(circuitIntent)
-                : null;
+              let dynamicCircuit: GeneratedCircuit | null = null;
+              if (isCircuitMatch) {
+                try {
+                  dynamicCircuit = generateCircuit(circuitIntent);
+                } catch (err) {
+                  console.warn("Failed to generate dynamic circuit for message:", err);
+                }
+              }
               return (
               <article
                 key={message.id}

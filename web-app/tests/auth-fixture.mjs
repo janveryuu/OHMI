@@ -86,7 +86,7 @@ export async function startAuthFixture() {
       return send(200, claim);
     }
     if (url.pathname === "/rest/v1/ohmi_profiles") {
-      const profile = profiles.get(user.id) || { id: user.id, display_name: user.user_metadata.full_name, language: "english" };
+      const profile = profiles.get(user.id) || { id: user.id, display_name: user.user_metadata.full_name, language: "english", avatar: "" };
       if (request.method === "PATCH") { profiles.set(user.id, { ...profile, ...body }); return send(200, { id: user.id }); }
       return request.method === "GET" ? send(200, profile) : send(204);
     }

@@ -88,3 +88,24 @@ test("validateCircuitSpec accepts Arduino Uno with 10 LEDs and 10 resistors", ()
   assert.equal(validated.parts.length, 21); // 1 Uno + 10 Resistors + 10 LEDs
   assert.equal(validated.connections.length, 30);
 });
+
+test("generateCircuit handles 7 LEDs and 8 LEDs without terminal overflow", async () => {
+  const { parseCircuitIntent, generateCircuit } = await import("../src/lib/playground/circuit-generator.ts");
+  const { validateElectronicsDocument } = await import("../src/lib/playground/electronics-document.ts");
+
+  for (const count of [7, 8]) {
+    const intent = parseCircuitIntent(`Build me an arduino that has ${count} LEDs working`);
+    const circuit = generateCircuit(intent);
+    assert.equal(circuit.intent.ledCount, count);
+    assert.ok(circuit.tag.includes("Pins D2–D"));
+
+    // Verify validateElectronicsDocument does not throw unknown terminal error
+    const validatedDoc = validateElectronicsDocument(circuit.document);
+    assert.ok(validatedDoc);
+    assert.equal(validatedDoc.title, circuit.title);
+
+    // Verify spec validation passes
+    const validatedSpec = validateCircuitSpec(circuit.spec);
+    assert.equal(validatedSpec.status, "draft");
+  }
+});

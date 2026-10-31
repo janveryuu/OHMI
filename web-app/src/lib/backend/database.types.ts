@@ -97,18 +97,21 @@ export type Database = {
       }
       ohmi_profiles: {
         Row: {
+          avatar: string
           created_at: string
           display_name: string
           id: string
           language: string
         }
         Insert: {
+          avatar?: string
           created_at?: string
           display_name?: string
           id: string
           language?: string
         }
         Update: {
+          avatar?: string
           created_at?: string
           display_name?: string
           id?: string

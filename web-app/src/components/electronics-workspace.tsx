@@ -84,8 +84,8 @@ function Editor({
     try {
       const stored = typeof window !== "undefined" ? sessionStorage.getItem("ohmi_active_circuit_doc") : null;
       if (stored) {
-        customDoc = validateElectronicsDocument(JSON.parse(stored));
         sessionStorage.removeItem("ohmi_active_circuit_doc");
+        customDoc = validateElectronicsDocument(JSON.parse(stored));
       }
     } catch (err) {
       console.warn("Failed to parse custom circuit document:", err);
@@ -135,6 +135,7 @@ function Editor({
       } catch {}
     }
     const isArduinoTrafficTemplate =
+      templateName === "custom" || // Fallback if custom doc was missing/invalid
       templateName === "arduino-traffic-light" ||
       templateName === "traffic-light" ||
       templateName === "arduino" ||

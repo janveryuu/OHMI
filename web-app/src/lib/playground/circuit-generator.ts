@@ -144,7 +144,7 @@ void loop() {
 }`;
   }
 
-  const startPin = ledCount > 8 ? 2 : 8;
+  const startPin = ledCount > 6 ? 2 : 8;
   const pins = Array.from({ length: ledCount }, (_, i) => startPin + i);
 
   if (behavior === "traffic_light" && ledCount === 3) {
@@ -238,7 +238,7 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   const hasBattery = intent.hasBattery;
   const ledCount = intent.ledCount;
   const colors = intent.colors;
-  const startPin = ledCount > 8 ? 2 : 8;
+  const startPin = ledCount > 6 ? 2 : 8;
   const sketch = isArduino ? generateArduinoSketch(intent) : "";
 
   // Title and Tag
