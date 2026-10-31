@@ -13,7 +13,9 @@ import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
 import { PlaygroundAssistant } from "./playground-assistant";
-import { Bot } from "lucide-react";
+import type { GeneratedCircuit } from "@/lib/playground/circuit-generator";
+import { Bot, Package } from "lucide-react";
+import { TinkercadExportModal } from "./tinkercad-export-modal";
 
 const ENGINE_DOCUMENT_HTML = `<!doctype html>
 <html lang="en">
@@ -38,7 +40,7 @@ export function ElectronicsWorkspace({
   buildId?: string;
   initialTemplate?: string;
 }) {
-  const { user } = useApp();
+const { user } = useApp();
   return (
     <Editor
       key={user?.id || "guest"}
@@ -198,6 +200,16 @@ function Editor({
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
   const cloud = useElectronicsProject(bridge, ready, accountId);
+  const [tinkercadModalOpen, setTinkercadModalOpen] = useState(false);
+  const [tinkercadDocument, setTinkercadDocument] = useState<Record<string, unknown> | null>(null);
+  const [tinkercadSvg, setTinkercadSvg] = useState<string | undefined>(undefined);
+
+  const handleAssistantCircuitBuilt = (circuit: GeneratedCircuit) => {
+    cloud.detach();
+    setMessage(circuit.title + " loaded. Simulation running.");
+    setEngineState({ running: true, view: 0 });
+    setError("");
+  };
   useEffect(() => {
     if (!ready) return;
     let active = true;
@@ -332,6 +344,34 @@ function Editor({
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+  }
+
+  async function handleOpenTinkercadExport() {
+    const doc = await perform<Record<string, unknown>>({ operation: "snapshot" });
+    if (!doc) {
+      setError("Could not snapshot current circuit.");
+      return;
+    }
+    let svgStr: string | undefined = undefined;
+    try {
+      const exportResult = await perform<{ svg?: string; content?: string } | string>({
+        operation: "export",
+        format: "svg",
+        view: "breadboard",
+      });
+      if (typeof exportResult === "string") {
+        svgStr = exportResult;
+      } else if (exportResult && typeof exportResult.svg === "string") {
+        svgStr = exportResult.svg;
+      } else if (exportResult && typeof exportResult.content === "string") {
+        svgStr = exportResult.content;
+      }
+    } catch {
+      // Graceful fallback if svg export fails or is not supported
+    }
+    setTinkercadDocument(doc);
+    setTinkercadSvg(svgStr);
+    setTinkercadModalOpen(true);
   }
 
   useEffect(() => {
@@ -515,6 +555,7 @@ function Editor({
               setBusy={setBusy}
               isCollapsed={false}
               onToggleCollapse={() => setIsAssistantCollapsed(true)}
+              onCircuitBuilt={handleAssistantCircuitBuilt}
             />
           </div>
         )}
@@ -530,6 +571,12 @@ function Editor({
           </div>
         </DialogContent>
       </Dialog>
+      <TinkercadExportModal
+        isOpen={tinkercadModalOpen}
+        onClose={() => setTinkercadModalOpen(false)}
+        document={tinkercadDocument}
+        svgData={tinkercadSvg}
+      />
       <header className={styles.header}>
         <div>
           <h1 id="electronics-title">Electronics workspace</h1>
@@ -735,6 +782,7 @@ function Editor({
             setBusy={setBusy}
             isCollapsed={true}
             onToggleCollapse={() => setIsAssistantCollapsed(false)}
+            onCircuitBuilt={handleAssistantCircuitBuilt}
           />
         )}
       </div>
@@ -760,6 +808,15 @@ function Editor({
             onClick={() => void downloadSketches()}
           >
             Download .ino
+          </Button>
+          <Button
+            variant="default"
+            disabled={!ready || busy || cloud.busy}
+            onClick={() => void handleOpenTinkercadExport()}
+            className="flex items-center gap-1.5 font-medium bg-teal-600 hover:bg-teal-700 text-white dark:bg-teal-500 dark:hover:bg-teal-600 dark:text-neutral-900 shadow-sm"
+          >
+            <Package className="w-4 h-4" />
+            Export for Tinkercad
           </Button>
           <input
             ref={file}

@@ -18,8 +18,11 @@ import type { ElectronicsBridge, EngineStatus } from "@/lib/playground/bridge";
 import {
   parseCircuitIntent,
   generateCircuit,
+  validateCircuitAgainstRequirements,
   type GeneratedCircuit,
 } from "@/lib/playground/circuit-generator";
+import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
+import { validateCircuitSpec } from "@/lib/playground/circuit-spec";
 import {
   isModificationRequest,
   modifyExistingCircuit,
@@ -183,16 +186,6 @@ export function PlaygroundAssistant({
     setBusy(true);
 
     try {
-      // Stage 1: Plan created
-      await new Promise((r) => setTimeout(r, 200));
-      setTurns((prev) =>
-        prev.map((t) =>
-          t.id === turnId
-            ? { ...t, stages: { ...t.stages, plan: true } }
-            : t,
-        ),
-      );
-
       // Check if this is a modification of existing circuit
       const isMod = isModificationRequest(text);
       let currentSnapshot: Record<string, unknown> | null = null;
@@ -207,21 +200,25 @@ export function PlaygroundAssistant({
         Array.isArray(currentSnapshot?.parts) && currentSnapshot.parts.length > 0;
 
       if (isMod && hasExistingParts && currentSnapshot) {
+        // Stage 1: Modification Plan created
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === turnId ? { ...t, stages: { ...t.stages, plan: true } } : t,
+          ),
+        );
+
         // Attempt modifying existing circuit
         const modResult = modifyExistingCircuit(currentSnapshot, text);
         if (modResult.success && modResult.document) {
-          // Stage 2: Validated
-          await new Promise((r) => setTimeout(r, 250));
+          // Stage 2: Validated document
+          validateElectronicsDocument(modResult.document);
           setTurns((prev) =>
             prev.map((t) =>
-              t.id === turnId
-                ? { ...t, stages: { ...t.stages, validated: true } }
-                : t,
+              t.id === turnId ? { ...t, stages: { ...t.stages, validated: true } } : t,
             ),
           );
 
-          // Stage 3: Apply to Canvas
-          await new Promise((r) => setTimeout(r, 300));
+          // Stage 3: Apply to Canvas & Start Simulation
           await bridge.current.request({
             operation: "open",
             document: modResult.document,
@@ -238,6 +235,44 @@ export function PlaygroundAssistant({
           const status = await bridge.current
             .request<EngineStatus>({ operation: "status" })
             .catch(() => null);
+
+          if (!status?.ready) {
+            throw new Error("Simulation engine failed to report ready state.");
+          }
+
+          if (onCircuitBuilt) {
+            onCircuitBuilt({
+              id: turnId,
+              title: "Circuit Modified",
+              tag: modResult.summary,
+              promptText: text,
+              wiring: [],
+              arduinoCode: modResult.code || "",
+              document: modResult.document,
+              spec: {
+                version: 1,
+                status: "draft",
+                title: "Circuit Modified",
+                explanation: modResult.summary,
+                warnings: [],
+                parts: [],
+                connections: [],
+              },
+              intent: {
+                isCircuitRequest: true,
+                circuitType: "modification",
+                controller: "arduino",
+                ledCount: 1,
+                colors: ["Red"],
+                hasBattery: false,
+                batteryVoltage: "5V",
+                hasSwitch: true,
+                resistorOhms: 220,
+                behavior: "chaser",
+                rawPrompt: text,
+              },
+            });
+          }
 
           setTurns((prev) =>
             prev.map((t) =>
@@ -259,6 +294,8 @@ export function PlaygroundAssistant({
             ),
           );
           return;
+        } else {
+          throw new Error(modResult.summary || "Failed to modify existing circuit.");
         }
       }
 
@@ -284,7 +321,7 @@ export function PlaygroundAssistant({
         }
       }
 
-      // New Circuit Generation
+      // New Circuit Generation Pipeline
       const intent = parseCircuitIntent(text);
       if (!intent.isCircuitRequest) {
         setTurns((prev) =>
@@ -302,20 +339,30 @@ export function PlaygroundAssistant({
         return;
       }
 
-      const circuit = generateCircuit(intent);
-
-      // Stage 2: Components & wiring validated
-      await new Promise((r) => setTimeout(r, 250));
+      // Stage 1: Verified Circuit Plan Created
       setTurns((prev) =>
         prev.map((t) =>
-          t.id === turnId
-            ? { ...t, stages: { ...t.stages, validated: true } }
-            : t,
+          t.id === turnId ? { ...t, stages: { ...t.stages, plan: true } } : t,
         ),
       );
 
-      // Stage 3: Building on canvas
-      await new Promise((r) => setTimeout(r, 300));
+      const circuit = generateCircuit(intent);
+
+      // Stage 2: Components & wiring strictly validated against requirements & electronics spec
+      validateElectronicsDocument(circuit.document);
+      validateCircuitSpec(circuit.spec);
+      const reqCheck = validateCircuitAgainstRequirements(circuit, intent);
+      if (!reqCheck.valid) {
+        throw new Error("Circuit validation failed: " + reqCheck.errors.join("; "));
+      }
+
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === turnId ? { ...t, stages: { ...t.stages, validated: true } } : t,
+        ),
+      );
+
+      // Stage 3: Building on canvas & verifying simulation
       await bridge.current.request({
         operation: "open",
         document: circuit.document,
@@ -328,6 +375,14 @@ export function PlaygroundAssistant({
       await bridge.current
         .request({ operation: "running", running: true })
         .catch(() => {});
+
+      const status = await bridge.current
+        .request<EngineStatus>({ operation: "status" })
+        .catch(() => null);
+
+      if (!status?.ready) {
+        throw new Error("Simulation engine failed to report ready state.");
+      }
 
       if (onCircuitBuilt) {
         onCircuitBuilt(circuit);

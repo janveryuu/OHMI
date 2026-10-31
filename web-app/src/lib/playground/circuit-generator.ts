@@ -4,12 +4,14 @@ import { modifyExistingCircuit } from "./circuit-modifier.ts";
 import { getTrafficLightElectronicsDocument } from "./traffic-light-template.ts";
 
 export type CircuitType =
-  | "standard_led"
+  | "pushbutton_led"
+  | "traffic_light"
   | "potentiometer_led"
   | "night_light"
   | "security_alarm"
   | "shift_register"
-  | "modification";
+  | "modification"
+  | "standard_led";
 
 export interface CircuitIntent {
   isCircuitRequest: boolean;
@@ -145,7 +147,51 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
     };
   }
 
-  // 6. Standard LED / Arduino / Battery Circuit
+  // 6. Check for Pushbutton-Controlled LED (Test 1)
+  const isPushbuttonLed =
+    !isModification &&
+    (/\b(?:pushbutton-controlled\s+led|pushbutton\s+controlled\s+led)\b/i.test(combined) ||
+      (/\bpushbutton\b/i.test(combined) && /\b(?:d2|input_pullup)\b/i.test(combined) && /\bled\b/i.test(combined)) ||
+      (/\b(?:pushbutton|button)\b/i.test(combined) && /\bleds?\b/i.test(combined) && !/\b(?:buzzer|alarm|security|piezo)\b/i.test(combined)));
+
+  if (isPushbuttonLed) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "pushbutton_led",
+      controller: "arduino",
+      ledCount: 1,
+      colors: ["Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: true,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // 7. Check for Automatic Traffic Light (Test 2)
+  const isTrafficLight =
+    /\b(?:traffic\s*light|traffic)\b/i.test(combined) ||
+    (/\b(?:red|yellow|green)\b/i.test(combined) && /\b(?:d8|d9|d10|pins?\s*8|pins?\s*9|pins?\s*10)\b/i.test(combined));
+
+  if (isTrafficLight) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "traffic_light",
+      controller: "arduino",
+      ledCount: 3,
+      colors: ["Red", "Yellow", "Green"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "traffic_light",
+      rawPrompt,
+    };
+  }
+
+  // 8. Standard LED / Arduino / Battery Circuit
   const hasBuildIntent = /\b(?:build|make|create|wire|wiring|circuit|code|sketch|playground|workspace|connect|setup|set\s+up|project|simulate|tinkercad|working|work|gawa|buo|ikabit|kabit)\b/i.test(combined);
   const mentionsArduino = /\barduino\b/i.test(combined);
   const mentionsBattery = /\b(?:battery|bat|dc\s*source|dc\s*supply|9v|cell|power\s*pack)\b/i.test(combined);
@@ -412,11 +458,17 @@ void loop() {
     ],
     wires: [
       { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "leg1" } },
-      { id: 102, view: "schematic", points: [[0, 100], [1400, 450]], from: { part: 1, pin: "A0" }, to: { part: 2, pin: "wiper" } },
-      { id: 103, view: "schematic", points: [[0, 200], [1400, 500]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "leg2" } },
-      { id: 104, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" } },
-      { id: 105, view: "schematic", points: [[2400, 200], [3400, 200]], from: { part: 3, pin: "pin1" }, to: { part: 4, pin: "anode" } },
-      { id: 106, view: "schematic", points: [[3400, 200], [0, 300]], from: { part: 4, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+      { id: 102, view: "breadboard", points: [[1200, 100], [1400, 400]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "leg1" }, color: "#d94343" },
+      { id: 103, view: "schematic", points: [[0, 100], [1400, 450]], from: { part: 1, pin: "A0" }, to: { part: 2, pin: "wiper" } },
+      { id: 104, view: "breadboard", points: [[1100, 100], [1400, 450]], from: { part: 1, pin: "A0" }, to: { part: 2, pin: "wiper" }, color: "#eab308" },
+      { id: 105, view: "schematic", points: [[0, 200], [1400, 500]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "leg2" } },
+      { id: 106, view: "breadboard", points: [[1300, 100], [1400, 500]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "leg2" }, color: "#222222" },
+      { id: 107, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" } },
+      { id: 108, view: "breadboard", points: [[1740, 200], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" }, color: "#418ce1" },
+      { id: 109, view: "schematic", points: [[2400, 200], [3400, 200]], from: { part: 3, pin: "pin1" }, to: { part: 4, pin: "anode" } },
+      { id: 110, view: "breadboard", points: [[2800, 200], [3400, 200]], from: { part: 3, pin: "pin1" }, to: { part: 4, pin: "anode" }, color: "#d94343" },
+      { id: 111, view: "schematic", points: [[3400, 200], [0, 300]], from: { part: 4, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+      { id: 112, view: "breadboard", points: [[3800, 200], [1300, 100]], from: { part: 4, pin: "cathode" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
     ],
   });
 
@@ -535,12 +587,19 @@ void loop() {
     ],
     wires: [
       { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin0" } },
-      { id: 102, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin1" }, to: { part: 1, pin: "A0" } },
-      { id: 103, view: "schematic", points: [[1400, 400], [1400, 800]], from: { part: 2, pin: "pin1" }, to: { part: 3, pin: "pin0" } },
-      { id: 104, view: "schematic", points: [[1400, 800], [0, 200]], from: { part: 3, pin: "pin1" }, to: { part: 1, pin: "GND" } },
-      { id: 105, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" } },
-      { id: 106, view: "schematic", points: [[2400, 200], [3400, 200]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" } },
-      { id: 107, view: "schematic", points: [[3400, 200], [0, 300]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+      { id: 102, view: "breadboard", points: [[1200, 100], [1400, 400]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin0" }, color: "#d94343" },
+      { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin1" }, to: { part: 1, pin: "A0" } },
+      { id: 104, view: "breadboard", points: [[1400, 400], [1100, 100]], from: { part: 2, pin: "pin1" }, to: { part: 1, pin: "A0" }, color: "#eab308" },
+      { id: 105, view: "schematic", points: [[1400, 400], [1400, 800]], from: { part: 2, pin: "pin1" }, to: { part: 3, pin: "pin0" } },
+      { id: 106, view: "breadboard", points: [[1400, 400], [1400, 800]], from: { part: 2, pin: "pin1" }, to: { part: 3, pin: "pin0" }, color: "#eab308" },
+      { id: 107, view: "schematic", points: [[1400, 800], [0, 200]], from: { part: 3, pin: "pin1" }, to: { part: 1, pin: "GND" } },
+      { id: 108, view: "breadboard", points: [[1400, 800], [1300, 100]], from: { part: 3, pin: "pin1" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+      { id: 109, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" } },
+      { id: 110, view: "breadboard", points: [[1740, 200], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" }, color: "#418ce1" },
+      { id: 111, view: "schematic", points: [[2400, 200], [3400, 200]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" } },
+      { id: 112, view: "breadboard", points: [[2800, 200], [3400, 200]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" }, color: "#d94343" },
+      { id: 113, view: "schematic", points: [[3400, 200], [0, 300]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+      { id: 114, view: "breadboard", points: [[3800, 200], [1300, 100]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
     ],
   });
 
@@ -672,12 +731,19 @@ void loop() {
     ],
     wires: [
       { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" } },
-      { id: 102, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" } },
-      { id: 103, view: "schematic", points: [[0, 200], [2400, 400]], from: { part: 1, pin: "D8" }, to: { part: 3, pin: "plus" } },
-      { id: 104, view: "schematic", points: [[2400, 400], [0, 300]], from: { part: 3, pin: "minus" }, to: { part: 1, pin: "GND_2" } },
-      { id: 105, view: "schematic", points: [[0, 400], [1400, 800]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" } },
-      { id: 106, view: "schematic", points: [[1400, 800], [2400, 800]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" } },
-      { id: 107, view: "schematic", points: [[2400, 800], [0, 500]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_3" } },
+      { id: 102, view: "breadboard", points: [[1740, 100], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" }, color: "#22c55e" },
+      { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" } },
+      { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+      { id: 105, view: "schematic", points: [[0, 200], [2400, 400]], from: { part: 1, pin: "D8" }, to: { part: 3, pin: "plus" } },
+      { id: 106, view: "breadboard", points: [[1740, 100], [2400, 400]], from: { part: 1, pin: "D8" }, to: { part: 3, pin: "plus" }, color: "#f97316" },
+      { id: 107, view: "schematic", points: [[2400, 400], [0, 300]], from: { part: 3, pin: "minus" }, to: { part: 1, pin: "GND_2" } },
+      { id: 108, view: "breadboard", points: [[2400, 400], [1300, 100]], from: { part: 3, pin: "minus" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
+      { id: 109, view: "schematic", points: [[0, 400], [1400, 800]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" } },
+      { id: 110, view: "breadboard", points: [[1740, 200], [1400, 800]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" }, color: "#418ce1" },
+      { id: 111, view: "schematic", points: [[1400, 800], [2400, 800]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" } },
+      { id: 112, view: "breadboard", points: [[1800, 800], [2400, 800]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" }, color: "#d94343" },
+      { id: 113, view: "schematic", points: [[2400, 800], [0, 500]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_3" } },
+      { id: 114, view: "breadboard", points: [[2800, 800], [1300, 100]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_3" }, color: "#222222" },
     ],
   });
 
@@ -783,12 +849,19 @@ void loop() {
 
   const wires: Record<string, unknown>[] = [
     { id: 101, view: "schematic", points: [[0, 0], [1800, 400]], from: { part: 1, pin: "D11" }, to: { part: 2, pin: "pin14" } },
-    { id: 102, view: "schematic", points: [[0, 100], [1800, 450]], from: { part: 1, pin: "D8" }, to: { part: 2, pin: "pin12" } },
-    { id: 103, view: "schematic", points: [[0, 200], [1800, 500]], from: { part: 1, pin: "D12" }, to: { part: 2, pin: "pin11" } },
-    { id: 104, view: "schematic", points: [[0, 300], [1800, 550]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin16" } },
-    { id: 105, view: "schematic", points: [[0, 400], [1800, 600]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin8" } },
-    { id: 106, view: "schematic", points: [[0, 500], [1800, 650]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin10" } },
-    { id: 107, view: "schematic", points: [[0, 600], [1800, 700]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin13" } },
+    { id: 102, view: "breadboard", points: [[1740, 100], [1800, 400]], from: { part: 1, pin: "D11" }, to: { part: 2, pin: "pin14" }, color: "#418ce1" },
+    { id: 103, view: "schematic", points: [[0, 100], [1800, 450]], from: { part: 1, pin: "D8" }, to: { part: 2, pin: "pin12" } },
+    { id: 104, view: "breadboard", points: [[1740, 100], [1800, 450]], from: { part: 1, pin: "D8" }, to: { part: 2, pin: "pin12" }, color: "#eab308" },
+    { id: 105, view: "schematic", points: [[0, 200], [1800, 500]], from: { part: 1, pin: "D12" }, to: { part: 2, pin: "pin11" } },
+    { id: 106, view: "breadboard", points: [[1740, 100], [1800, 500]], from: { part: 1, pin: "D12" }, to: { part: 2, pin: "pin11" }, color: "#22c55e" },
+    { id: 107, view: "schematic", points: [[0, 300], [1800, 550]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin16" } },
+    { id: 108, view: "breadboard", points: [[1200, 100], [1800, 550]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin16" }, color: "#d94343" },
+    { id: 109, view: "schematic", points: [[0, 400], [1800, 600]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin8" } },
+    { id: 110, view: "breadboard", points: [[1300, 100], [1800, 600]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin8" }, color: "#222222" },
+    { id: 111, view: "schematic", points: [[0, 500], [1800, 650]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin10" } },
+    { id: 112, view: "breadboard", points: [[1200, 100], [1800, 650]], from: { part: 1, pin: "5V" }, to: { part: 2, pin: "pin10" }, color: "#d94343" },
+    { id: 113, view: "schematic", points: [[0, 600], [1800, 700]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin13" } },
+    { id: 114, view: "breadboard", points: [[1300, 100], [1800, 700]], from: { part: 1, pin: "GND" }, to: { part: 2, pin: "pin13" }, color: "#222222" },
   ];
 
   const qPins = ["pin15", "pin1", "pin2", "pin3", "pin4", "pin5", "pin6", "pin7"];
@@ -833,9 +906,15 @@ void loop() {
     );
 
     wires.push(
+      // Q output to resistor pin0
       { id: wireId++, view: "schematic", points: [[1800, 400], [3000, i * 400]], from: { part: 2, pin: qPins[i] }, to: { part: resId, pin: "pin0" } },
+      { id: wireId++, view: "breadboard", points: [[1800, 400], [3000, i * 400]], from: { part: 2, pin: qPins[i] }, to: { part: resId, pin: "pin0" }, color: "#418ce1" },
+      // Resistor pin1 to LED anode
       { id: wireId++, view: "schematic", points: [[3000, i * 400], [4000, i * 400]], from: { part: resId, pin: "pin1" }, to: { part: ledId, pin: "anode" } },
-      { id: wireId++, view: "schematic", points: [[4000, i * 400], [0, 700]], from: { part: ledId, pin: "cathode" }, to: { part: 1, pin: "GND_2" } }
+      { id: wireId++, view: "breadboard", points: [[3400, i * 400], [4000, i * 400]], from: { part: resId, pin: "pin1" }, to: { part: ledId, pin: "anode" }, color: "#d94343" },
+      // LED cathode to GND
+      { id: wireId++, view: "schematic", points: [[4000, i * 400], [0, 700]], from: { part: ledId, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+      { id: wireId++, view: "breadboard", points: [[4400, i * 400], [1300, 100]], from: { part: ledId, pin: "cathode" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
     );
 
     specParts.push(
@@ -947,9 +1026,426 @@ function generateModifiedCircuit(intent: CircuitIntent): GeneratedCircuit {
 }
 
 // ----------------------------------------------------
+// 5. Pushbutton-Controlled LED Generator (Test 1)
+// ----------------------------------------------------
+function generatePushbuttonLedCircuit(intent: CircuitIntent): GeneratedCircuit {
+  const title = "Arduino Uno Pushbutton-Controlled LED";
+  const tag = "Arduino Uno · Pushbutton (D2, INPUT_PULLUP) · Red LED (D9) · 220 Ω";
+
+  const sketch = `// Arduino Uno Pushbutton-Controlled LED
+const int BUTTON_PIN = 2; // Pushbutton on digital pin D2
+const int LED_PIN = 9;    // Red LED on digital pin D9
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+  int buttonState = digitalRead(BUTTON_PIN);
+  // INPUT_PULLUP: LOW when button is pressed, HIGH when released
+  if (buttonState == LOW) {
+    digitalWrite(LED_PIN, HIGH); // LED ON when pressed
+  } else {
+    digitalWrite(LED_PIN, LOW);  // LED OFF when released
+  }
+}`;
+
+  const wiring = [
+    { label: "Pushbutton Input", detail: "Pushbutton Pin 1 → Arduino Digital Pin D2 (INPUT_PULLUP)" },
+    { label: "Pushbutton Ground", detail: "Pushbutton Pin 3 → Arduino GND" },
+    { label: "Red LED Signal", detail: "Arduino Digital Pin D9 → 220 Ω Resistor (pin0)" },
+    { label: "Red LED Anode", detail: "220 Ω Resistor (pin1) → Red LED Anode (+)" },
+    { label: "Red LED Ground", detail: "Red LED Cathode (−) → Arduino GND_2" },
+  ];
+
+  const parts: Record<string, unknown>[] = [
+    {
+      id: 1,
+      type: "arduino_uno",
+      label: "A1",
+      props: { outputs: "", type: "Arduino Uno (Rev3)" },
+      views: { breadboard: { at: [0, 0] }, schematic: { at: [0, 0] }, pcb: { at: [0, 0] } },
+      code: sketch,
+    },
+    {
+      id: 2,
+      type: "pushbutton",
+      label: "BTN1",
+      props: {},
+      views: { breadboard: { at: [1400, 400] }, schematic: { at: [1400, 400] }, pcb: { at: [1400, 400] } },
+    },
+    {
+      id: 3,
+      type: "resistor",
+      label: "R1",
+      props: { power: "1/4W", resistance: "220Ω", tolerance: "±5%" },
+      views: { breadboard: { at: [2400, 200] }, schematic: { at: [2400, 200] }, pcb: { at: [2400, 200] } },
+    },
+    {
+      id: 4,
+      type: "led",
+      label: "LED1",
+      props: { color: "Red", package: "5 mm [THT]" },
+      views: { breadboard: { at: [3400, 200] }, schematic: { at: [3400, 200] }, pcb: { at: [3400, 200] } },
+    },
+  ];
+
+  const wires: Record<string, unknown>[] = [
+    // Button D2
+    { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" } },
+    { id: 102, view: "breadboard", points: [[1740, 100], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" }, color: "#22c55e" },
+    // Button GND
+    { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" } },
+    { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+    // LED D9 -> Resistor pin0
+    { id: 105, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" } },
+    { id: 106, view: "breadboard", points: [[1740, 200], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" }, color: "#418ce1" },
+    // Resistor pin1 -> LED anode
+    { id: 107, view: "schematic", points: [[2400, 200], [3400, 200]], from: { part: 3, pin: "pin1" }, to: { part: 4, pin: "anode" } },
+    { id: 108, view: "breadboard", points: [[2800, 200], [3400, 200]], from: { part: 3, pin: "pin1" }, to: { part: 4, pin: "anode" }, color: "#d94343" },
+    // LED cathode -> Uno GND_2
+    { id: 109, view: "schematic", points: [[3400, 200], [0, 300]], from: { part: 4, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+    { id: 110, view: "breadboard", points: [[3800, 200], [1300, 100]], from: { part: 4, pin: "cathode" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
+  ];
+
+  const document = validateElectronicsDocument({
+    format: "designElectronics",
+    version: 1,
+    title,
+    parts,
+    wires,
+  });
+
+  const spec = validateCircuitSpec({
+    version: 1,
+    status: "draft",
+    title,
+    explanation: "Pushbutton-controlled LED circuit on Arduino Uno with D2 (INPUT_PULLUP) and D9.",
+    warnings: [],
+    parts: [
+      { id: "uno", type: "arduino_uno", properties: [], sketch },
+      { id: "btn", type: "pushbutton", properties: [], sketch: "" },
+      { id: "r1", type: "resistor", properties: [{ key: "resistance", value: "220" }], sketch: "" },
+      { id: "led1", type: "led", properties: [{ key: "color", value: "Red" }], sketch: "" },
+    ],
+    connections: [
+      { from: { part: "uno", pin: "D2" }, to: { part: "btn", pin: "pin1" } },
+      { from: { part: "btn", pin: "pin3" }, to: { part: "uno", pin: "GND" } },
+      { from: { part: "uno", pin: "D9" }, to: { part: "r1", pin: "pin0" } },
+      { from: { part: "r1", pin: "pin1" }, to: { part: "led1", pin: "anode" } },
+      { from: { part: "led1", pin: "cathode" }, to: { part: "uno", pin: "GND_2" } },
+    ],
+  });
+
+  return {
+    id: crypto.randomUUID(),
+    title,
+    tag,
+    promptText: "Would you like the Arduino C++ code, or should I build this circuit directly in your Electronics workspace?",
+    wiring,
+    arduinoCode: sketch,
+    document,
+    spec,
+    intent,
+  };
+}
+
+// ----------------------------------------------------
+// 6. Automatic Traffic Light Generator (Test 2)
+// ----------------------------------------------------
+function generateTrafficLightCircuit(intent: CircuitIntent): GeneratedCircuit {
+  const title = "Arduino Traffic Light with Three LEDs";
+  const tag = "Arduino Uno · 3 LEDs · 220 Ω · Pins D8–D10";
+
+  const sketch = `// Arduino Uno Automatic Traffic Light (Green 5s -> Yellow 2s -> Red 5s)
+const int RED_PIN = 8;
+const int YELLOW_PIN = 9;
+const int GREEN_PIN = 10;
+
+void setup() {
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(YELLOW_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+}
+
+void loop() {
+  // Stage 1: Green Light ON for 5 seconds (Only Green ON)
+  digitalWrite(GREEN_PIN, HIGH);
+  digitalWrite(YELLOW_PIN, LOW);
+  digitalWrite(RED_PIN, LOW);
+  delay(5000);
+
+  // Stage 2: Yellow Light ON for 2 seconds (Only Yellow ON)
+  digitalWrite(GREEN_PIN, LOW);
+  digitalWrite(YELLOW_PIN, HIGH);
+  digitalWrite(RED_PIN, LOW);
+  delay(2000);
+
+  // Stage 3: Red Light ON for 5 seconds (Only Red ON)
+  digitalWrite(GREEN_PIN, LOW);
+  digitalWrite(YELLOW_PIN, LOW);
+  digitalWrite(RED_PIN, HIGH);
+  delay(5000);
+}`;
+
+  const wiring = [
+    { label: "Red LED Branch", detail: "Arduino Pin D8 → 220 Ω Resistor (R1) → Red LED Anode (+) → Cathode (−) → Arduino GND" },
+    { label: "Yellow LED Branch", detail: "Arduino Pin D9 → 220 Ω Resistor (R2) → Yellow LED Anode (+) → Cathode (−) → Arduino GND_2" },
+    { label: "Green LED Branch", detail: "Arduino Pin D10 → 220 Ω Resistor (R3) → Green LED Anode (+) → Cathode (−) → Arduino GND_3" },
+    { label: "Cycle Sequence", detail: "Green ON 5s → Yellow ON 2s → Red ON 5s (Continuous Repeat)" },
+  ];
+
+  const parts: Record<string, unknown>[] = [
+    {
+      id: 1,
+      type: "arduino_uno",
+      label: "A1",
+      props: { outputs: "D8=HIGH", type: "Arduino Uno (Rev3)" },
+      views: { breadboard: { at: [0, 0] }, schematic: { at: [0, 0] }, pcb: { at: [0, 0] } },
+      code: sketch,
+    },
+    {
+      id: 2,
+      type: "resistor",
+      label: "R1",
+      props: { power: "1/4W", resistance: "220Ω", tolerance: "±5%" },
+      views: { breadboard: { at: [3200, 0] }, schematic: { at: [3200, 0] }, pcb: { at: [3200, 0] } },
+    },
+    {
+      id: 3,
+      type: "led",
+      label: "LED_RED",
+      props: { color: "Red", package: "5 mm [THT]" },
+      views: { breadboard: { at: [4200, 0] }, schematic: { at: [4200, 0] }, pcb: { at: [4200, 0] } },
+    },
+    {
+      id: 4,
+      type: "resistor",
+      label: "R2",
+      props: { power: "1/4W", resistance: "220Ω", tolerance: "±5%" },
+      views: { breadboard: { at: [3200, 900] }, schematic: { at: [3200, 900] }, pcb: { at: [3200, 900] } },
+    },
+    {
+      id: 5,
+      type: "led",
+      label: "LED_YEL",
+      props: { color: "Yellow", package: "5 mm [THT]" },
+      views: { breadboard: { at: [4200, 900] }, schematic: { at: [4200, 900] }, pcb: { at: [4200, 900] } },
+    },
+    {
+      id: 6,
+      type: "resistor",
+      label: "R3",
+      props: { power: "1/4W", resistance: "220Ω", tolerance: "±5%" },
+      views: { breadboard: { at: [3200, 1800] }, schematic: { at: [3200, 1800] }, pcb: { at: [3200, 1800] } },
+    },
+    {
+      id: 7,
+      type: "led",
+      label: "LED_GRN",
+      props: { color: "Green", package: "5 mm [THT]" },
+      views: { breadboard: { at: [4200, 1800] }, schematic: { at: [4200, 1800] }, pcb: { at: [4200, 1800] } },
+    },
+  ];
+
+  const wires: Record<string, unknown>[] = [
+    // Red LED branch (Pin D8)
+    { id: 101, view: "schematic", points: [[1200, 900], [3200, 0]], from: { part: 1, pin: "D8" }, to: { part: 2, pin: "pin0" } },
+    { id: 102, view: "breadboard", points: [[1740, 100], [3200, 0]], from: { part: 1, pin: "D8" }, to: { part: 2, pin: "pin0" }, color: "#d94343" },
+    { id: 103, view: "schematic", points: [[3600, 0], [4200, 0]], from: { part: 2, pin: "pin1" }, to: { part: 3, pin: "anode" } },
+    { id: 104, view: "breadboard", points: [[3600, 0], [4200, 0]], from: { part: 2, pin: "pin1" }, to: { part: 3, pin: "anode" }, color: "#d94343" },
+    { id: 105, view: "schematic", points: [[4600, 0], [1200, 1200]], from: { part: 3, pin: "cathode" }, to: { part: 1, pin: "GND" } },
+    { id: 106, view: "breadboard", points: [[4600, 0], [1300, 100]], from: { part: 3, pin: "cathode" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+
+    // Yellow LED branch (Pin D9)
+    { id: 107, view: "schematic", points: [[1200, 900], [3200, 900]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" } },
+    { id: 108, view: "breadboard", points: [[1740, 100], [3200, 900]], from: { part: 1, pin: "D9" }, to: { part: 4, pin: "pin0" }, color: "#eab308" },
+    { id: 109, view: "schematic", points: [[3600, 900], [4200, 900]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" } },
+    { id: 110, view: "breadboard", points: [[3600, 900], [4200, 900]], from: { part: 4, pin: "pin1" }, to: { part: 5, pin: "anode" }, color: "#eab308" },
+    { id: 111, view: "schematic", points: [[4600, 900], [1200, 1200]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_2" } },
+    { id: 112, view: "breadboard", points: [[4600, 900], [1300, 100]], from: { part: 5, pin: "cathode" }, to: { part: 1, pin: "GND_2" }, color: "#222222" },
+
+    // Green LED branch (Pin D10)
+    { id: 113, view: "schematic", points: [[1200, 900], [3200, 1800]], from: { part: 1, pin: "D10" }, to: { part: 6, pin: "pin0" } },
+    { id: 114, view: "breadboard", points: [[1740, 100], [3200, 1800]], from: { part: 1, pin: "D10" }, to: { part: 6, pin: "pin0" }, color: "#22c55e" },
+    { id: 115, view: "schematic", points: [[3600, 1800], [4200, 1800]], from: { part: 6, pin: "pin1" }, to: { part: 7, pin: "anode" } },
+    { id: 116, view: "breadboard", points: [[3600, 1800], [4200, 1800]], from: { part: 6, pin: "pin1" }, to: { part: 7, pin: "anode" }, color: "#22c55e" },
+    { id: 117, view: "schematic", points: [[4600, 1800], [1200, 1200]], from: { part: 7, pin: "cathode" }, to: { part: 1, pin: "GND_3" } },
+    { id: 118, view: "breadboard", points: [[4600, 1800], [1300, 100]], from: { part: 7, pin: "cathode" }, to: { part: 1, pin: "GND_3" }, color: "#222222" },
+  ];
+
+  const document = validateElectronicsDocument({
+    format: "designElectronics",
+    version: 1,
+    title,
+    parts,
+    wires,
+  });
+
+  const spec = validateCircuitSpec({
+    version: 1,
+    status: "draft",
+    title,
+    explanation: "Automatic traffic light circuit with Red (D8), Yellow (D9), Green (D10) on Arduino Uno.",
+    warnings: [],
+    parts: [
+      { id: "uno", type: "arduino_uno", properties: [], sketch },
+      { id: "r1", type: "resistor", properties: [{ key: "resistance", value: "220" }], sketch: "" },
+      { id: "led1", type: "led", properties: [{ key: "color", value: "Red" }], sketch: "" },
+      { id: "r2", type: "resistor", properties: [{ key: "resistance", value: "220" }], sketch: "" },
+      { id: "led2", type: "led", properties: [{ key: "color", value: "Yellow" }], sketch: "" },
+      { id: "r3", type: "resistor", properties: [{ key: "resistance", value: "220" }], sketch: "" },
+      { id: "led3", type: "led", properties: [{ key: "color", value: "Green" }], sketch: "" },
+    ],
+    connections: [
+      { from: { part: "uno", pin: "D8" }, to: { part: "r1", pin: "pin0" } },
+      { from: { part: "r1", pin: "pin1" }, to: { part: "led1", pin: "anode" } },
+      { from: { part: "led1", pin: "cathode" }, to: { part: "uno", pin: "GND" } },
+      { from: { part: "uno", pin: "D9" }, to: { part: "r2", pin: "pin0" } },
+      { from: { part: "r2", pin: "pin1" }, to: { part: "led2", pin: "anode" } },
+      { from: { part: "led2", pin: "cathode" }, to: { part: "uno", pin: "GND_2" } },
+      { from: { part: "uno", pin: "D10" }, to: { part: "r3", pin: "pin0" } },
+      { from: { part: "r3", pin: "pin1" }, to: { part: "led3", pin: "anode" } },
+      { from: { part: "led3", pin: "cathode" }, to: { part: "uno", pin: "GND_3" } },
+    ],
+  });
+
+  return {
+    id: crypto.randomUUID(),
+    title,
+    tag,
+    promptText: "Would you like the Arduino C++ code, or should I build this circuit directly in your Electronics workspace?",
+    wiring,
+    arduinoCode: sketch,
+    document,
+    spec,
+    intent,
+  };
+}
+
+// ----------------------------------------------------
+// Requirement Validation System
+// ----------------------------------------------------
+export interface RequirementCheckResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export function validateCircuitAgainstRequirements(
+  circuit: GeneratedCircuit,
+  intent: CircuitIntent,
+): RequirementCheckResult {
+  const errors: string[] = [];
+  const parts = (circuit.document.parts || []) as {
+    id: number;
+    type: string;
+    props?: Record<string, string>;
+    code?: string;
+  }[];
+  const wires = (circuit.document.wires || []) as {
+    id: number;
+    view: string;
+    from: { part: number; pin: string };
+    to: { part: number; pin: string };
+  }[];
+
+  if (!parts.length) {
+    return { valid: false, errors: ["No components placed in circuit document."] };
+  }
+  if (!wires.length) {
+    return { valid: false, errors: ["No wires routed in circuit document."] };
+  }
+
+  // Check wires in both views
+  const bbWires = wires.filter((w) => w.view === "breadboard");
+  const schWires = wires.filter((w) => w.view === "schematic");
+
+  if (bbWires.length === 0) {
+    errors.push("Missing breadboard routing: circuit must contain native wires in breadboard view.");
+  }
+  if (schWires.length === 0) {
+    errors.push("Missing schematic routing: circuit must contain wires in schematic view.");
+  }
+
+  // Type-specific verification
+  if (intent.circuitType === "pushbutton_led") {
+    const hasUno = parts.some((p) => p.type === "arduino_uno");
+    const hasBtn = parts.some((p) => p.type === "pushbutton");
+    const hasLed = parts.some((p) => p.type === "led");
+    const hasRes = parts.some((p) => p.type === "resistor");
+    if (!hasUno) errors.push("Missing Arduino Uno");
+    if (!hasBtn) errors.push("Missing Pushbutton");
+    if (!hasLed) errors.push("Missing Red LED");
+    if (!hasRes) errors.push("Missing 220 Ω Resistor");
+    if (!circuit.arduinoCode.includes("INPUT_PULLUP")) {
+      errors.push("Arduino code must use INPUT_PULLUP on button pin");
+    }
+  } else if (intent.circuitType === "traffic_light") {
+    const hasUno = parts.some((p) => p.type === "arduino_uno");
+    const leds = parts.filter((p) => p.type === "led");
+    const resistors = parts.filter((p) => p.type === "resistor");
+    if (!hasUno) errors.push("Missing Arduino Uno");
+    if (leds.length < 3) errors.push(`Expected 3 LEDs (Red, Yellow, Green), found ${leds.length}`);
+    if (resistors.length < 3) errors.push(`Expected 3 resistors, found ${resistors.length}`);
+    if (
+      !circuit.arduinoCode.includes("RED_PIN") ||
+      !circuit.arduinoCode.includes("YELLOW_PIN") ||
+      !circuit.arduinoCode.includes("GREEN_PIN")
+    ) {
+      errors.push("Arduino code must control pins 8, 9, and 10 for Red, Yellow, Green");
+    }
+  } else if (intent.circuitType === "potentiometer_led") {
+    const hasPot = parts.some((p) => p.type === "potentiometer");
+    const hasLed = parts.some((p) => p.type === "led");
+    if (!hasPot) errors.push("Missing Potentiometer");
+    if (!hasLed) errors.push("Missing LED");
+    if (!circuit.arduinoCode.includes("analogRead") || !circuit.arduinoCode.includes("analogWrite")) {
+      errors.push("Arduino code must read potentiometer with analogRead and control LED with analogWrite");
+    }
+  } else if (intent.circuitType === "night_light") {
+    const hasLdr = parts.some((p) => p.type === "photocell");
+    const hasLed = parts.some((p) => p.type === "led");
+    if (!hasLdr) errors.push("Missing LDR Photoresistor (photocell)");
+    if (!hasLed) errors.push("Missing White LED");
+    if (!circuit.arduinoCode.includes("analogRead")) {
+      errors.push("Arduino code must read ambient light on A0 with analogRead");
+    }
+  } else if (intent.circuitType === "security_alarm") {
+    const hasBtn = parts.some((p) => p.type === "pushbutton");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    const hasLed = parts.some((p) => p.type === "led");
+    if (!hasBtn) errors.push("Missing Pushbutton");
+    if (!hasBz) errors.push("Missing Buzzer");
+    if (!hasLed) errors.push("Missing Red LED");
+    if (!circuit.arduinoCode.includes("INPUT_PULLUP")) {
+      errors.push("Pushbutton must use INPUT_PULLUP");
+    }
+  } else if (intent.circuitType === "shift_register") {
+    const hasSr = parts.some((p) => p.type === "74hc595");
+    const leds = parts.filter((p) => p.type === "led");
+    const resistors = parts.filter((p) => p.type === "resistor");
+    if (!hasSr) errors.push("Missing 74HC595 Shift Register");
+    if (leds.length < 8) errors.push(`Expected 8 LEDs, found ${leds.length}`);
+    if (resistors.length < 8) errors.push(`Expected 8 current-limiting resistors, found ${resistors.length}`);
+    if (!circuit.arduinoCode.includes("shiftOut")) {
+      errors.push("Arduino code must use shiftOut");
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+// ----------------------------------------------------
 // Main Circuit Generator Switch
 // ----------------------------------------------------
 export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
+  if (intent.circuitType === "pushbutton_led") {
+    return generatePushbuttonLedCircuit(intent);
+  }
+  if (intent.circuitType === "traffic_light") {
+    return generateTrafficLightCircuit(intent);
+  }
   if (intent.circuitType === "potentiometer_led") {
     return generatePotentiometerCircuit(intent);
   }

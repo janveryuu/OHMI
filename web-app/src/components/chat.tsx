@@ -250,12 +250,12 @@ export function Chat() {
       if (circuit) {
         sessionStorage.setItem("ohmi_active_circuit_doc", JSON.stringify(circuit.document));
         sessionStorage.setItem("ohmi_active_circuit_spec", JSON.stringify(circuit.spec));
-        sessionStorage.setItem("ohmi_playground_template", circuit.intent.behavior === "traffic_light" ? "arduino-traffic-light" : "custom");
+        sessionStorage.setItem("ohmi_playground_template", "custom");
       } else {
         sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
       }
     } catch {}
-    const templateParam = circuit?.intent.behavior === "traffic_light" ? "arduino-traffic-light" : "custom";
+    const templateParam = circuit ? "custom" : "arduino-traffic-light";
     if (router && typeof router.push === "function") {
       router.push("/playground/?template=" + templateParam);
     } else {
