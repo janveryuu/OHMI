@@ -31,6 +31,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { RichText } from "./rich-text";
+import { CodeBlock } from "./code-block";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircuitBuild } from "./circuit-build";
@@ -56,25 +57,11 @@ export function CircuitActionCard({
   forceShowCode?: boolean;
 }) {
   const [showCode, setShowCode] = useState(false);
-  const [copied, setCopied] = useState(false);
   const isCodeVisible = showCode || forceShowCode;
 
-  let fallbackCircuit: GeneratedCircuit | null = null;
-  if (!circuit) {
-    try {
-      fallbackCircuit = generateCircuit(parseCircuitIntent("traffic light"));
-    } catch {}
-  }
-  const activeCircuit = circuit || fallbackCircuit;
-  if (!activeCircuit) return null;
-
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(activeCircuit.arduinoCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  };
+  // Never fabricate an unsolicited circuit
+  if (!circuit) return null;
+  const activeCircuit = circuit;
 
   return (
     <div className="circuit-action-card" data-testid="circuit-action-card">
@@ -118,27 +105,12 @@ export function CircuitActionCard({
       </div>
 
       {isCodeVisible && activeCircuit.arduinoCode && (
-        <div className="circuit-code-panel">
-          <div className="circuit-code-header">
-            <div className="circuit-window-bar">
-              <span className="circuit-window-dot close" />
-              <span className="circuit-window-dot minimize" />
-              <span className="circuit-window-dot zoom" />
-            </div>
-            <span>sketch.ino (Arduino C++)</span>
-            <button
-              type="button"
-              className="circuit-copy-btn"
-              onClick={copyCode}
-              aria-label="Copy Arduino sketch"
-            >
-              {copied ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} />}
-              <span>{copied ? "Copied" : "Copy code"}</span>
-            </button>
-          </div>
-          <pre>
-            <code>{activeCircuit.arduinoCode}</code>
-          </pre>
+        <div className="mt-3">
+          <CodeBlock
+            code={activeCircuit.arduinoCode}
+            language="arduino"
+            filename="sketch.ino"
+          />
           <ul className="circuit-wiring-list">
             {activeCircuit.wiring.map((w, idx) => (
               <li key={idx}>
@@ -525,15 +497,18 @@ export function Chat() {
                 .slice(0, idx)
                 .reverse()
                 .find((m) => m.role === "user");
-              const circuitIntent = parseCircuitIntent(
-                (prevUser?.text || "") + " " + (message.text || "")
-              );
+
+              // Determine circuit build intent strictly from the preceding student prompt
+              const circuitIntent = prevUser && message.role === "assistant"
+                ? parseCircuitIntent(prevUser.text)
+                : null;
+
               const isCircuitMatch =
                 message.role === "assistant" &&
-                (circuitIntent.isCircuitRequest ||
-                  isTrafficLightMatch(message.text, prevUser?.text));
+                Boolean(circuitIntent?.isCircuitRequest);
+
               let dynamicCircuit: GeneratedCircuit | null = null;
-              if (isCircuitMatch) {
+              if (isCircuitMatch && circuitIntent) {
                 try {
                   dynamicCircuit = generateCircuit(circuitIntent);
                 } catch (err) {
@@ -550,17 +525,19 @@ export function Chat() {
                 {message.role === "assistant" && (message.structured?.mode === "limited" || message.structured?.mode === "local") && (
                   <span className="chat-reply-note">{message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
                 )}
+                {/* Explanation first */}
+                {message.role === "assistant" ? (
+                  <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
+                ) : (
+                  <p className="user-text">{message.text}</p>
+                )}
+                {/* Circuit Ready card at the bottom of its associated response */}
                 {isCircuitMatch && dynamicCircuit && (
                   <CircuitActionCard
                     circuit={dynamicCircuit}
                     onDirectToPlayground={() => handleDirectToPlayground(dynamicCircuit)}
                     forceShowCode={showTrafficCode}
                   />
-                )}
-                {message.role === "assistant" ? (
-                  <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
-                ) : (
-                  <p className="user-text">{message.text}</p>
                 )}
                 {message.role === "assistant" && message.requestId && message.structured?.kind === "circuit_build" && message.structured?.status === "draft" && (
                   <Link href={"/playground/?build=" + message.requestId}>Open new editable circuit draft</Link>

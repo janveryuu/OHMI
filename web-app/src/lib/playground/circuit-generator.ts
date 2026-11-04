@@ -43,7 +43,48 @@ const COLOR_ROTATION = ["Red", "Yellow", "Green", "Blue", "White", "Red", "Yello
 
 export function parseCircuitIntent(userText: string, assistantText?: string): CircuitIntent {
   const rawPrompt = userText || "";
-  const combined = `${userText || ""} ${assistantText || ""}`.toLowerCase();
+  const cleanUser = rawPrompt.trim();
+  const lowerUser = cleanUser.toLowerCase();
+
+  // Strict Negative Guards: Casual greetings, pleasantries, questions, explanations
+  const isCasualGreeting =
+    /^(?:hi\b|hello\b|hey\b|kumusta\b|kamusta\b|good\s+(?:morning|afternoon|evening|day)\b|sup\b|yo\b|greetings\b)/i.test(lowerUser) ||
+    /^(?:thank\s*you\b|thanks\b|salamat\b|ok\b|okay\b|cool\b|great\b|bye\b|goodbye\b)/i.test(lowerUser);
+
+  // Pure code requests (student asking to view/read code in chat)
+  const isPureCodeRequest =
+    /^(?:show|give|display|view|see|write|provide)\s+(?:me\s+)?(?:the\s+)?(?:arduino\s+)?code\b/i.test(lowerUser) ||
+    /^(?:arduino\s+code|c\+\+\s+code|sketch\s+code|code\s+please)\b/i.test(lowerUser);
+
+  // Pure questions, inquiries, and educational explanations
+  const isConceptualQuestion =
+    /\b(?:what\s+(?:is|are|does|do)|ano\s+ang|how\s+(?:does|do|is|it|can)|paano\s+(?:gumagana|mag|gumawa)|why\s+(?:is|does|do)|bakit|explain|ipaliwanag|describe|tell\s+me\s+about|teach\s+me|difference\s+between|definition\s+of|meaning\s+of)\b/i.test(lowerUser);
+
+  // Explicit circuit creation / wiring commands
+  const hasExplicitBuildCommand =
+    /\b(?:build|create|make|wire|generate|design|construct|assemble|set\s*up|simulate|put\s+together|hook\s+up|give\s+me\s+a\s+(?:working\s+)?(?:arduino|circuit)|gumawa|gawa|buo|buuin|ikabit|kabit|mag-build)\b/i.test(lowerUser) ||
+    /\b(?:i\s+want\s+(?:to\s+build|a\s+circuit)|can\s+you\s+(?:build|make|wire|create)|can\s+we\s+(?:build|make|wire|create))\b/i.test(lowerUser) ||
+    /\b(?:arduino\s+with\s+(?:\d+|[a-z]+)\s+leds?|circuit\s+with\s+(?:\d+|[a-z]+)\s+leds?)\b/i.test(lowerUser);
+
+  // If it's a greeting, pure code request, or conceptual question WITHOUT an explicit build command, reject as circuit request:
+  if ((isCasualGreeting || isPureCodeRequest || isConceptualQuestion) && !hasExplicitBuildCommand) {
+    return {
+      isCircuitRequest: false,
+      circuitType: "standard_led",
+      controller: "arduino",
+      ledCount: 1,
+      colors: ["Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // Combined string for extracting parameters (count, colors, voltage)
+  const combined = cleanUser ? lowerUser : `${userText || ""} ${assistantText || ""}`.toLowerCase();
 
   // 1. Check for Modification Request
   const isModification =

@@ -275,6 +275,19 @@ export function buildTrafficLightProject(): Project {
 }
 
 export function isTrafficLightMatch(msgText: string, userText?: string): boolean {
+  const user = (userText || "").toLowerCase().trim();
+
+  // Strict negative guards on user prompt: questions, greetings, or explanations without build command
+  const isGreetingOrQuestion =
+    /^(?:hi\b|hello\b|hey\b|kumusta\b|kamusta\b|good\s+(?:morning|afternoon|evening|day)\b|sup\b|yo\b)/i.test(user) ||
+    /\b(?:what\s+(?:is|are|does|do)|ano\s+ang|how\s+(?:does|do|is|it)|paano|why|bakit|explain|describe|tell\s+me\s+about)\b/i.test(user);
+
+  const hasExplicitBuild = /\b(?:build|make|create|wire|wiring|connect|assemble|construct|simulate|gumawa|gawa|buo|ikabit|mag-build)\b/i.test(user);
+
+  if (isGreetingOrQuestion && !hasExplicitBuild) {
+    return false;
+  }
+
   const combined = `${userText || ""} ${msgText || ""}`.toLowerCase();
 
   // Negative guards for unrelated hardware and purely conceptual questions
