@@ -224,10 +224,10 @@ void loop() {
     { fromPart: "uno", fromPin: "D2", toPart: "pir", toPin: "OUT", color: "#3b82f6" },
     // Arm button (D3, INPUT_PULLUP)
     { fromPart: "uno", fromPin: "D3", toPart: "btn_arm", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_arm", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_arm", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
     // Disarm button (D4, INPUT_PULLUP)
     { fromPart: "uno", fromPin: "D4", toPart: "btn_disarm", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_disarm", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_disarm", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
     // Green LED branch (D5 -> R -> LED -> GND)
     { fromPart: "uno", fromPin: "D5", toPart: "r_green", toPin: "pin0", color: "#22c55e" },
     { fromPart: "r_green", fromPin: "pin1", toPart: "led_green", toPin: "anode", color: "#22c55e" },
@@ -480,11 +480,11 @@ void loop() {
 
   connections.push(
     { fromPart: "uno", fromPin: "A0", toPart: "btn_ped_ns", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_ped_ns", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_ped_ns", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
     { fromPart: "uno", fromPin: "A1", toPart: "btn_ped_ew", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_ped_ew", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_ped_ew", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
     { fromPart: "uno", fromPin: "A2", toPart: "btn_emer", toPin: "pin1", color: "#dc2626" },
-    { fromPart: "btn_emer", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_emer", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
   );
 
   const warnings = [
@@ -1250,11 +1250,11 @@ void loop() {
 
     // Pushbutton 1 (Mode: D2, INPUT_PULLUP)
     { fromPart: "uno", fromPin: "D2", toPart: "btn_mode", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_mode", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_mode", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
 
     // Pushbutton 2 (Pause/Resume: D3, INPUT_PULLUP)
     { fromPart: "uno", fromPin: "D3", toPart: "btn_pause", toPin: "pin1", color: "#8b5cf6" },
-    { fromPart: "btn_pause", fromPin: "pin3", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
+    { fromPart: "btn_pause", fromPin: "pin2", toPart: "uno", toPin: "GND_2", color: "#1f2937" },
   ];
 
   for (let i = 0; i < 8; i++) {

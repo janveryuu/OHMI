@@ -410,15 +410,7 @@ function validateElectricalSpec(
       const qPins = ["pin15", "pin1", "pin2", "pin3", "pin4", "pin5", "pin6", "pin7"];
       for (const q of qPins) add(part, q, 0, 5, true);
     }
-    if (part.type === "hcsr04") {
-      add(part, "ECHO", 0, 5, true);
-    }
-    if (part.type === "hcsr501") {
-      add(part, "OUT", 0, 5, true);
-    }
-    if (part.type === "tmp36") {
-      add(part, "VOUT", 0, 5, true);
-    }
+
   }
   const edges = new Map<string, { node: string; ohms: number; id: string }[]>();
   const resistors = spec.parts.filter((part) => part.type === "resistor");

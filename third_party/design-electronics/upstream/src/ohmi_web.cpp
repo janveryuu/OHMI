@@ -128,19 +128,112 @@ Json prepare(Document& draft) {
     std::set<std::string> occupiedHoles;
     std::vector<Rect> bodies;
     int mounted = 0;
-    // Large ICs first, then controls, then passives; preserve electrical identity independently of packing.
-    auto order = originals;
-    std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return draft.part(a)->def->pins.size() > draft.part(b)->def->pins.size(); });
+
+    // Categorize parts for professional layout and grouping
+    std::vector<int> displays, ics, buttons, pots, sensors, leds, resistors, buzzers, others;
+    for (int id : originals) {
+        const auto* p = draft.part(id);
+        if (p->type == "arduino_uno" || p->type == "battery") continue;
+        if (p->type == "seg7_cc" || p->type == "seg7_ca") displays.push_back(id);
+        else if (p->type == "74hc595" || p->type == "cd4511" || (p->def && p->def->pins.size() >= 8)) ics.push_back(id);
+        else if (p->type == "pushbutton" || p->type == "switch") buttons.push_back(id);
+        else if (p->type == "potentiometer") pots.push_back(id);
+        else if (p->type == "photocell") sensors.push_back(id);
+        else if (p->type == "led" || p->type == "rgb_led") leds.push_back(id);
+        else if (p->type == "resistor") resistors.push_back(id);
+        else if (p->type == "buzzer" || p->type == "piezo") buzzers.push_back(id);
+        else others.push_back(id);
+    }
+
+    struct PartHint {
+        int targetCol = 32;
+        char preferredRow = 'e';
+        int preferredRot = 0;
+    };
+    std::map<int, PartHint> hints;
+
+    if (!displays.empty()) {
+        // Multi-digit display circuit (FMSS 2-digit counter, etc.)
+        for (size_t d = 0; d < displays.size(); ++d) {
+            hints[displays[d]] = { (int)(24 + d * 8), 'c', 0 };
+        }
+        for (size_t r = 0; r < resistors.size(); ++r) {
+            hints[resistors[r]] = { (int)(7 + r * 2), 'a', 1 };
+        }
+        for (size_t b = 0; b < buttons.size(); ++b) {
+            hints[buttons[b]] = { (int)(42 + b * 6), 'e', 0 };
+        }
+    } else if (!ics.empty()) {
+        // Shift register / IC circuit (e.g. 74HC595 + 8 LEDs)
+        hints[ics[0]] = { 8, 'e', 0 };
+        size_t nOut = std::min(leds.size(), resistors.size());
+        for (size_t i = 0; i < nOut; ++i) {
+            hints[resistors[i]] = { (int)(18 + i * 4), 'a', 1 };
+            hints[leds[i]] = { (int)(19 + i * 4), 'e', 0 };
+        }
+    } else if (!leds.empty()) {
+        // Discrete LED circuit (Traffic light, LED chaser, etc.)
+        int nL = (int)leds.size();
+        int span = nL * 3;
+        int startCol = std::max(10, (63 - span) / 2);
+        for (int i = 0; i < nL; ++i) {
+            if (i < (int)resistors.size()) hints[resistors[i]] = { startCol + i * 3, 'a', 1 };
+            hints[leds[i]] = { startCol + i * 3 + 1, 'e', 0 };
+        }
+        for (size_t b = 0; b < buttons.size(); ++b) hints[buttons[b]] = { std::max(6, (int)(startCol - 8 - b * 5)), 'e', 0 };
+        for (size_t bz = 0; bz < buzzers.size(); ++bz) hints[buzzers[bz]] = { std::min(58, (int)(startCol + span + 3 + bz * 6)), 'e', 0 };
+        for (size_t s = 0; s < sensors.size(); ++s) hints[sensors[s]] = { std::max(6, startCol - 6), 'e', 0 };
+        for (size_t p = 0; p < pots.size(); ++p) hints[pots[p]] = { std::max(6, startCol - 8), 'e', 0 };
+    } else {
+        // Sensor / other circuit without LEDs
+        int startCol = 24;
+        for (size_t p = 0; p < pots.size(); ++p) hints[pots[p]] = { (int)(startCol + p * 8), 'e', 0 };
+        for (size_t s = 0; s < sensors.size(); ++s) hints[sensors[s]] = { (int)(startCol + 10 + s * 6), 'e', 0 };
+        for (size_t b = 0; b < buttons.size(); ++b) hints[buttons[b]] = { (int)(startCol + 18 + b * 6), 'e', 0 };
+        for (size_t r = 0; r < resistors.size(); ++r) hints[resistors[r]] = { (int)(startCol + 4 + r * 3), 'a', 1 };
+    }
+
+    // Assembly order: structured high-pin / central components first
+    std::vector<int> order;
+    for (int id : displays) order.push_back(id);
+    for (int id : ics) order.push_back(id);
+    for (int id : buttons) order.push_back(id);
+    for (int id : buzzers) order.push_back(id);
+    for (int id : pots) order.push_back(id);
+    for (int id : sensors) order.push_back(id);
+    for (int id : leds) order.push_back(id);
+    for (int id : resistors) order.push_back(id);
+    for (int id : others) order.push_back(id);
+    for (int id : originals) {
+        if (draft.part(id)->type == "arduino_uno" || draft.part(id)->type == "battery") order.push_back(id);
+    }
+
     for (int id : order) {
         auto* p = draft.part(id);
         if (p->type == "arduino_uno") { p->place[BB].pos = {-3300, 0}; continue; }
         if (p->type == "battery") { p->place[BB].pos = {-3300, 2800}; continue; }
         bool placed = false;
-        for (int rotation : {0, 1, 2, 3}) {
+
+        PartHint hint = hints.count(id) ? hints[id] : PartHint{32, 'e', 0};
+
+        std::vector<int> rots = { hint.preferredRot, (hint.preferredRot + 2) % 4, (hint.preferredRot + 1) % 4, (hint.preferredRot + 3) % 4 };
+        std::vector<char> rows = { hint.preferredRow };
+        for (char r : std::string("efchajbdgi")) if (r != hint.preferredRow) rows.push_back(r);
+
+        std::vector<int> cols;
+        cols.push_back(hint.targetCol);
+        for (int offset = 1; offset <= 63; ++offset) {
+            int right = hint.targetCol + offset;
+            int left = hint.targetCol - offset;
+            if (right <= 63) cols.push_back(right);
+            if (left >= 1) cols.push_back(left);
+        }
+
+        for (int rotation : rots) {
             if (placed) break;
-            for (char row : std::string("efchajbdgi")) {
+            for (char row : rows) {
                 if (placed) break;
-                for (int col = 1; col <= 63 && !placed; ++col) {
+                for (int col : cols) {
                     p->place[BB].rot = rotation; p->place[BB].pos = {0,0};
                     const auto target = board->pinPos(board->def->pinIndex(std::string(1,row) + std::to_string(col)), BB);
                     p->place[BB].pos = target - p->pinPos(0, BB);
@@ -164,6 +257,7 @@ Json prepare(Document& draft) {
                     if (!ok) continue;
                     occupiedGroups.insert(candidate.begin(), candidate.end());
                     occupiedHoles.insert(holes.begin(), holes.end()); bodies.push_back(body); placed = true; ++mounted;
+                    break;
                 }
             }
         }
@@ -174,28 +268,159 @@ Json prepare(Document& draft) {
     for (const auto& a : pins) for (const auto& b : pins)
         if ((before.netOf(a.part,a.pin) == before.netOf(b.part,b.pin)) != (after.netOf(a.part,a.pin) == after.netOf(b.part,b.pin)))
             throw std::runtime_error("Breadboard placement changed an electrical net. Your active circuit is unchanged.");
+
     const auto ground = after.netOf(unoId, draft.part(unoId)->def->pinIndex("GND"));
     const auto power = after.netOf(unoId, draft.part(unoId)->def->pinIndex("5V"));
-    int lane = 0;
+
+    // Distribute power and ground returns to the nearest breadboard rail (top or bottom)
     for (auto& w : draft.wires) if (w.view == BB) {
         const auto net = after.netOf(w.ends[0].part, w.ends[0].pin);
-        w.color = net == ground ? rgba(34,34,34) : net == power ? rgba(217,67,67) : rgba(65,140,225);
-        // Distribute ground/power returns along rails instead of converging at the Uno header.
-        if (net == ground || net == power) for (int side = 0; side < 2; ++side) if (w.ends[side].part == unoId && w.ends[1-side].part != boardId) {
-            const auto other = draft.part(w.ends[1-side].part)->pinPos(w.ends[1-side].pin, BB);
-            int closest = -1; float distance = 1e20f;
-            for (int pin = 0; pin < (int)board->def->pins.size(); ++pin) {
-                if (board->def->pins[pin].id.rfind(net == ground ? "bn" : "bp", 0) != 0) continue;
-                const float d = std::abs(board->pinPos(pin, BB).x - other.x);
-                if (d < distance) { distance = d; closest = pin; }
+        if (net == ground || net == power) {
+            for (int side = 0; side < 2; ++side) {
+                if (w.ends[side].part == unoId && w.ends[1 - side].part != boardId) {
+                    const auto other = draft.part(w.ends[1 - side].part)->pinPos(w.ends[1 - side].pin, BB);
+                    const std::string prefix = (other.y < 850.f)
+                        ? (net == ground ? "tn" : "tp")
+                        : (net == ground ? "bn" : "bp");
+                    int closest = -1; float distance = 1e20f;
+                    for (int pin = 0; pin < (int)board->def->pins.size(); ++pin) {
+                        if (board->def->pins[pin].id.rfind(prefix, 0) != 0) continue;
+                        const float d = std::abs(board->pinPos(pin, BB).x - other.x);
+                        if (d < distance) { distance = d; closest = pin; }
+                    }
+                    if (closest >= 0) w.ends[side] = {boardId, closest};
+                }
             }
-            w.ends[side] = {boardId, closest};
         }
-        const auto a = draft.part(w.ends[0].part)->pinPos(w.ends[0].pin, BB), b = draft.part(w.ends[1].part)->pinPos(w.ends[1].pin, BB);
-        const float track = -500.f - (lane++ % 24) * 50.f;
-        const bool local = dist(a,b) < 1000 || (w.ends[0].part != unoId && w.ends[1].part != unoId && (net == ground || net == power));
-        w.pts = local ? std::vector<Vec2>{a, {b.x, a.y}, b} : std::vector<Vec2>{a, {a.x, track}, {b.x, track}, b};
     }
+
+    // High-contrast, distinguishable signal wire color palette
+    const uint32_t signalPalette[] = {
+        rgba(41, 121, 255),   // Vibrant Blue
+        rgba(46, 175, 75),    // Forest Green
+        rgba(255, 122, 0),    // Vivid Orange
+        rgba(240, 180, 20),   // Warm Amber / Gold
+        rgba(156, 39, 176),   // Rich Purple
+        rgba(0, 188, 212),    // Bright Cyan
+        rgba(233, 30, 99),    // Rose Pink
+        rgba(0, 150, 136),    // Teal
+        rgba(121, 85, 72),    // Saddle Brown
+        rgba(63, 81, 181),    // Deep Indigo
+        rgba(124, 179, 66),   // Lime
+        rgba(96, 125, 139)    // Steel Slate
+    };
+    std::map<int, uint32_t> netColors;
+    int colorCounter = 0;
+    for (auto& w : draft.wires) if (w.view == BB) {
+        const auto net = after.netOf(w.ends[0].part, w.ends[0].pin);
+        if (net == ground) w.color = rgba(34, 34, 34);
+        else if (net == power) w.color = rgba(217, 67, 67);
+        else {
+            if (netColors.find(net) == netColors.end()) {
+                netColors[net] = signalPalette[(colorCounter++) % 12];
+            }
+            w.color = netColors[net];
+        }
+    }
+
+    // Intelligent orthogonal wire routing in dedicated channels with monotonic non-crossing tracks
+    std::vector<int> unoWireIndices;
+    std::vector<int> otherWireIndices;
+    for (size_t i = 0; i < draft.wires.size(); ++i) {
+        auto& w = draft.wires[i];
+        if (w.view != BB) continue;
+        const auto net = after.netOf(w.ends[0].part, w.ends[0].pin);
+        bool isUno = (w.ends[0].part == unoId || w.ends[1].part == unoId);
+        bool isRailJumper = (w.ends[0].part == boardId || w.ends[1].part == boardId) && (net == ground || net == power);
+
+        if (isRailJumper) {
+            int compSide = (w.ends[0].part == boardId) ? 1 : 0;
+            int railSide = 1 - compSide;
+            if (w.ends[compSide].part == unoId && w.ends[railSide].part == boardId) {
+                // Main power feeds from Uno to tp1 / tn1
+                const auto a = draft.part(w.ends[compSide].part)->pinPos(w.ends[compSide].pin, BB);
+                const auto b = draft.part(w.ends[railSide].part)->pinPos(w.ends[railSide].pin, BB);
+                float trackY = (net == ground ? -120.f : -170.f);
+                w.pts = { a, {a.x, trackY}, {b.x, trackY}, b };
+            } else if (w.ends[0].part == boardId && w.ends[1].part == boardId) {
+                // Rail links (tp1 to bp1, tn1 to bn1) down the left margin
+                const auto a = draft.part(w.ends[0].part)->pinPos(w.ends[0].pin, BB);
+                const auto b = draft.part(w.ends[1].part)->pinPos(w.ends[1].pin, BB);
+                float marginX = (net == ground ? -70.f : -120.f);
+                w.pts = { a, {marginX, a.y}, {marginX, b.y}, b };
+            } else {
+                // Component to adjacent rail hole
+                const auto pComp = draft.part(w.ends[compSide].part)->pinPos(w.ends[compSide].pin, BB);
+                const auto pRail = board->pinPos(w.ends[railSide].pin, BB);
+                if (std::abs(pComp.x - pRail.x) < 2.f) {
+                    w.pts = { pComp, pRail };
+                } else {
+                    w.pts = { pComp, {pComp.x, pRail.y}, pRail };
+                }
+            }
+        } else if (isUno) {
+            unoWireIndices.push_back((int)i);
+        } else {
+            otherWireIndices.push_back((int)i);
+        }
+    }
+
+    // Sort Uno-to-board wires by destination X coordinate to prevent crossing in the top channel
+    std::sort(unoWireIndices.begin(), unoWireIndices.end(), [&](int a, int b) {
+        auto getDstX = [&](int idx) {
+            const auto& w = draft.wires[idx];
+            int dstSide = (w.ends[0].part == unoId) ? 1 : 0;
+            return draft.part(w.ends[dstSide].part)->pinPos(w.ends[dstSide].pin, BB).x;
+        };
+        return getDstX(a) < getDstX(b);
+    });
+
+    int topLane = 0;
+    for (int idx : unoWireIndices) {
+        auto& w = draft.wires[idx];
+        int unoSide = (w.ends[0].part == unoId) ? 0 : 1;
+        int dstSide = 1 - unoSide;
+        const auto a = draft.part(w.ends[unoSide].part)->pinPos(w.ends[unoSide].pin, BB);
+        const auto b = draft.part(w.ends[dstSide].part)->pinPos(w.ends[dstSide].pin, BB);
+        float trackY = -230.f - (topLane++) * 45.f;
+        w.pts = { a, {a.x, trackY}, {b.x, trackY}, b };
+    }
+
+    // Board-to-board jumpers (segment lines, IC outputs, sensor links)
+    std::sort(otherWireIndices.begin(), otherWireIndices.end(), [&](int a, int b) {
+        auto getMidX = [&](int idx) {
+            const auto& w = draft.wires[idx];
+            const auto p0 = draft.part(w.ends[0].part)->pinPos(w.ends[0].pin, BB);
+            const auto p1 = draft.part(w.ends[1].part)->pinPos(w.ends[1].pin, BB);
+            return (p0.x + p1.x) * 0.5f;
+        };
+        return getMidX(a) < getMidX(b);
+    });
+
+    int troughLane = 0;
+    for (int idx : otherWireIndices) {
+        auto& w = draft.wires[idx];
+        auto a = draft.part(w.ends[0].part)->pinPos(w.ends[0].pin, BB);
+        auto b = draft.part(w.ends[1].part)->pinPos(w.ends[1].pin, BB);
+        if (a.x > b.x) std::swap(a, b);
+
+        if (dist(a, b) < 350.f) {
+            if (std::abs(a.x - b.x) < 2.f || std::abs(a.y - b.y) < 2.f) {
+                w.pts = { a, b };
+            } else {
+                w.pts = { a, {b.x, a.y}, b };
+            }
+        } else {
+            if (a.y >= 850.f && b.y >= 850.f) {
+                float laneY = 820.f + (troughLane++ % 3) * 30.f;
+                w.pts = { a, {a.x, laneY}, {b.x, laneY}, b };
+            } else {
+                float laneY = -230.f - (topLane++) * 45.f;
+                w.pts = { a, {a.x, laneY}, {b.x, laneY}, b };
+            }
+        }
+    }
+
     draft.syncWireEnds();
     Connectivity routed; routed.build(draft);
     for (const auto& a : pins) for (const auto& b : pins)
