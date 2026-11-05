@@ -1,0 +1,9 @@
+{
+  "_note": "Handoff only. Resolve paths relative to the future manifest location; do not replace an existing manifest with this fragment.",
+  "icons": [
+    { "src": "pwa/icon-light-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "pwa/icon-light-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "pwa/maskable-light-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "pwa/maskable-light-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

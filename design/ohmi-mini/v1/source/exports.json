@@ -1,0 +1,112 @@
+[
+  {
+    "file": "logo/ohmi-mini-light-1024.png",
+    "size": 1024,
+    "transparent": true
+  },
+  {
+    "file": "app/ohmi-mini-light-1024.png",
+    "size": 1024,
+    "transparent": false
+  },
+  {
+    "file": "app/google-play-light-512.png",
+    "size": 512,
+    "transparent": false
+  },
+  {
+    "file": "app/apple-touch-light-180.png",
+    "size": 180,
+    "transparent": false
+  },
+  {
+    "file": "favicon/favicon-light-16.png",
+    "size": 16,
+    "transparent": true
+  },
+  {
+    "file": "favicon/favicon-light-32.png",
+    "size": 32,
+    "transparent": true
+  },
+  {
+    "file": "favicon/favicon-light-48.png",
+    "size": 48,
+    "transparent": true
+  },
+  {
+    "file": "pwa/icon-light-192.png",
+    "size": 192,
+    "transparent": false
+  },
+  {
+    "file": "pwa/maskable-light-192.png",
+    "size": 192,
+    "transparent": false
+  },
+  {
+    "file": "pwa/icon-light-512.png",
+    "size": 512,
+    "transparent": false
+  },
+  {
+    "file": "pwa/maskable-light-512.png",
+    "size": 512,
+    "transparent": false
+  },
+  {
+    "file": "logo/ohmi-mini-dark-1024.png",
+    "size": 1024,
+    "transparent": true
+  },
+  {
+    "file": "app/ohmi-mini-dark-1024.png",
+    "size": 1024,
+    "transparent": false
+  },
+  {
+    "file": "app/google-play-dark-512.png",
+    "size": 512,
+    "transparent": false
+  },
+  {
+    "file": "app/apple-touch-dark-180.png",
+    "size": 180,
+    "transparent": false
+  },
+  {
+    "file": "favicon/favicon-dark-16.png",
+    "size": 16,
+    "transparent": true
+  },
+  {
+    "file": "favicon/favicon-dark-32.png",
+    "size": 32,
+    "transparent": true
+  },
+  {
+    "file": "favicon/favicon-dark-48.png",
+    "size": 48,
+    "transparent": true
+  },
+  {
+    "file": "pwa/icon-dark-192.png",
+    "size": 192,
+    "transparent": false
+  },
+  {
+    "file": "pwa/maskable-dark-192.png",
+    "size": 192,
+    "transparent": false
+  },
+  {
+    "file": "pwa/icon-dark-512.png",
+    "size": 512,
+    "transparent": false
+  },
+  {
+    "file": "pwa/maskable-dark-512.png",
+    "size": 512,
+    "transparent": false
+  }
+]

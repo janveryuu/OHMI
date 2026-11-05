@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="OHMI Mini robot face"><title>OHMI Mini — dark</title><path fill="#152E2B" d="M0 0H256V256H0Z"/><g id="ohmi-mini">
+    <path d="M158 81L166 55" fill="none" stroke="#80BDB0" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="168" cy="48" r="9" fill="#C8A45D"/>
+    <rect x="40" y="73" width="176" height="144" rx="44" fill="#80BDB0"/>
+    <rect x="54" y="87" width="148" height="116" rx="31" fill="#F5F4E7"/>
+    <ellipse cx="94" cy="137" rx="9" ry="14" fill="#203E3A"/>
+    <ellipse cx="162" cy="137" rx="9" ry="14" fill="#203E3A"/>
+    <circle cx="96.5" cy="131" r="2.5" fill="#F5F4E7"/><circle cx="164.5" cy="131" r="2.5" fill="#F5F4E7"/>
+    <path d="M114 161C120 172 136 172 142 161" fill="none" stroke="#203E3A" stroke-width="6" stroke-linecap="round"/>
+  </g></svg>

@@ -1,0 +1,16 @@
+{
+  "light": {
+    "shell": "#347F78",
+    "face": "#F5F4E7",
+    "ink": "#203E3A",
+    "gold": "#C8A45D",
+    "background": "#E4F0E9"
+  },
+  "dark": {
+    "shell": "#80BDB0",
+    "face": "#F5F4E7",
+    "ink": "#203E3A",
+    "gold": "#C8A45D",
+    "background": "#152E2B"
+  }
+}

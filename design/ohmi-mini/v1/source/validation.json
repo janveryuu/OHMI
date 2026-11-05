@@ -1,0 +1,229 @@
+{
+  "renderer": "Chromium SVG to canvas; native size renders",
+  "checks": [
+    {
+      "file": "logo/ohmi-mini-light-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "6c0b6c7a837139ce029d5ed2bbf732aee9e694ab94fe1b5d5809ee8971ae19fa"
+    },
+    {
+      "file": "app/ohmi-mini-light-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "dd703c35c33e4f4d26c8b8e3307dba16496eac89ba30184f76235d0666053288"
+    },
+    {
+      "file": "app/google-play-light-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA",
+      "sha256": "febd6931479a6ea686addcb465e7e8377486352b520f66aa1e5a27c68ed948be"
+    },
+    {
+      "file": "app/apple-touch-light-180.png",
+      "size": [
+        180,
+        180
+      ],
+      "mode": "RGB",
+      "sha256": "312a6702b45af4579ae4526c372b48dfee431f2534cf3466497007622f7a74ea"
+    },
+    {
+      "file": "favicon/favicon-light-16.png",
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "sha256": "91d495f58d0bf697e555a3315985749f7a25aaf4249c345af66981f3609b3f88"
+    },
+    {
+      "file": "favicon/favicon-light-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA",
+      "sha256": "d0a548f27d33e8f96a93a103cf86d761b4c1d2343fe127d931f46077bd0f0504"
+    },
+    {
+      "file": "favicon/favicon-light-48.png",
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA",
+      "sha256": "e7d4f5e8be9c950dbb42da00f2f0198e7eb6eb14dde8fcb31a68488d178426da"
+    },
+    {
+      "file": "pwa/icon-light-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGB",
+      "sha256": "1087c4456d75f7f25e3bd263f0bff52cf78f8b351d9b52a6a72a76caea5bac01"
+    },
+    {
+      "file": "pwa/maskable-light-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGB",
+      "sha256": "27605e61f80e28bd3b9f9efb30080be5b35e1a4d6e495bb6d980277da0781a71"
+    },
+    {
+      "file": "pwa/icon-light-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGB",
+      "sha256": "bdae6d6320825636fed21dc2a8f568c67c76ac3713d9464cc6ea6ed65d6fbf5a"
+    },
+    {
+      "file": "pwa/maskable-light-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGB",
+      "sha256": "d1c5a89f49d1fe93dcd0937175ed2afdeece524ce98be20733e5cfd7dd979e77"
+    },
+    {
+      "file": "logo/ohmi-mini-dark-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "5e2efe3ba80f3558133e9bbdf45397129558ef52528695a38de435a6ecf6dab7"
+    },
+    {
+      "file": "app/ohmi-mini-dark-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "f00968e23bd54db1cf1a8ba14286f30e8449dd0a7c27df126571bd30c373b98a"
+    },
+    {
+      "file": "app/google-play-dark-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA",
+      "sha256": "337965221b1f864f0ab6a867067cd483d7a58a98355e2b58c528723ab04cbf86"
+    },
+    {
+      "file": "app/apple-touch-dark-180.png",
+      "size": [
+        180,
+        180
+      ],
+      "mode": "RGB",
+      "sha256": "d6217e197462a70b610e335e90b69d1fee79d030bf4cf74e96dd19941ab91130"
+    },
+    {
+      "file": "favicon/favicon-dark-16.png",
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "sha256": "b44484772a958f83d7c9df91fc5a1a990f5dd9abe267d22255a84f44029cb864"
+    },
+    {
+      "file": "favicon/favicon-dark-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA",
+      "sha256": "615502c485c40f4e73b95dad5b08890f6d95af95273ec2626e4ed2c8b6ff663c"
+    },
+    {
+      "file": "favicon/favicon-dark-48.png",
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA",
+      "sha256": "65fc86106ab6820aaf3b9d54f8701ad3aca01905d25e0729ad477347a7b3aca5"
+    },
+    {
+      "file": "pwa/icon-dark-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGB",
+      "sha256": "5c8c71cbf5d6fcfd803a8e30fb392bbdb3857cc77fa76ae0d81849fd598e0ad5"
+    },
+    {
+      "file": "pwa/maskable-dark-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGB",
+      "sha256": "145263b4b390f8f0499c9ab96d8c796a7f5620c5b511a666e6d41cd96ffa96f7"
+    },
+    {
+      "file": "pwa/icon-dark-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGB",
+      "sha256": "028dcecc159804f93cd363bd88de593af85fb095850ed568a2274f3d56cabb2b"
+    },
+    {
+      "file": "pwa/maskable-dark-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGB",
+      "sha256": "ed9745f66f702057ab51d0cebe1ae9a67de40834723d4cdf642d328b3781b908"
+    },
+    {
+      "file": "pwa/maskable-light-192.png",
+      "max_art_radius_fraction": 0.36919,
+      "safe_radius_fraction": 0.4
+    },
+    {
+      "file": "pwa/maskable-light-512.png",
+      "max_art_radius_fraction": 0.36879,
+      "safe_radius_fraction": 0.4
+    },
+    {
+      "file": "pwa/maskable-dark-192.png",
+      "max_art_radius_fraction": 0.36919,
+      "safe_radius_fraction": 0.4
+    },
+    {
+      "file": "pwa/maskable-dark-512.png",
+      "max_art_radius_fraction": 0.36876,
+      "safe_radius_fraction": 0.4
+    }
+  ],
+  "ico_frames": [
+    16,
+    32,
+    48
+  ],
+  "status": "passed"
+}
