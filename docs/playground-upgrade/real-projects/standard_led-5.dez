@@ -2,9 +2,9 @@
   "format": "designElectronics",
   "version": 1,
   "app": "designElectronics 0.2.1",
-  "uid": "b30e27cf6d5fdd21",
+  "uid": "8366d42f1429ceeb",
   "title": "Arduino Uno with 5 LEDs Sequencer",
-  "saved": "2026-11-05T16:06:30Z",
+  "saved": "2026-11-05T16:55:31Z",
   "rules": {
     "traceWidth": 24,
     "clearance": 12,

@@ -168,17 +168,18 @@ Json prepare(Document& draft) {
         hints[ics[0]] = { 8, 'e', 0 };
         size_t nOut = std::min(leds.size(), resistors.size());
         for (size_t i = 0; i < nOut; ++i) {
-            hints[resistors[i]] = { (int)(18 + i * 4), 'a', 1 };
-            hints[leds[i]] = { (int)(19 + i * 4), 'e', 0 };
+            hints[resistors[i]] = { (int)(18 + i * 5), 'f', 1 };
+            hints[leds[i]] = { (int)(18 + i * 5 + 2), 'e', 0 };
         }
     } else if (!leds.empty()) {
         // Discrete LED circuit (Traffic light, LED chaser, etc.)
         int nL = (int)leds.size();
-        int span = nL * 3;
-        int startCol = std::max(10, (63 - span) / 2);
+        int pitch = 5;
+        int span = nL * pitch;
+        int startCol = std::max(8, (60 - span) / 2);
         for (int i = 0; i < nL; ++i) {
-            if (i < (int)resistors.size()) hints[resistors[i]] = { startCol + i * 3, 'a', 1 };
-            hints[leds[i]] = { startCol + i * 3 + 1, 'e', 0 };
+            if (i < (int)resistors.size()) hints[resistors[i]] = { startCol + i * pitch, 'f', 1 };
+            hints[leds[i]] = { startCol + i * pitch + 2, 'e', 0 };
         }
         for (size_t b = 0; b < buttons.size(); ++b) hints[buttons[b]] = { std::max(6, (int)(startCol - 8 - b * 5)), 'e', 0 };
         for (size_t bz = 0; bz < buzzers.size(); ++bz) hints[buzzers[bz]] = { std::min(58, (int)(startCol + span + 3 + bz * 6)), 'e', 0 };
@@ -201,8 +202,8 @@ Json prepare(Document& draft) {
     for (int id : buzzers) order.push_back(id);
     for (int id : pots) order.push_back(id);
     for (int id : sensors) order.push_back(id);
-    for (int id : leds) order.push_back(id);
     for (int id : resistors) order.push_back(id);
+    for (int id : leds) order.push_back(id);
     for (int id : others) order.push_back(id);
     for (int id : originals) {
         if (draft.part(id)->type == "arduino_uno" || draft.part(id)->type == "battery") order.push_back(id);

@@ -2,9 +2,9 @@
   "format": "designElectronics",
   "version": 1,
   "app": "designElectronics 0.2.1",
-  "uid": "10e1aac2047e5b24",
+  "uid": "0cab1df588ab1a99",
   "title": "Arduino Uno Adjustable LED Brightness with Potentiometer",
-  "saved": "2026-11-05T16:06:46Z",
+  "saved": "2026-11-05T16:55:51Z",
   "rules": {
     "traceWidth": 24,
     "clearance": 12,

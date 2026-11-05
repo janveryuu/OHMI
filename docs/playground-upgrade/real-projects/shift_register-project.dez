@@ -2,9 +2,9 @@
   "format": "designElectronics",
   "version": 1,
   "app": "designElectronics 0.2.1",
-  "uid": "78b5153196b5681a",
+  "uid": "8834747d3ac4e19e",
   "title": "Arduino Uno 8-LED Running Lights with 74HC595 Shift Register",
-  "saved": "2026-11-05T16:06:55Z",
+  "saved": "2026-11-05T16:56:05Z",
   "rules": {
     "traceWidth": 24,
     "clearance": 12,
