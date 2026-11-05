@@ -12,6 +12,7 @@ build/
 !web-app/src/app/api/playground/build/route.ts
 coverage/
 *.tsbuildinfo
+*.symbols
 
 # Environment & Secrets (Keep .env.example public)
 .env

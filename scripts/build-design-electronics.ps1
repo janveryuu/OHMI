@@ -40,7 +40,7 @@ foreach ($name in @('CMakeLists.txt', 'src/web.cpp', 'src/ohmi_web.cpp', 'src/pa
     $patches += [ordered]@{ file = $name; sha256 = (Get-FileHash (Join-Path $source $name) -Algorithm SHA256).Hash.ToLower() }
 }
 foreach ($name in @('designElectronics.js', 'designElectronics.wasm', 'designElectronics.data')) {
-    Copy-Item -LiteralPath (Join-Path $BuildRoot $name) -Destination $destination
+    Copy-Item -Force -LiteralPath (Join-Path $BuildRoot $name) -Destination $destination
     $file = Get-Item (Join-Path $destination $name)
     $artifacts += [ordered]@{ file = $name; bytes = $file.Length; sha256 = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower() }
 }
