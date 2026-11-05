@@ -13,6 +13,7 @@ import {
   Copy,
   File,
   History,
+  Info,
   Maximize2,
   MessageCircle,
   Minimize2,
@@ -51,10 +52,14 @@ export function CircuitActionCard({
   circuit,
   onDirectToPlayground,
   forceShowCode = false,
+  statusLabel,
+  warnings: explicitWarnings,
 }: {
-  circuit?: GeneratedCircuit | null;
+  circuit?: (GeneratedCircuit & { warnings?: string[]; notes?: string; statusLabel?: string }) | null;
   onDirectToPlayground: () => void;
   forceShowCode?: boolean;
+  statusLabel?: string;
+  warnings?: string[];
 }) {
   const [showCode, setShowCode] = useState(false);
   const isCodeVisible = showCode || forceShowCode;
@@ -63,14 +68,31 @@ export function CircuitActionCard({
   if (!circuit) return null;
   const activeCircuit = circuit;
 
+  const rawWarnings: string[] = [
+    ...(explicitWarnings || []),
+    ...(Array.isArray(activeCircuit.spec?.warnings) ? activeCircuit.spec.warnings : []),
+    ...(Array.isArray(activeCircuit.warnings) ? activeCircuit.warnings : []),
+    ...(activeCircuit.notes ? [activeCircuit.notes] : []),
+  ].filter(Boolean);
+
+  // Deduplicate and trim warnings
+  const warnings = Array.from(new Set(rawWarnings.map((w) => w.trim()))).filter(Boolean);
+
+  const displayStatus =
+    statusLabel ||
+    activeCircuit.statusLabel ||
+    (activeCircuit.spec?.status === "draft" ? "Circuit Plan" : "Circuit Ready");
+
   return (
     <div className="circuit-action-card" data-testid="circuit-action-card">
       <div className="circuit-action-header">
         <div className="circuit-action-badge">
-          <CircuitBoard size={12} strokeWidth={2.2} />
-          <span>Circuit plan</span>
+<CircuitBoard size={12} strokeWidth={2.2} className="circuit-action-badge-icon" />
+          <span>{displayStatus}</span>
         </div>
-        <span className="circuit-action-tag">{activeCircuit.tag}</span>
+        {activeCircuit.tag && (
+          <span className="circuit-action-tag">{activeCircuit.tag}</span>
+        )}
       </div>
 
       <h3 className="circuit-action-title">
@@ -81,7 +103,21 @@ export function CircuitActionCard({
         Would you like the <strong>Arduino C++ code</strong>, or should I build this circuit directly in your <strong>Electronics workspace</strong>?
       </p>
 
-      {activeCircuit.spec.warnings.map((warning,index)=><p className="small muted" key={index}>{warning}</p>)}
+      {warnings.length > 0 && (
+        <div className="circuit-action-notes-card" role="note" aria-label="Circuit technical notes and material changes">
+          <div className="circuit-action-notes-header">
+            <Info size={13} strokeWidth={2.2} className="circuit-action-notes-icon" aria-hidden="true" />
+            <span className="circuit-action-notes-label">Technical Notes &amp; Material Changes</span>
+          </div>
+          <div className="circuit-action-notes-content">
+            {warnings.map((warning, idx) => (
+              <p key={idx} className="circuit-action-notes-text">
+                {warning}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="circuit-action-buttons">
         <button
           type="button"
@@ -106,19 +142,21 @@ export function CircuitActionCard({
       </div>
 
       {isCodeVisible && activeCircuit.arduinoCode && (
-        <div className="mt-3">
+        <div className="circuit-code-panel">
           <CodeBlock
             code={activeCircuit.arduinoCode}
             language="arduino"
             filename="sketch.ino"
           />
-          <ul className="circuit-wiring-list">
-            {activeCircuit.wiring.map((w, idx) => (
-              <li key={idx}>
-                <strong>{w.label}:</strong> {w.detail}
-              </li>
-            ))}
-          </ul>
+          {activeCircuit.wiring?.length > 0 && (
+            <ul className="circuit-wiring-list">
+              {activeCircuit.wiring.map((w, idx) => (
+                <li key={idx}>
+                  <strong>{w.label}:</strong> {w.detail}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
@@ -526,15 +564,27 @@ export function Chat() {
                 ) : (
                   <p className="user-text">{message.text}</p>
                 )}
-                {circuitIssue && <p className="small" role="status">{circuitIssue}</p>}
-                {/* Circuit Ready card at the bottom of its associated response */}
-                {isCircuitMatch && dynamicCircuit && (
-                  <CircuitActionCard
-                    circuit={dynamicCircuit}
-                    onDirectToPlayground={() => handleDirectToPlayground(dynamicCircuit)}
-                    forceShowCode={showTrafficCode}
-                  />
-                )}
+                {circuitIssue && <p className="small text-destructive" role="status">{circuitIssue}</p>}
+                {/* Circuit Ready / Plan card at the bottom of its associated response */}
+                {isCircuitMatch && dynamicCircuit && (() => {
+                  const messageWarnings: string[] = [];
+                  const structuredSpec = (message.structured as any)?.circuitSpec;
+                  if (Array.isArray(structuredSpec?.warnings)) {
+                    messageWarnings.push(...structuredSpec.warnings);
+                  }
+                  const materialMatch = message.text.match(/(?:Material change|Technical note|Circuit notice|Notice):\s*([^\n]+(?:\n(?!\n)[^\n]+)*)/i);
+                  if (materialMatch && materialMatch[0]) {
+                    messageWarnings.push(materialMatch[0].trim());
+                  }
+                  return (
+                    <CircuitActionCard
+                      circuit={dynamicCircuit}
+                      warnings={messageWarnings.length > 0 ? messageWarnings : undefined}
+                      onDirectToPlayground={() => handleDirectToPlayground(dynamicCircuit)}
+                      forceShowCode={showTrafficCode}
+                    />
+                  );
+                })()}
                 {message.role === "assistant" && message.requestId && message.structured?.kind === "circuit_build" && message.structured?.status === "draft" && (
                   <Link href={"/playground/?build=" + message.requestId}>Open new editable circuit draft</Link>
                 )}
