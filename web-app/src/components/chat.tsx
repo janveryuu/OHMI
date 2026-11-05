@@ -41,6 +41,7 @@ import { askBackend } from "@/lib/backend/ai";
 import { validateFile } from "@/lib/demo.mjs";
 
 import { isTrafficLightMatch } from "@/lib/playground/model";
+import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import {
   parseCircuitIntent,
   generateCircuit,
@@ -257,17 +258,24 @@ export function Chat() {
     }
   }
   function handleDirectToPlayground(circuit?: GeneratedCircuit | null) {
-    if (!circuit) { setError("No complete supported circuit is available. Your request was not replaced with a template."); return; }
+    if (!circuit || !circuit.document) {
+      setError("No complete supported circuit is available. Your request was not replaced with a template.");
+      return;
+    }
     try {
-      const docStr = JSON.stringify(circuit.document);
-      const specStr = JSON.stringify(circuit.spec);
+      const validDoc = validateElectronicsDocument(circuit.document);
+      const docStr = JSON.stringify(validDoc);
+      const specStr = circuit.spec ? JSON.stringify(circuit.spec) : "";
       sessionStorage.setItem("ohmi_active_circuit_doc:" + (app.user?.id || "guest"), docStr);
-      sessionStorage.setItem("ohmi_active_circuit_spec:" + (app.user?.id || "guest"), specStr);
+      if (specStr) sessionStorage.setItem("ohmi_active_circuit_spec:" + (app.user?.id || "guest"), specStr);
       sessionStorage.setItem("ohmi_active_circuit_doc:guest", docStr);
-      sessionStorage.setItem("ohmi_active_circuit_spec:guest", specStr);
+      if (specStr) sessionStorage.setItem("ohmi_active_circuit_spec:guest", specStr);
       sessionStorage.setItem("ohmi_current_circuit_doc", docStr);
       sessionStorage.setItem("ohmi_playground_template", "custom");
-    } catch { setError("Could not transfer the circuit. Your chat and circuit are unchanged."); return; }
+    } catch {
+      setError("Could not transfer the circuit. Your chat and circuit are unchanged.");
+      return;
+    }
     const templateParam = "custom";
     if (router && typeof router.push === "function") {
       router.push("/playground/?template=" + templateParam);

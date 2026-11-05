@@ -1,39 +1,48 @@
 "use client";
+
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, MessageCircle, Minus, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { useApp } from "./app-provider";
+import { FloatingOhmi } from "./floating-ohmi";
+
 type PipApi = {
   requestWindow: (options: {
     width: number;
     height: number;
   }) => Promise<Window>;
 };
+
 export function Companion({
   trigger,
   globalLauncher = false,
+  className = "",
 }: {
   trigger: string;
   globalLauncher?: boolean;
+  className?: string;
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false),
-    [small, setSmall] = useState(false),
-    [pip, setPip] = useState<Window | null>(null);
-  const [status, setStatus] = useState(""),
-    [dragged, setDragged] = useState(false),
-    [mounted, setMounted] = useState(false);
-  const app = useApp(),
-    reduced = useReducedMotion();
+  const [open, setOpen] = useState(false);
+  const [small, setSmall] = useState(false);
+  const [pip, setPip] = useState<Window | null>(null);
+  const [status, setStatus] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  const app = useApp();
   const pipRef = useRef<Window | null>(null);
+  const observerRef = useRef<MutationObserver | null>(null);
+
   useEffect(() => {
     setMounted(true);
-    return () => pipRef.current?.close();
+    return () => {
+      observerRef.current?.disconnect();
+      pipRef.current?.close();
+    };
   }, []);
+
+  // Global event listener for launch requests
   useEffect(() => {
     if (!globalLauncher) return;
     const handle = () => {
@@ -42,137 +51,195 @@ export function Companion({
     window.addEventListener("ohmi-launch-companion", handle);
     return () => window.removeEventListener("ohmi-launch-companion", handle);
   }, [globalLauncher, open, pip]);
+
+  // Keep theme & styles in sync if PiP window is open
+  useEffect(() => {
+    if (!pip) return;
+    try {
+      pip.document.documentElement.dataset.theme =
+        document.documentElement.dataset.theme || "light";
+      pip.document.documentElement.dataset.reduceMotion =
+        document.documentElement.dataset.reduceMotion || "false";
+      pip.document.documentElement.dataset.largeText =
+        document.documentElement.dataset.largeText || "false";
+    } catch {}
+  }, [pip, app.theme, app.reduceMotion, app.largeText]);
+
   const close = () => {
+    observerRef.current?.disconnect();
     pip?.close();
     pipRef.current = null;
     setPip(null);
     setOpen(false);
+    setSmall(false);
   };
+
   async function launch() {
     if (open) {
-      pip?.focus();
+      if (pip) {
+        pip.focus();
+      } else {
+        setSmall(false);
+      }
       return;
     }
+
     const api = (window as Window & { documentPictureInPicture?: PipApi })
       .documentPictureInPicture;
-    if (api)
+
+    if (api) {
       try {
-        const win = await api.requestWindow({ width: 360, height: 420 });
+        const win = await api.requestWindow({ width: 420, height: 640 });
+
+        // Copy all existing stylesheets and style tags
         for (const sheet of Array.from(
           document.querySelectorAll('link[rel="stylesheet"],style'),
-        ))
+        )) {
           win.document.head.append(sheet.cloneNode(true));
+        }
+
+        // Observe future style changes in main document and mirror to PiP
+        const observer = new MutationObserver((mutations) => {
+          for (const mutation of mutations) {
+            for (const node of Array.from(mutation.addedNodes)) {
+              if (
+                node instanceof HTMLLinkElement &&
+                node.rel === "stylesheet"
+              ) {
+                win.document.head.append(node.cloneNode(true));
+              } else if (node instanceof HTMLStyleElement) {
+                win.document.head.append(node.cloneNode(true));
+              }
+            }
+          }
+        });
+        observer.observe(document.head, { childList: true });
+        observerRef.current = observer;
+
+        // Clone root attributes and fonts
+        win.document.documentElement.className = document.documentElement.className;
         win.document.documentElement.dataset.theme =
-          document.documentElement.dataset.theme;
-        win.document.title = "Floating OHMI";
+          document.documentElement.dataset.theme || "light";
+        win.document.documentElement.dataset.reduceMotion =
+          document.documentElement.dataset.reduceMotion || "false";
+        win.document.documentElement.dataset.largeText =
+          document.documentElement.dataset.largeText || "false";
+
+        win.document.title = "OHMI — Your Circuit Buddy";
+        win.document.body.className = document.body.className;
         win.document.body.style.margin = "0";
+        win.document.body.style.padding = "0";
+        win.document.body.style.overflow = "hidden";
+        win.document.body.style.backgroundColor = "#091215";
+
         win.addEventListener(
           "pagehide",
           () => {
+            observer.disconnect();
             pipRef.current = null;
             setPip(null);
             setOpen(false);
+            setSmall(false);
           },
           { once: true },
         );
+
         pipRef.current = win;
         setPip(win);
-        setStatus("Floating window opened.");
+        setStatus("Floating companion window opened.");
       } catch {
-        setStatus("Window unavailable. OHMI opened inside this app.");
+        setStatus("Picture-in-Picture unavailable. Opened in-app companion instead.");
+        setPip(null);
       }
-    else setStatus("This browser uses the in-app companion.");
+    } else {
+      setStatus("Document Picture-in-Picture not supported in this browser. Opened in-app companion.");
+      setPip(null);
+    }
+
     setOpen(true);
+    setSmall(false);
   }
-  const content = (
-    <motion.section
-      role="region"
-      aria-label="Floating OHMI companion"
-      className={`floating-companion ${small ? "minimized" : ""} ${pip ? "pip-companion" : ""}`}
-      drag={!pip && !reduced && !app.reduceMotion}
-      dragMomentum={false}
-      dragConstraints={{ top: -250, bottom: 0, left: -250, right: 0 }}
-      onDragStart={() => setDragged(true)}
-      initial={reduced ? false : { opacity: 0, scale: 0.94, y: 16 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+
+  // Minimized pill in in-app mode
+  const minimizedPill = (
+    <div
+      className="floating-ohmi-minimized-pill"
+      onClick={() => setSmall(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setSmall(false);
+        }
+      }}
+      aria-label="Expand OHMI circuit companion"
     >
-      <div className="between">
-        <span className="row">
-          <Image
-            src="/app/mascot.png"
-            width="28"
-            height="32"
-            alt=""
-            className="mascot"
-          />
-          <strong>OHMI is here</strong>
-        </span>
-        <div className="row">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={small ? "Expand companion" : "Minimize companion"}
-            onClick={() => setSmall(!small)}
-          >
-            <Minus size={16} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Close companion"
-            onClick={close}
-          >
-            <X size={17} />
-          </Button>
-        </div>
+      <div className="mascot-squircle" aria-hidden="true">
+        <Image
+          src="/app/mascot.png"
+          width={20}
+          height={24}
+          alt=""
+          className="mascot"
+          unoptimized
+        />
       </div>
-      {!small && (
-        <>
-          <Image
-            src="/app/mascot.png"
-            width="110"
-            height="126"
-            alt="OHMI, your mint pixel-art circuit buddy"
-            className="mascot companion-art"
-          />
-          <h3>A little stuck? I’m here.</h3>
-          <p className="muted">
-            Keep building. Let’s work through the tricky bits together.
-          </p>
-          <span className="badge">Your circuit buddy</span>
-          <Button
-            onClick={() => {
-              close();
-              router.push("/ask");
-            }}
-          >
-            <MessageCircle size={16} />
-            Ask OHMI
-            <ArrowUpRight size={15} />
-          </Button>
-          <p className="small muted">
-            {pip
-              ? "Companion window. Chat opens in the main app."
-              : dragged
-                ? "Drag to move. Close and reopen to reset."
-                : "Drag to move, or use the controls above."}
-          </p>
-        </>
-      )}
-    </motion.section>
+      <strong>OHMI</strong>
+      <span className="floating-ohmi-status-dot" aria-hidden="true" />
+      <span className="text-xs text-neutral-400">Ask question</span>
+      <button
+        type="button"
+        className="floating-ohmi-icon-btn p-1 ml-1 text-neutral-400 hover:text-white"
+        onClick={(e) => {
+          e.stopPropagation();
+          close();
+        }}
+        aria-label="Close OHMI companion"
+      >
+        <X size={14} />
+      </button>
+    </div>
   );
+
   return (
     <>
-      <Button variant="outline" className="launch-button" onClick={launch}>
-        {trigger}
-        <ArrowUpRight size={15} />
+      <Button
+        variant="outline"
+        className={`launch-button ${className}`}
+        onClick={launch}
+        aria-label="Launch Floating OHMI companion window"
+      >
+        <span>{trigger}</span>
+        <ArrowUpRight size={15} aria-hidden="true" />
       </Button>
+
       <span className="sr-only" role="status">
         {status}
       </span>
+
       {open &&
         mounted &&
-        createPortal(content, pip ? pip.document.body : document.body)}
+        createPortal(
+          pip ? (
+            <FloatingOhmi
+              isPip={true}
+              pipWindow={pip}
+              onClose={close}
+            />
+          ) : small ? (
+            minimizedPill
+          ) : (
+            <FloatingOhmi
+              isPip={false}
+              onClose={close}
+              onMinimize={() => setSmall(true)}
+              isMinimized={false}
+            />
+          ),
+          pip ? pip.document.body : document.body,
+        )}
     </>
   );
 }
+export { FloatingOhmi };

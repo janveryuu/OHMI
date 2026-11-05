@@ -13,7 +13,7 @@ import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
 import { PlaygroundAssistant } from "./playground-assistant";
-import { prepareCircuit, BUILD_CHECK_SUMMARY } from "@/lib/playground/build-verification";
+import { prepareCircuit, BUILD_CHECK_SUMMARY, isPreviewNote } from "@/lib/playground/build-verification";
 import type { GeneratedCircuit } from "@/lib/playground/circuit-generator";
 import { Bot, Package } from "lucide-react";
 import { TinkercadExportModal } from "./tinkercad-export-modal";
@@ -25,6 +25,11 @@ const ENGINE_DOCUMENT_HTML = `<!doctype html>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>OHMI electronics engine</title>
   <link rel="stylesheet" href="/app/vendor/design-electronics/engine.css">
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #f6faf8; }
+    canvas#canvas { width: 100%; height: 100%; display: block; outline: none; }
+    #status { position: absolute; bottom: 8px; left: 8px; margin: 0; font-family: system-ui, sans-serif; font-size: 12px; color: #4b5563; z-index: 10; pointer-events: none; }
+  </style>
 </head>
 <body>
   <img id="ohmi-toolbar-logo" src="/app/mascot.png" alt="OHMI" hidden>
@@ -134,14 +139,36 @@ function Editor({
             ?.request<EngineStatus>({ operation: "status" })
             .catch(() => null);
           if (status) setEngineState(status);
+          const noteText = prepared.notes && prepared.notes.length > 0 ? ` Note: ${prepared.notes.join("; ")}` : "";
           setMessage(
-            BUILD_CHECK_SUMMARY,
+            BUILD_CHECK_SUMMARY + noteText,
           );
         })
-        .catch((err) => {
-          setError(
-            err instanceof Error ? err.message : "Failed to load custom circuit",
-          );
+        .catch(async (err) => {
+          const errMessage =
+            err instanceof Error ? err.message : "Failed to load custom circuit";
+          setError(errMessage);
+          // Never leave the canvas blank when a customDoc exists.
+          // Open doc directly so the student can inspect and edit their circuit.
+          try {
+            if (bridge.current === session) {
+              await session.request({ operation: "open", document: doc });
+              cloud.detach();
+              await bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+              const status = await bridge.current?.request<EngineStatus>({ operation: "status" }).catch(() => null);
+              if (status) setEngineState(status);
+            }
+          } catch (directOpenErr) {
+            console.error("Direct open failed, falling back to default starter circuit:", directOpenErr);
+            try {
+              if (bridge.current === session) {
+                const fallbackDoc = getTrafficLightElectronicsDocument();
+                await session.request({ operation: "open", document: fallbackDoc });
+                cloud.detach();
+                await bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+              }
+            } catch {}
+          }
         });
       return;
     }
@@ -165,11 +192,16 @@ function Editor({
         (templateName.toLowerCase().includes("traffic") ||
           templateName.toLowerCase().includes("arduino")));
 
+    const shouldLoadDefaultTemplate =
+      isArduinoTrafficTemplate ||
+      (templateName === "custom" && !customDoc) ||
+      (!templateName && lastLoadedTemplate.current === null);
+
     if (
-      isArduinoTrafficTemplate &&
-      lastLoadedTemplate.current !== templateName
+      shouldLoadDefaultTemplate &&
+      lastLoadedTemplate.current !== (templateName || "default")
     ) {
-      lastLoadedTemplate.current = templateName;
+      lastLoadedTemplate.current = templateName || "default";
       try {
         sessionStorage.removeItem("ohmi_playground_template");
         sessionStorage.removeItem("ohmi_playground_active_template");
@@ -195,7 +227,9 @@ function Editor({
             .catch(() => null);
           if (status) setEngineState(status);
           setMessage(
-            "Arduino Traffic Light circuit loaded. Red (pin 8), Yellow (pin 9), Green (pin 10) connected with 330 Ω resistors. Simulation running.",
+            templateName === "custom" && !customDoc
+              ? "Ready to build circuits! Describe any Arduino or electronics circuit in Build with OHMI."
+              : "Arduino Traffic Light circuit loaded. Red (pin 8), Yellow (pin 9), Green (pin 10) connected with 330 Ω resistors. Simulation running.",
           );
         })
         .catch((err) => {
@@ -243,6 +277,23 @@ function Editor({
     return () => {
       active = false;
       clearInterval(timer);
+    };
+  }, [ready]);
+  useEffect(() => {
+    if (!ready || !bridge.current) return;
+    const handleResize = () => {
+      bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [ready]);
   const [observations, setObservations] = useState<
@@ -351,7 +402,7 @@ function Editor({
         compiled.observations.samples.some(
           (sample) =>
             sample.errors.length ||
-            sample.warnings.length ||
+            sample.warnings.filter((w) => !isPreviewNote(w)).length ||
             sample.damaged.length,
         )
       )
