@@ -1930,7 +1930,7 @@ function generateStandardLedCircuit(intent: CircuitIntent): GeneratedCircuit {
 export function assertSupportedRequest(intent: CircuitIntent) {
   const prompt = intent.rawPrompt;
   if (intent.circuitType === "decimal_counter") {
-    if (/common[ -]?anode|\b(?:ESP32|ldr|potentiometer|74hc595|transistor|servo|motor|hex(?:adecimal)?)\b|\b(?:one|single|three|four|[13-9])[- ]digit|\b(?:one|single|three|four|[13-9])\s+(?:pushbuttons?|buttons?|displays?)/i.test(prompt))
+    if (/common[ -]?anode|\b(?:ESP32|ldr|potentiometer|74hc595|transistor|servo|motor|hex(?:adecimal)?)\b|\b(?:one|single|three|four|[13-9])[- ]digit|\b(?:one|single|three|four|[13-9])\s+displays?|\b(?:three|four|[3-9])\s+(?:pushbuttons?|buttons?)/i.test(prompt))
       throw new Error("Automatic decimal counters currently qualify two common-cathode digits on Uno only. No different display/controller was substituted.");
     return;
   }

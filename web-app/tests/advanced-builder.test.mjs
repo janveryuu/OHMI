@@ -63,3 +63,9 @@ test("counter safety rejects bypasses, shared segment lines and unqualified deci
     spec=>spec.connections.push({from:{part:"digit0",pin:"pin5"},to:{part:"uno",pin:"5V"}}),
   ]){const spec=structuredClone(circuit.spec);alter(spec);assert.throws(()=>validateCircuitSpec(spec));}
 });
+
+test("counter accepts individual button roles", () => {
+ const circuit = generateCircuit(parseCircuitIntent("Build a complete Arduino Uno R3 decimal counter on a real breadboard using two red common-cathode 7-segment displays and two tactile pushbuttons. Count from 00 to 99. One button increments by 1; the other decrements by 1. Clamp at 00 and 99. Use seven 2.2k resistors."));
+ assert.equal(circuit.spec.parts.filter(p => p.type === "seg7_cc").length, 2);
+ assert.equal(circuit.spec.parts.filter(p => p.type === "pushbutton").length, 2);
+});
