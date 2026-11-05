@@ -6,6 +6,7 @@ export const CIRCUIT_BUILD_VERSION = "ohmi-circuit-build-v1";
 export const BUILD_TYPES = [
   "arduino_uno",
   "seg7_cc",
+  "seg7_ca",
   "battery",
   "resistor",
   "led",
@@ -16,6 +17,17 @@ export const BUILD_TYPES = [
   "buzzer",
   "74hc595",
   "breadboard",
+  "hcsr04",
+  "hcsr501",
+  "lcd1602_i2c",
+  "lcd1602",
+  "tmp36",
+  "dc_motor",
+  "transistor",
+  "diode",
+  "relay_module",
+  "header_male",
+  "header_female",
 ] as const;
 type PartType = (typeof BUILD_TYPES)[number];
 export type CircuitSpec = {
@@ -157,6 +169,7 @@ export const buildProperties = (part: CircuitSpec["parts"][number]) =>
 const propertyKeys: Record<PartType, string[]> = {
   arduino_uno: [],
   seg7_cc: ["color"],
+  seg7_ca: ["color"],
   battery: ["voltage"],
   resistor: ["resistance"],
   led: ["color"],
@@ -167,6 +180,17 @@ const propertyKeys: Record<PartType, string[]> = {
   buzzer: [],
   "74hc595": [],
   breadboard: ["size"],
+  hcsr04: [],
+  hcsr501: [],
+  lcd1602_i2c: [],
+  lcd1602: [],
+  tmp36: [],
+  dc_motor: [],
+  transistor: ["type"],
+  diode: [],
+  relay_module: [],
+  header_male: ["pins"],
+  header_female: ["pins"],
 };
 
 export function validateCircuitSpec(raw: unknown): CircuitSpec {
@@ -195,7 +219,7 @@ export function validateCircuitSpec(raw: unknown): CircuitSpec {
   for (const warning of list(object.warnings, 8)) text(warning, 300);
   const ids = new Set<string>(),
     terminals = new Map<string, Set<string>>();
-  for (const value of list(object.parts, 24)) {
+  for (const value of list(object.parts, 64)) {
     const part = fields(value, ["id", "type", "properties", "sketch"]),
       id = text(part.id, 32),
       type = text(part.type, 32) as PartType;
@@ -261,7 +285,7 @@ export function validateCircuitSpec(raw: unknown): CircuitSpec {
     terminals.set(id, electronicsPins(type, props));
   }
   const connections = new Set<string>();
-  for (const value of list(object.connections, 64)) {
+  for (const value of list(object.connections, 160)) {
     const wire = fields(value, ["from", "to"]),
       keys = [];
     for (const side of ["from", "to"]) {
@@ -303,9 +327,9 @@ function validateElectricalSpec(
       "qualified builds need exactly one Uno, one battery, or one Uno powered by a battery.",
     );
   const leds = spec.parts.filter((part) => part.type === "led");
-  if ((!unos.length && !leds.length) || leds.length > 12)
+  if ((!unos.length && !leds.length) || leds.length > 20)
     invalid(
-      "qualified builds support up to 10–12 LEDs with dedicated series resistors.",
+      "qualified builds support up to 20 LEDs with dedicated series resistors.",
     );
   const roots = new Map<string, string>();
   const root = (key: string): string => {
@@ -376,12 +400,24 @@ function validateElectricalSpec(
       add(source, "5V", 5, 5);
       add(source, "3V3", 3.3, 3.3);
       for (let pin = 0; pin <= 13; pin++) add(source, "D" + pin, 0, 5, true);
+      for (let pin = 0; pin <= 5; pin++) add(source, "A" + pin, 0, 5, true);
+      add(source, "SDA", 0, 5, true);
+      add(source, "SCL", 0, 5, true);
     }
   }
   for (const part of spec.parts) {
     if (part.type === "74hc595") {
       const qPins = ["pin15", "pin1", "pin2", "pin3", "pin4", "pin5", "pin6", "pin7"];
       for (const q of qPins) add(part, q, 0, 5, true);
+    }
+    if (part.type === "hcsr04") {
+      add(part, "ECHO", 0, 5, true);
+    }
+    if (part.type === "hcsr501") {
+      add(part, "OUT", 0, 5, true);
+    }
+    if (part.type === "tmp36") {
+      add(part, "VOUT", 0, 5, true);
     }
   }
   const edges = new Map<string, { node: string; ohms: number; id: string }[]>();
@@ -486,17 +522,41 @@ function validateElectricalSpec(
     }
     if (part.type === "buzzer") {
       requireNet(part.id,"minus","GND");
-      if (!uno || !Array.from({length:12},(_,i)=>"D"+(i+2)).some(pin=>same(part.id,"plus",uno.id,pin))) invalid("piezo buzzer needs a dedicated Uno digital output; magnetic alarms need a driver.");
+      if (!uno || ![...Array.from({length:14},(_,i)=>"D"+i), ...Array.from({length:6},(_,i)=>"A"+i)].some(pin=>same(part.id,"plus",uno.id,pin))) invalid("piezo buzzer needs a dedicated Uno digital output; magnetic alarms need a driver.");
+    }
+    if (part.type === "hcsr04") {
+      requireNet(part.id, "VCC", "5V"); requireNet(part.id, "GND", "GND");
+    }
+    if (part.type === "hcsr501") {
+      requireNet(part.id, "VCC", "5V"); requireNet(part.id, "GND", "GND");
+    }
+    if (part.type === "lcd1602_i2c") {
+      requireNet(part.id, "VCC", "5V"); requireNet(part.id, "GND", "GND");
+    }
+    if (part.type === "tmp36") {
+      requireNet(part.id, "+VS", "5V"); requireNet(part.id, "GND", "GND");
+      if (!uno || !Array.from({length:6},(_,i)=>"A"+i).some(pin=>same(part.id,"VOUT",uno.id,pin))) invalid("TMP36 sensor output needs an Uno analog input (A0–A5).");
+    }
+    if (part.type === "transistor") {
+      requireNet(part.id, "E", "GND");
+    }
+    if (part.type === "relay_module") {
+      requireNet(part.id, "COIL-", "GND");
     }
   }
-  // Only a real LDR divider may consume a resistor outside an LED branch.
+  // Allow LDR divider, transistor base resistor, pull-up/down, or dedicated series resistor.
   for (const resistor of resistors.filter(part=>!used.has(part.id))) {
     const validDivider = spec.parts.some(ldr=>ldr.type === "photocell" && uno &&
       ["pin0","pin1"].some(pin=>same(ldr.id,pin,uno.id,"5V") || same(ldr.id,pin,uno.id,"GND")) &&
       ["pin0","pin1"].some(pin=>["pin0","pin1"].some(rpin=>same(ldr.id,pin,resistor.id,rpin) &&
         Array.from({length:6},(_,i)=>"A"+i).some(apin=>same(ldr.id,pin,uno.id,apin)))) &&
       ["pin0","pin1"].some(pin=>same(resistor.id,pin,uno.id,"GND") || same(resistor.id,pin,uno.id,"5V")) && Number(buildProperties(resistor).resistance) >= 1000);
-    if (validDivider) used.add(resistor.id);
+    const validBaseResistor = spec.parts.some(t=>(t.type === "transistor" || t.type === "relay_module") && uno &&
+      ["pin0","pin1"].some(rpin=>same(resistor.id,rpin,t.id,"B") || same(resistor.id,rpin,t.id,"COIL+")) &&
+      ["pin0","pin1"].some(rpin=>[...Array.from({length:14},(_,i)=>"D"+i), ...Array.from({length:6},(_,i)=>"A"+i)].some(pin=>same(resistor.id,rpin,uno.id,pin))));
+    const validPullResistor = uno && Number(buildProperties(resistor).resistance) >= 220 && Number(buildProperties(resistor).resistance) <= 100000 &&
+      ["pin0","pin1"].some(rpin=>same(resistor.id,rpin,uno.id,"5V") || same(resistor.id,rpin,uno.id,"GND"));
+    if (validDivider || validBaseResistor || validPullResistor) used.add(resistor.id);
   }
   if (resistors.some((part) => !used.has(part.id)))
     invalid(

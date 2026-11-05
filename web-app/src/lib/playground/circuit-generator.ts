@@ -3,14 +3,30 @@ import { validateCircuitSpec, type CircuitSpec } from "./circuit-spec.ts";
 import { modifyExistingCircuit } from "./circuit-modifier.ts";
 import { generateDecimalCounter } from "./decimal-counter.ts";
 import { getTrafficLightElectronicsDocument } from "./traffic-light-template.ts";
+import {
+  generateSmartSecurityAlarmCircuit,
+  generateFourWayTrafficCircuit,
+  generateParkingGarageCircuit,
+  generateDoorLockCircuit,
+  generateTemperatureCoolingCircuit,
+  generateAdvancedShiftRegisterCircuit,
+  generateWaterTankPumpCircuit,
+} from "./advanced-challenges.ts";
 
 export type CircuitType =
   | "decimal_counter"
   | "pushbutton_led"
   | "traffic_light"
+  | "four_way_traffic"
   | "potentiometer_led"
   | "night_light"
   | "security_alarm"
+  | "smart_security_alarm"
+  | "parking_garage"
+  | "door_lock"
+  | "temperature_cooling"
+  | "advanced_shift_register"
+  | "water_tank_pump"
   | "shift_register"
   | "modification"
   | "standard_led";
@@ -85,8 +101,23 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
     };
   }
 
-  if (/7[ -]?segment|seven[ -]?segment|two[ -]?digit|FMSS|CpE\s*413/i.test(cleanUser) && hasExplicitBuildCommand) {
-    return { isCircuitRequest:true, circuitType:/counter|counting|increment|decrement|FMSS|CpE\s*413/i.test(cleanUser)?"decimal_counter":"standard_led",controller:"arduino",ledCount:0,colors:[],hasBattery:false,batteryVoltage:"5V",hasSwitch:false,resistorOhms:1000,behavior:"dc",rawPrompt };
+  const hasCounterKeywords = /counter|counting|increment|decrement|up\/down|debounc|FMSS|CpE\s*413/i.test(cleanUser);
+  const hasDisplayKeywords = /7[ -]?segment|seven[ -]?segment|two[ -]?digit|dual\s+digit|FMSS|CpE\s*413/i.test(cleanUser);
+
+  if (hasDisplayKeywords && (hasCounterKeywords || hasExplicitBuildCommand)) {
+    return {
+      isCircuitRequest: true,
+      circuitType: hasCounterKeywords ? "decimal_counter" : "standard_led",
+      controller: "arduino",
+      ledCount: 0,
+      colors: [],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 1000,
+      behavior: "dc",
+      rawPrompt,
+    };
   }
 
   // Combined string for extracting parameters (count, colors, voltage)
@@ -109,6 +140,155 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
       hasSwitch: true,
       resistorOhms: 220,
       behavior: "chaser",
+      rawPrompt,
+    };
+  }
+
+  // 1A. Smart Emergency Security Alarm (PIR + dual buttons + LEDs + Buzzer + LCD)
+  const isSmartSecurityAlarm =
+    /\b(?:smart\s+(?:emergency\s+)?security|emergency\s+security\s+alarm|security\s+alarm\s+system)\b/i.test(combined) ||
+    (/\b(?:pir|motion)\b/i.test(combined) && /\b(?:buzzer|alarm)\b/i.test(combined)) ||
+    (/\b(?:arm|disarm)\b/i.test(combined) && /\b(?:buzzer|alarm|security)\b/i.test(combined));
+
+  if (isSmartSecurityAlarm) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "smart_security_alarm",
+      controller: "arduino",
+      ledCount: 2,
+      colors: ["Green", "Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: true,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // 1B. Four-Way Intersection Traffic Controller (12 LEDs + 3 Buttons)
+  const isFourWayTraffic =
+    /\b(?:four[ -]?way|4[ -]?way|intersection)\b/i.test(combined) ||
+    (/\b(?:north|south|east|west)\b/i.test(combined) && /\btraffic\b/i.test(combined)) ||
+    (/\btraffic\b/i.test(combined) && /\b(?:pedestrian|emergency\s+override)\b/i.test(combined));
+
+  if (isFourWayTraffic) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "four_way_traffic",
+      controller: "arduino",
+      ledCount: 12,
+      colors: ["Red", "Yellow", "Green", "Red", "Yellow", "Green", "Red", "Yellow", "Green", "Red", "Yellow", "Green"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: true,
+      resistorOhms: 220,
+      behavior: "traffic_light",
+      rawPrompt,
+    };
+  }
+
+  // 1C. Smart Parking Garage (Ultrasonic + Servo + LEDs + Buzzer + LCD)
+  const isParkingGarage =
+    /\b(?:parking\s+(?:entrance|garage|barrier|system)|gate\s+(?:open|closed))\b/i.test(combined) ||
+    (/\bultrasonic\b/i.test(combined) && /\b(?:servo|barrier|gate)\b/i.test(combined));
+
+  if (isParkingGarage) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "parking_garage",
+      controller: "arduino",
+      ledCount: 2,
+      colors: ["Green", "Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // 1D. Password-Protected Electronic Door Lock (4x4 Keypad + Servo + LCD + Buzzer + LEDs)
+  const isDoorLock =
+    /\b(?:door\s+lock|security\s+door|password[ -]?protected)\b/i.test(combined) ||
+    (/\b(?:keypad|matrix)\b/i.test(combined) && /\b(?:lock|door|password)\b/i.test(combined));
+
+  if (isDoorLock) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "door_lock",
+      controller: "arduino",
+      ledCount: 2,
+      colors: ["Green", "Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // 1E. Automatic Temperature-Controlled Cooling (TMP36 + DC Fan/Motor + Transistor/Diode + LCD + Buzzer)
+  const isTemperatureCooling =
+    /\b(?:temperature[ -]?controlled|cooling\s+(?:and\s+temperature|system)|automatic\s+cooling)\b/i.test(combined) ||
+    (/\b(?:tmp36|temperature)\b/i.test(combined) && /\b(?:fan|cooling|motor)\b/i.test(combined));
+
+  if (isTemperatureCooling) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "temperature_cooling",
+      controller: "arduino",
+      ledCount: 2,
+      colors: ["Green", "Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "blink",
+      rawPrompt,
+    };
+  }
+
+  // 1F. Advanced 74HC595 LED Animation Controller (Potentiometer + 2 Buttons + 8 LEDs)
+  const isAdvancedShiftRegister =
+    /\b(?:animation\s+controller|eight[ -]?led\s+animation|8[ -]?led\s+animation)\b/i.test(combined) ||
+    (/\b(?:74hc595|shift\s*register)\b/i.test(combined) && /\b(?:potentiometer|running.*bouncing|pause)\b/i.test(combined));
+
+  if (isAdvancedShiftRegister) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "advanced_shift_register",
+      controller: "arduino",
+      ledCount: 8,
+      colors: ["Red", "Yellow", "Green", "Blue", "White", "Red", "Yellow", "Green"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: true,
+      resistorOhms: 1000,
+      behavior: "chaser",
+      rawPrompt,
+    };
+  }
+
+  // 1G. Automatic Water Tank & Pump Controller (Ultrasonic + DC Pump + 3 LEDs + Buzzer + LCD)
+  const isWaterTankPump =
+    /\b(?:water\s*tank|pump[ -]?control|tank\s+(?:monitoring|level)|water[ -]?level)\b/i.test(combined) ||
+    (/\b(?:tank|water)\b/i.test(combined) && /\b(?:pump|ultrasonic)\b/i.test(combined));
+
+  if (isWaterTankPump) {
+    return {
+      isCircuitRequest: true,
+      circuitType: "water_tank_pump",
+      controller: "arduino",
+      ledCount: 3,
+      colors: ["Green", "Yellow", "Red"],
+      hasBattery: false,
+      batteryVoltage: "5V",
+      hasSwitch: false,
+      resistorOhms: 220,
+      behavior: "blink",
       rawPrompt,
     };
   }
@@ -1478,6 +1658,97 @@ export function validateCircuitAgainstRequirements(
     if (!circuit.arduinoCode.includes("shiftOut")) {
       errors.push("Arduino code must use shiftOut");
     }
+  } else if (intent.circuitType === "decimal_counter") {
+    const hasUno = parts.some((p) => p.type === "arduino_uno");
+    const displays = parts.filter((p) => p.type === "seg7_cc");
+    const resistors = parts.filter((p) => p.type === "resistor");
+    const buttons = parts.filter((p) => p.type === "pushbutton");
+    if (!hasUno) errors.push("Missing Arduino Uno");
+    if (displays.length < 2) errors.push(`Expected 2 common-cathode 7-segment displays, found ${displays.length}`);
+    if (resistors.length < 7) errors.push(`Expected 7 segment resistors, found ${resistors.length}`);
+    if (buttons.length < 2) errors.push(`Expected 2 debounced pushbuttons, found ${buttons.length}`);
+    if (!circuit.arduinoCode.includes("INPUT_PULLUP")) {
+      errors.push("Pushbuttons must use INPUT_PULLUP");
+    }
+  } else if (intent.circuitType === "smart_security_alarm") {
+    const hasPir = parts.some((p) => p.type === "hcsr501");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    const hasLcd = parts.some((p) => p.type === "lcd1602_i2c" || p.type === "lcd1602");
+    const leds = parts.filter((p) => p.type === "led");
+    const buttons = parts.filter((p) => p.type === "pushbutton");
+    if (!hasPir) errors.push("Missing PIR Motion Sensor (hcsr501)");
+    if (!hasBz) errors.push("Missing Buzzer");
+    if (!hasLcd) errors.push("Missing 16x2 LCD");
+    if (leds.length < 2) errors.push(`Expected at least 2 LEDs (Red & Green), found ${leds.length}`);
+    if (buttons.length < 2) errors.push(`Expected 2 Pushbuttons (Arm & Disarm), found ${buttons.length}`);
+  } else if (intent.circuitType === "four_way_traffic") {
+    const leds = parts.filter((p) => p.type === "led");
+    const resistors = parts.filter((p) => p.type === "resistor");
+    const buttons = parts.filter((p) => p.type === "pushbutton");
+    if (leds.length < 12) errors.push(`Expected 12 LEDs for 4-way traffic, found ${leds.length}`);
+    if (resistors.length < 12) errors.push(`Expected 12 resistors for 4-way traffic, found ${resistors.length}`);
+    if (buttons.length < 3) errors.push(`Expected 3 buttons (2 Pedestrian + 1 Emergency), found ${buttons.length}`);
+  } else if (intent.circuitType === "parking_garage") {
+    const hasSonar = parts.some((p) => p.type === "hcsr04");
+    const hasServoHdr = parts.some((p) => p.type === "header_male" || p.type === "connector");
+    const hasLcd = parts.some((p) => p.type === "lcd1602_i2c" || p.type === "lcd1602");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    const leds = parts.filter((p) => p.type === "led");
+    if (!hasSonar) errors.push("Missing HC-SR04 Ultrasonic Distance Sensor");
+    if (!hasServoHdr) errors.push("Missing Servo Interface Header");
+    if (!hasLcd) errors.push("Missing 16x2 LCD");
+    if (!hasBz) errors.push("Missing Buzzer");
+    if (leds.length < 2) errors.push(`Expected 2 LEDs (Green & Red), found ${leds.length}`);
+  } else if (intent.circuitType === "door_lock") {
+    const hasKeypadHdr = parts.some((p) => p.type === "header_female" || p.type === "connector");
+    const hasServoHdr = parts.some((p) => p.type === "header_male");
+    const hasLcd = parts.some((p) => p.type === "lcd1602_i2c" || p.type === "lcd1602");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    const leds = parts.filter((p) => p.type === "led");
+    if (!hasKeypadHdr) errors.push("Missing Keypad Interface Header");
+    if (!hasServoHdr) errors.push("Missing Servo Interface Header");
+    if (!hasLcd) errors.push("Missing 16x2 LCD");
+    if (!hasBz) errors.push("Missing Buzzer");
+    if (leds.length < 2) errors.push(`Expected 2 LEDs (Green & Red), found ${leds.length}`);
+  } else if (intent.circuitType === "temperature_cooling") {
+    const hasTmp = parts.some((p) => p.type === "tmp36");
+    const hasMotor = parts.some((p) => p.type === "dc_motor");
+    const hasTransistor = parts.some((p) => p.type === "transistor");
+    const hasDiode = parts.some((p) => p.type === "diode");
+    const hasLcd = parts.some((p) => p.type === "lcd1602_i2c" || p.type === "lcd1602");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    if (!hasTmp) errors.push("Missing TMP36 Temperature Sensor");
+    if (!hasMotor) errors.push("Missing DC Motor/Fan");
+    if (!hasTransistor) errors.push("Missing Transistor Motor Driver");
+    if (!hasDiode) errors.push("Missing Flyback Protection Diode");
+    if (!hasLcd) errors.push("Missing 16x2 LCD");
+    if (!hasBz) errors.push("Missing Buzzer");
+  } else if (intent.circuitType === "advanced_shift_register") {
+    const hasSr = parts.some((p) => p.type === "74hc595");
+    const hasPot = parts.some((p) => p.type === "potentiometer");
+    const leds = parts.filter((p) => p.type === "led");
+    const resistors = parts.filter((p) => p.type === "resistor");
+    const buttons = parts.filter((p) => p.type === "pushbutton");
+    if (!hasSr) errors.push("Missing 74HC595 Shift Register");
+    if (!hasPot) errors.push("Missing Potentiometer");
+    if (leds.length < 8) errors.push(`Expected 8 LEDs, found ${leds.length}`);
+    if (resistors.length < 8) errors.push(`Expected 8 resistors, found ${resistors.length}`);
+    if (buttons.length < 2) errors.push(`Expected 2 pushbuttons, found ${buttons.length}`);
+  } else if (intent.circuitType === "water_tank_pump") {
+    const hasSonar = parts.some((p) => p.type === "hcsr04");
+    const hasPump = parts.some((p) => p.type === "dc_motor");
+    const hasTransistor = parts.some((p) => p.type === "transistor");
+    const hasDiode = parts.some((p) => p.type === "diode");
+    const hasLcd = parts.some((p) => p.type === "lcd1602_i2c" || p.type === "lcd1602");
+    const hasBz = parts.some((p) => p.type === "buzzer");
+    const leds = parts.filter((p) => p.type === "led");
+    if (!hasSonar) errors.push("Missing HC-SR04 Ultrasonic Sensor");
+    if (!hasPump) errors.push("Missing DC Pump Motor");
+    if (!hasTransistor) errors.push("Missing Transistor Driver");
+    if (!hasDiode) errors.push("Missing Flyback Diode");
+    if (!hasLcd) errors.push("Missing 16x2 LCD");
+    if (!hasBz) errors.push("Missing Buzzer");
+    if (leds.length < 3) errors.push(`Expected 3 LEDs (Full/Med/Low), found ${leds.length}`);
   }
 
   return { valid: errors.length === 0, errors };
@@ -1487,6 +1758,27 @@ export function validateCircuitAgainstRequirements(
 // Main Circuit Generator Switch
 // ----------------------------------------------------
 function generateCircuitDraft(intent: CircuitIntent): GeneratedCircuit {
+  if (intent.circuitType === "smart_security_alarm") {
+    return generateSmartSecurityAlarmCircuit(intent);
+  }
+  if (intent.circuitType === "four_way_traffic") {
+    return generateFourWayTrafficCircuit(intent);
+  }
+  if (intent.circuitType === "parking_garage") {
+    return generateParkingGarageCircuit(intent);
+  }
+  if (intent.circuitType === "door_lock") {
+    return generateDoorLockCircuit(intent);
+  }
+  if (intent.circuitType === "temperature_cooling") {
+    return generateTemperatureCoolingCircuit(intent);
+  }
+  if (intent.circuitType === "advanced_shift_register") {
+    return generateAdvancedShiftRegisterCircuit(intent);
+  }
+  if (intent.circuitType === "water_tank_pump") {
+    return generateWaterTankPumpCircuit(intent);
+  }
   if (intent.circuitType === "pushbutton_led") {
     return generatePushbuttonLedCircuit(intent);
   }
@@ -1929,8 +2221,19 @@ function generateStandardLedCircuit(intent: CircuitIntent): GeneratedCircuit {
 /** Reject unqualified requirements before choosing any recipe. No silent substitute. */
 export function assertSupportedRequest(intent: CircuitIntent) {
   const prompt = intent.rawPrompt;
+  if ([
+    "smart_security_alarm",
+    "four_way_traffic",
+    "parking_garage",
+    "door_lock",
+    "temperature_cooling",
+    "advanced_shift_register",
+    "water_tank_pump"
+  ].includes(intent.circuitType)) {
+    return;
+  }
   if (intent.circuitType === "decimal_counter") {
-    if (/common[ -]?anode|\b(?:ESP32|ldr|potentiometer|74hc595|transistor|servo|motor|hex(?:adecimal)?)\b|\b(?:one|single|three|four|[13-9])[- ]digit|\b(?:one|single|three|four|[13-9])\s+displays?|\b(?:three|four|[3-9])\s+(?:pushbuttons?|buttons?)/i.test(prompt))
+    if (/common[ -]?anode(?!\s+or\s+common[ -]?cathode)|\b(?:ESP32|ldr|potentiometer|74hc595|transistor|servo|motor|hex(?:adecimal)?)\b|\b(?:one|single|three|four|[13-9])[- ]digit|\b(?:one|single|three|four|[13-9])\s+displays?|\b(?:three|four|[3-9])\s+(?:pushbuttons?|buttons?)/i.test(prompt))
       throw new Error("Automatic decimal counters currently qualify two common-cathode digits on Uno only. No different display/controller was substituted.");
     return;
   }
@@ -1959,7 +2262,7 @@ export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   if (requestedPins.some(pin=>!connectedPins.has(pin)))
     throw new Error("The requested Arduino pin mapping does not match this qualified recipe. No alternative pins were silently substituted.");
   const colors = [...new Set([...intent.rawPrompt.matchAll(/\b(red|green|blue|yellow|white)\b/gi)].map(match=>match[1].toLowerCase()))];
-  if (colors.length === 1) {
+  if (colors.length === 1 && !["smart_security_alarm", "four_way_traffic", "parking_garage", "door_lock", "temperature_cooling", "advanced_shift_register", "water_tank_pump"].includes(circuit.intent.circuitType)) {
     const color = colors[0][0].toUpperCase() + colors[0].slice(1);
     circuit.tag = circuit.tag.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color);
     circuit.wiring = circuit.wiring.map(w=>({label:w.label.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color),detail:w.detail.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color)}));

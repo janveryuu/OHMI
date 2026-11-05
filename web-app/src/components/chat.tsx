@@ -259,11 +259,14 @@ export function Chat() {
   function handleDirectToPlayground(circuit?: GeneratedCircuit | null) {
     if (!circuit) { setError("No complete supported circuit is available. Your request was not replaced with a template."); return; }
     try {
-      {
-        sessionStorage.setItem("ohmi_active_circuit_doc:" + (app.user?.id || "guest"), JSON.stringify(circuit.document));
-        sessionStorage.setItem("ohmi_active_circuit_spec:" + (app.user?.id || "guest"), JSON.stringify(circuit.spec));
-        sessionStorage.setItem("ohmi_playground_template", "custom");
-      }
+      const docStr = JSON.stringify(circuit.document);
+      const specStr = JSON.stringify(circuit.spec);
+      sessionStorage.setItem("ohmi_active_circuit_doc:" + (app.user?.id || "guest"), docStr);
+      sessionStorage.setItem("ohmi_active_circuit_spec:" + (app.user?.id || "guest"), specStr);
+      sessionStorage.setItem("ohmi_active_circuit_doc:guest", docStr);
+      sessionStorage.setItem("ohmi_active_circuit_spec:guest", specStr);
+      sessionStorage.setItem("ohmi_current_circuit_doc", docStr);
+      sessionStorage.setItem("ohmi_playground_template", "custom");
     } catch { setError("Could not transfer the circuit. Your chat and circuit are unchanged."); return; }
     const templateParam = "custom";
     if (router && typeof router.push === "function") {
@@ -548,6 +551,12 @@ export function Chat() {
                   circuitIssue = err instanceof Error ? err.message : "This circuit is not supported.";
                 }
               }
+              const isUnavailableText = /providers? (?:are|is) temporarily unavailable/i.test(message.text);
+              const hasResolvedCircuit = Boolean(isCircuitMatch && dynamicCircuit);
+              const assistantContent = hasResolvedCircuit && isUnavailableText
+                ? "I've prepared your circuit plan and Arduino C++ code for this design below. You can view the code or build it directly in your Electronics workspace."
+                : message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "");
+
               return (
               <article
                 key={message.id}
@@ -556,11 +565,11 @@ export function Chat() {
                 <span className="sr-only">{message.role === "assistant" ? "OHMI" : "You"}</span>
                 {message.role === "assistant" && <Image className="chat-reply-avatar mascot" src="/app/mascot.png" alt="" aria-hidden="true" width={25} height={29} />}
                 {message.role === "assistant" && (message.structured?.mode === "limited" || message.structured?.mode === "local") && (
-                  <span className="chat-reply-note">{message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
+                  <span className="chat-reply-note">{hasResolvedCircuit ? "Circuit Ready" : message.structured.mode === "limited" ? "Limited mode" : "Local reply"}</span>
                 )}
                 {/* Explanation first */}
                 {message.role === "assistant" ? (
-                  <RichText text={message.text.replace(/\n*\[Answer incomplete:[^\]]+\]\s*$/, "")} />
+                  <RichText text={assistantContent} />
                 ) : (
                   <p className="user-text">{message.text}</p>
                 )}
@@ -588,7 +597,7 @@ export function Chat() {
                 {message.role === "assistant" && message.requestId && message.structured?.kind === "circuit_build" && message.structured?.status === "draft" && (
                   <Link href={"/playground/?build=" + message.requestId}>Open new editable circuit draft</Link>
                 )}
-                {message.role === "assistant" && message.structured?.mode === "limited" && message.id === conversation.messages.at(-1)?.id && (
+                {message.role === "assistant" && message.structured?.mode === "limited" && !hasResolvedCircuit && message.id === conversation.messages.at(-1)?.id && (
                   <Button variant="outline" disabled={pending} onClick={() => {
                     const original = [...conversation.messages].reverse().find(item => item.role === "user");
                     if (original) void send(undefined, original.text, { operation: "chat" });

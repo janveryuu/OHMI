@@ -82,22 +82,32 @@ function Editor({
       });
   }, [canvasFocus]);
   const lastLoadedTemplate = useRef<string | null>(null);
+  const autoOpenedBuild = useRef<string | null>(null);
   useEffect(() => {
     if (!ready || !bridge.current) return;
 
-    // Check for custom dynamically generated circuit from Ask OHMI
+    if (buildId && autoOpenedBuild.current !== buildId) {
+      autoOpenedBuild.current = buildId;
+      void openBuild(true);
+      return;
+    }
+
+    // Check for custom dynamically generated circuit from Ask OHMI or Build with OHMI
     let customDoc: Record<string, unknown> | null = null;
     try {
-      const stored = typeof window !== "undefined" ? sessionStorage.getItem("ohmi_active_circuit_doc:" + (accountId || "guest")) : null;
+      const stored = typeof window !== "undefined"
+        ? (sessionStorage.getItem("ohmi_active_circuit_doc:" + (accountId || "guest")) ||
+           sessionStorage.getItem("ohmi_active_circuit_doc:guest") ||
+           sessionStorage.getItem("ohmi_current_circuit_doc"))
+        : null;
       if (stored) {
-        sessionStorage.removeItem("ohmi_active_circuit_doc:" + (accountId || "guest"));
         customDoc = validateElectronicsDocument(JSON.parse(stored));
       }
     } catch (err) {
       console.warn("Failed to parse custom circuit document:", err);
     }
 
-    if (customDoc) {
+    if (customDoc && lastLoadedTemplate.current !== "custom") {
       const session = bridge.current;
       lastLoadedTemplate.current = "custom";
       const doc = customDoc;
@@ -105,6 +115,9 @@ function Editor({
         .then(async (prepared) => {
           if (bridge.current !== session) return;
           await session.request({ operation: "open", document: prepared.document });
+          try {
+            sessionStorage.setItem("ohmi_current_circuit_doc", JSON.stringify(prepared.document));
+          } catch {}
           cloud.detach();
           await bridge.current
             ?.request({ operation: "zoom", direction: "fit" })
@@ -243,7 +256,7 @@ function Editor({
     },
     [],
   );
-  async function openBuild() {
+  async function openBuild(auto = false) {
     if (!buildId || !bridge.current || busy || cloud.busy) return;
     const session = bridge.current,
       abort = new AbortController();
@@ -251,22 +264,33 @@ function Editor({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(
-        "/app/api/playground/build/?id=" + encodeURIComponent(buildId),
-        {
-          headers: { "x-ohmi-account": accountId },
-          cache: "no-store",
-          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(20000)]),
-        },
-      );
-      let data = await response.json();
-      if (!response.ok) {
-        const saved = sessionStorage.getItem("ohmi-build-result:" + accountId + ":" + buildId);
-        if (response.status === 404 && saved) data = { accountId, requestId: buildId, status: "completed", result: JSON.parse(saved) };
-        else throw new Error(data.error || "Build unavailable.");
+      let data: any = null;
+      try {
+        const response = await fetch(
+          "/app/api/playground/build/?id=" + encodeURIComponent(buildId),
+          {
+            headers: { "x-ohmi-account": accountId || "guest" },
+            cache: "no-store",
+            signal: AbortSignal.any([abort.signal, AbortSignal.timeout(20000)]),
+          },
+        );
+        data = await response.json();
+        if (!response.ok) data = null;
+      } catch {
+        data = null;
+      }
+      if (!data || data.status !== "completed") {
+        const saved =
+          sessionStorage.getItem("ohmi-build-result:" + accountId + ":" + buildId) ||
+          sessionStorage.getItem("ohmi-build-result:guest:" + buildId) ||
+          sessionStorage.getItem("ohmi-build-result::" + buildId);
+        if (saved) {
+          data = { accountId: accountId || "guest", requestId: buildId, status: "completed", result: JSON.parse(saved) };
+        } else if (!data) {
+          throw new Error("Build unavailable. Check this request in Ask OHMI.");
+        }
       }
       if (
-        data.accountId !== accountId ||
         data.requestId !== buildId ||
         data.status !== "completed"
       )
@@ -278,6 +302,7 @@ function Editor({
       if (abort.signal.aborted || bridge.current !== session) return;
       setBuildWarnings(result.circuitSpec.warnings);
       if (
+        !auto &&
         !window.confirm(
           [
             "Open a new AI draft? Download your current circuit first. Undo can restore this local circuit; saved projects stay unchanged.",
@@ -292,7 +317,21 @@ function Editor({
         const prepared = await prepareCircuit(session, result.document);
         if (abort.signal.aborted || bridge.current !== session) return;
         await session.request({ operation: "open", document: prepared.document });
-        cloud.detach(); setObservations(prepared.samples); setMessage(BUILD_CHECK_SUMMARY); return;
+        try {
+          sessionStorage.setItem("ohmi_current_circuit_doc", JSON.stringify(prepared.document));
+          sessionStorage.setItem("ohmi_active_circuit_doc:" + (accountId || "guest"), JSON.stringify(prepared.document));
+        } catch {}
+        cloud.detach();
+        await bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+        setTimeout(() => {
+          bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+        }, 150);
+        await bridge.current?.request({ operation: "running", running: true }).catch(() => {});
+        const status = await bridge.current?.request<EngineStatus>({ operation: "status" }).catch(() => null);
+        if (status) setEngineState(status);
+        setObservations(prepared.samples);
+        setMessage(BUILD_CHECK_SUMMARY);
+        return;
       }
       const compiled = await session.request<{
         document: unknown;
@@ -321,7 +360,15 @@ function Editor({
         );
       if (abort.signal.aborted || bridge.current !== session) return;
       await session.request({ operation: "open", document });
+      try {
+        sessionStorage.setItem("ohmi_current_circuit_doc", JSON.stringify(document));
+        sessionStorage.setItem("ohmi_active_circuit_doc:" + (accountId || "guest"), JSON.stringify(document));
+      } catch {}
       cloud.detach();
+      await bridge.current?.request({ operation: "zoom", direction: "fit" }).catch(() => {});
+      await bridge.current?.request({ operation: "running", running: true }).catch(() => {});
+      const status = await bridge.current?.request<EngineStatus>({ operation: "status" }).catch(() => null);
+      if (status) setEngineState(status);
       setObservations(compiled.observations.samples);
       setMessage(
         "New editable draft opened. Engine sampled 4 seconds without reported errors, warnings or damage. This does not verify hardware or prove your full requirements. Save a separate private copy or download .dez and .ino.",

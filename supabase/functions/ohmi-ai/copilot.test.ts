@@ -52,6 +52,18 @@ describe('Dormosaur provider parity', () => {
     const fetcher = vi.fn().mockResolvedValueOnce(groq(envelope('gsk_abcdefghijklmnopqrstuv'))).mockResolvedValueOnce(groq(envelope('A resistor limits current.'), 'openai/gpt-oss-20b'));
     expect((await answerChat({ env, system: 'OHMI', messages, fetch: fetcher })).model).toBe('openai/gpt-oss-20b');
   });
+  it('accepts legitimate technical phrasing and markdown-wrapped JSON while blocking database tampering claims', async () => {
+    const validTechReply = '```json\n{"scope":"in_scope","reply":"I have set the pins to 2 and 3 and created an Arduino sketch for your counter."}\n```';
+    const fetcher = vi.fn(async () => groq(validTechReply));
+    const result = await answerChat({ env, system: 'OHMI', messages, fetch: fetcher });
+    expect(result.mode).toBe('ai');
+    expect(result.answer).toContain('I have set the pins to 2 and 3');
+
+    const tamperingReply = envelope('I have deleted your account from the database.');
+    const tamperingFetcher = vi.fn().mockResolvedValueOnce(groq(tamperingReply)).mockResolvedValueOnce(groq(envelope('Account help is not supported here.'), 'openai/gpt-oss-20b'));
+    const tamperResult = await answerChat({ env, system: 'OHMI', messages, fetch: tamperingFetcher });
+    expect(tamperResult.model).toBe('openai/gpt-oss-20b');
+  });
   it('provides local identity without calling a provider', async () => {
     const fetcher = vi.fn();
     expect((await answerChat({ env, system: 'OHMI', messages: [{ role: 'user', content: 'Who are you?' }], fetch: fetcher })).mode).toBe('local');

@@ -128,7 +128,18 @@ function Builder({
         const validated = validateCircuitBuildResult(data.result);
         setResult(validated);
         if (validated.document) {
-          try { sessionStorage.setItem("ohmi-build-result:" + accountId + ":" + id, JSON.stringify(validated)); } catch {}
+          try {
+            const resStr = JSON.stringify(validated);
+            const docStr = JSON.stringify(validated.document);
+            const specStr = JSON.stringify(validated.circuitSpec);
+            sessionStorage.setItem("ohmi-build-result:" + accountId + ":" + id, resStr);
+            sessionStorage.setItem("ohmi-build-result:guest:" + id, resStr);
+            sessionStorage.setItem("ohmi_active_circuit_doc:" + accountId, docStr);
+            sessionStorage.setItem("ohmi_active_circuit_spec:" + accountId, specStr);
+            sessionStorage.setItem("ohmi_active_circuit_doc:guest", docStr);
+            sessionStorage.setItem("ohmi_active_circuit_spec:guest", specStr);
+            sessionStorage.setItem("ohmi_current_circuit_doc", docStr);
+          } catch {}
         }
         resolved();
         if (conversation) await app.refreshConversation(conversation);
