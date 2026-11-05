@@ -1,9 +1,11 @@
 import { validateElectronicsDocument } from "./electronics-document.ts";
 import { validateCircuitSpec, type CircuitSpec } from "./circuit-spec.ts";
 import { modifyExistingCircuit } from "./circuit-modifier.ts";
+import { generateDecimalCounter } from "./decimal-counter.ts";
 import { getTrafficLightElectronicsDocument } from "./traffic-light-template.ts";
 
 export type CircuitType =
+  | "decimal_counter"
   | "pushbutton_led"
   | "traffic_light"
   | "potentiometer_led"
@@ -84,7 +86,7 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
   }
 
   if (/7[ -]?segment|seven[ -]?segment|two[ -]?digit|FMSS|CpE\s*413/i.test(cleanUser) && hasExplicitBuildCommand) {
-    return { isCircuitRequest:true, circuitType:"standard_led",controller:"arduino",ledCount:0,colors:[],hasBattery:false,batteryVoltage:"5V",hasSwitch:false,resistorOhms:1000,behavior:"dc",rawPrompt };
+    return { isCircuitRequest:true, circuitType:/counter|counting|increment|decrement|FMSS|CpE\s*413/i.test(cleanUser)?"decimal_counter":"standard_led",controller:"arduino",ledCount:0,colors:[],hasBattery:false,batteryVoltage:"5V",hasSwitch:false,resistorOhms:1000,behavior:"dc",rawPrompt };
   }
 
   // Combined string for extracting parameters (count, colors, voltage)
@@ -1927,9 +1929,12 @@ function generateStandardLedCircuit(intent: CircuitIntent): GeneratedCircuit {
 /** Reject unqualified requirements before choosing any recipe. No silent substitute. */
 export function assertSupportedRequest(intent: CircuitIntent) {
   const prompt = intent.rawPrompt;
-  if (/7[ -]?segment|seven[ -]?segment|two[ -]?digit|FMSS|00\s*(?:to|[-–])\s*99|CpE\s*413/i.test(prompt)) {
-    throw new Error("Seven-segment counter not qualified for automatic building. Confirm each display's part number and common-anode/common-cathode pinout. Conventional two-digit multiplexing needs seven separate segment resistors (eight with decimal points); the activity lists only four 1 kΩ resistors. Confirm corrected materials and digit-driver current limits. No substitute circuit was built.");
+  if (intent.circuitType === "decimal_counter") {
+    if (/common[ -]?anode|\b(?:ESP32|ldr|potentiometer|74hc595|transistor|servo|motor|hex(?:adecimal)?)\b|\b(?:one|single|three|four|[13-9])[- ]digit|\b(?:one|single|three|four|[13-9])\s+(?:pushbuttons?|buttons?|displays?)/i.test(prompt))
+      throw new Error("Automatic decimal counters currently qualify two common-cathode digits on Uno only. No different display/controller was substituted.");
+    return;
   }
+  if (/7[ -]?segment|seven[ -]?segment/i.test(prompt)) throw new Error("Automatic displays currently qualify a two-digit decimal up/down counter. Other display behaviors are not substituted. Describe the intended counter explicitly.");
   if (/\b(?:esp32|esp8266|raspberry|servo|motor|lcd|oled|ultrasonic|relay|dht\d*|neopixel|ws2812)\b/i.test(prompt))
     throw new Error("This component or controller is not qualified for automatic building. Use the manual catalog; no substitute circuit was built.");
   const families = [/\b(?:potentiometer|pot)\b/i, /\b(?:ldr|photocell|photoresistor)\b/i, /\b(?:buzzer|alarm|piezo)\b/i, /\b(?:74hc595|shift\s*register)\b/i].filter(pattern=>pattern.test(prompt));
@@ -1947,6 +1952,7 @@ export function assertSupportedRequest(intent: CircuitIntent) {
 export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
   if (!intent.isCircuitRequest) throw new Error("Describe a supported circuit and its intended behavior before building.");
   assertSupportedRequest(intent);
+  if (intent.circuitType === "decimal_counter") return generateDecimalCounter(intent);
   const circuit = generateCircuitDraft(intent);
   const requestedPins = [...intent.rawPrompt.matchAll(/\b([DA]\d{1,2})\b/gi)].map(match=>match[1].toUpperCase());
   const connectedPins = new Set(circuit.spec.connections.flatMap(wire=>[wire.from,wire.to]).filter(endpoint=>circuit.spec.parts.find(part=>part.id === endpoint.part)?.type === "arduino_uno").map(endpoint=>endpoint.pin));

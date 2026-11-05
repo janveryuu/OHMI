@@ -404,7 +404,7 @@ export function PlaygroundAssistant({
                   code: circuit.arduinoCode,
                   hasCode: Boolean(circuit.arduinoCode),
                   isModification: false,
-                  summary: BUILD_CHECK_SUMMARY,
+                  summary: [...circuit.spec.warnings, BUILD_CHECK_SUMMARY].join(" "),
                 },
               }
             : t,

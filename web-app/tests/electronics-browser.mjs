@@ -99,12 +99,12 @@ try {
   await selftest.close();
   fixture=await startAuthFixture();
   const ui=await browser.newContext({viewport:{width:1440,height:1100}});
-  await ui.route("http://127.0.0.1:54329/**",async route=>{const response=await route.fetch();await route.fulfill({response,headers:{...response.headers(),"access-control-allow-origin":origin}});});
+  await ui.route("http://127.0.0.1:54329/**",async route=>{try{const response=await route.fetch();await route.fulfill({response,headers:{...response.headers(),"access-control-allow-origin":origin}});}catch(error){if(!/Route is already handled/.test(error.message))throw error;}});
   await seedSession(ui);
   const app=await ui.newPage(); app.on("pageerror",error=>report.errors.push(error.message));
   await app.goto(origin+"/app/playground/electronics/");
   await app.getByRole("button",{name:"Download .dez",exact:true}).waitFor();
-  await app.waitForFunction(()=>!Array.from(document.querySelectorAll("button")).find(button=>button.textContent==="Download .dez")?.disabled,{timeout:45000});
+  await app.waitForFunction(()=>{const button=Array.from(document.querySelectorAll("button")).find(button=>button.textContent?.trim()==="Download .dez");return !!button && !button.disabled;},null,{timeout:45000});
   await app.getByRole("button",{name:"Schematic",exact:true}).click();
   await app.getByRole("button",{name:"Run",exact:true}).click();
   await app.getByRole("button",{name:"Stop",exact:true}).click();
@@ -121,7 +121,7 @@ try {
   const previousFrame=await app.locator('iframe[title="designElectronics circuit editor"]').elementHandle().then(element=>element.contentFrame());
   app.on("dialog",dialog=>dialog.accept());
   await ui.clearCookies(); await seedSession(ui,otherUser); await app.reload();
-  await app.waitForFunction(()=>!Array.from(document.querySelectorAll("button")).find(button=>button.textContent==="Download .dez")?.disabled,{timeout:45000});
+  await app.waitForFunction(()=>{const button=Array.from(document.querySelectorAll("button")).find(button=>button.textContent?.trim()==="Download .dez");return !!button && !button.disabled;},null,{timeout:45000});
   assert.equal(previousFrame.isDetached(),true);
   report.checks.push("account change reload destroys the previous engine runtime");
   app.removeAllListeners("dialog");
@@ -148,7 +148,7 @@ try {
   await app.locator('iframe[title="designElectronics circuit editor"]').waitFor({state:"detached"});
   assert.equal(retainedFrame.isDetached(),true);
   await app.goto(origin+"/app/playground/electronics/");
-  await app.waitForFunction(()=>!Array.from(document.querySelectorAll("button")).find(button=>button.textContent==="Download .dez")?.disabled,{timeout:45000});
+  await app.waitForFunction(()=>{const button=Array.from(document.querySelectorAll("button")).find(button=>button.textContent?.trim()==="Download .dez");return !!button && !button.disabled;},null,{timeout:45000});
   await app.evaluate(()=>history.back());
   await app.getByRole("button",{name:"Leave Playground",exact:true}).click();
   await app.waitForURL("**/app/ask/");

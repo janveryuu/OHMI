@@ -81,6 +81,7 @@ export function CircuitActionCard({
         Would you like the <strong>Arduino C++ code</strong>, or should I build this circuit directly in your <strong>Electronics workspace</strong>?
       </p>
 
+      {activeCircuit.spec.warnings.map((warning,index)=><p className="small muted" key={index}>{warning}</p>)}
       <div className="circuit-action-buttons">
         <button
           type="button"

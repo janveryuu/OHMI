@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "prompt": "Build Arduino with five LEDs",
+      "bothBuilders": true,
+      "parts": 12,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    {
+      "prompt": "Build Arduino with eight LEDs",
+      "bothBuilders": true,
+      "parts": 18,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    {
+      "prompt": "Build Arduino traffic light",
+      "bothBuilders": true,
+      "parts": 8,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    {
+      "prompt": "Build potentiometer-controlled LED brightness",
+      "bothBuilders": true,
+      "parts": 5,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    {
+      "prompt": "Build 74HC595 eight LED running lights",
+      "bothBuilders": true,
+      "parts": 19,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    {
+      "prompt": "Build two-digit 7-segment decimal counter 00 to 99",
+      "bothBuilders": true,
+      "parts": 13,
+      "breadboard": true,
+      "identicalCodeAndParts": true
+    },
+    "Unsupported common-anode request preserves existing counter",
+    "API uses shared local generator, honest provenance, replay conflict, CSRF/account guards, no paid inference or AI-ledger writes"
+  ],
+  "errors": []
+}

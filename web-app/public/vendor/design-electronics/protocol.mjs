@@ -27,7 +27,7 @@ export function validateRequest(request) {
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Invalid bridge request.");
   const fields = {
     status: [], catalog: ["presets"], zoom: ["direction"], capture: [], snapshot: [], undo: [], redo: [],
-    tool: ["name", "arguments"], open: ["document"], prepare: ["document", "layout"], observe: ["seconds"], compile: ["spec"],
+    tool: ["name", "arguments"], open: ["document"], prepare: ["document", "layout"], probe: ["document", "seconds", "sampleMs", "events"], observe: ["seconds"], compile: ["spec"],
     theme: ["theme"], view: ["view"], running: ["running"], export: ["format", "view"],
   };
   if (!Object.hasOwn(fields, request.operation) || Object.keys(request).some(key => !["operation", ...fields[request.operation]].includes(key))) throw new Error("Unsupported bridge operation or field.");
@@ -41,7 +41,7 @@ export function validateRequest(request) {
   if (request.operation === "running" && typeof request.running !== "boolean") throw new Error("Invalid simulation state.");
   if (request.operation === "observe" && (typeof request.seconds !== "number" || request.seconds < 0.05 || request.seconds > 5)) throw new Error("Observation must be 0.05 to 5 seconds.");
   if (request.operation === "export" && (!["svg", "bom", "netlist", "spice", "gerber"].includes(request.format) || !["breadboard", "schematic", "pcb"].includes(request.view))) throw new Error("Invalid export options.");
-  if (["open", "prepare"].includes(request.operation)) {
+  if (["open", "prepare", "probe"].includes(request.operation)) {
     const doc = request.document;
     if (!doc || doc.format !== "designElectronics" || doc.version !== 1 || !Array.isArray(doc.parts) || !Array.isArray(doc.wires) || doc.parts.length > 200 || doc.wires.length > 800) throw new Error("Unsupported or oversized .dez document.");
   }

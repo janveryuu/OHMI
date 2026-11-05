@@ -7,7 +7,12 @@ import { prepareCircuit } from "../src/lib/playground/build-verification.ts";
 test("unsupported requirements and quantities cannot silently select another recipe", () => {
   for (const prompt of ["Build Uno with 25 LEDs", "Build an Arduino servo circuit", "Build two potentiometers with one LED", "Build an LDR and potentiometer LED", "Build ESP32 with one LED"])
     assert.throws(()=>generateCircuit(parseCircuitIntent(prompt)),/not qualified|not supported|cannot preserve/);
-  assert.throws(()=>generateCircuit(parseCircuitIntent("Build FMSS two 7-segment displays and two buttons, four 1k resistors, counter from 00 to 99")),/four 1 kΩ/);
+  const counter=generateCircuit(parseCircuitIntent("Build FMSS two 7-segment displays and two buttons, four 1k resistors, counter from 00 to 99"));
+  assert.equal(counter.spec.parts.filter(p=>p.type === "seg7_cc").length,2);
+  assert.match(counter.spec.warnings.join(" "),/four 1 kΩ resistors are insufficient/);
+  assert.throws(()=>generateCircuit(parseCircuitIntent("Build two-digit common-anode 7-segment counter")),/common-cathode/);
+  assert.throws(()=>generateCircuit(parseCircuitIntent("Build 7-segment thermometer display")),/not substituted/);
+  assert.throws(()=>generateCircuit(parseCircuitIntent("Build two-digit 7-segment counter with LDR")),/common-cathode/);
   assert.throws(()=>generateCircuit(parseCircuitIntent("hello")),/Describe a supported circuit/);
   assert.throws(()=>generateCircuit(parseCircuitIntent("Build Arduino with eight LEDs and four resistors")),/resistor quantity/);
   assert.throws(()=>generateCircuit(parseCircuitIntent("Build potentiometer LED using A1")),/pin mapping/);
@@ -47,4 +52,14 @@ test("native verification rejects warnings without opening or replacing work", a
   assert.equal(calls,1);
   const result=validateCircuitBuildResult({kind:"circuit_build",version:1,status:"draft",answer:circuit.spec.explanation,circuitSpec:circuit.spec,document:circuit.document,provider:"local",model:"ohmi-recipes-v2",prompt_version:"ohmi-circuit-build-v1"});
   assert.equal(result.provider,"local");
+});
+
+test("counter safety rejects bypasses, shared segment lines and unqualified decimal points", () => {
+  const circuit=generateCircuit(parseCircuitIntent("Build two-digit decimal counter 00 to 59 with 7-segment displays"));
+  assert.match(circuit.arduinoCode,/MAX_COUNT = 59/);
+  for(const alter of [
+    spec=>spec.parts.find(p=>p.type === "resistor").properties[0].value="220",
+    spec=>spec.connections.push({from:{part:"digit0",pin:"pin7"},to:{part:"digit0",pin:"pin6"}}),
+    spec=>spec.connections.push({from:{part:"digit0",pin:"pin5"},to:{part:"uno",pin:"5V"}}),
+  ]){const spec=structuredClone(circuit.spec);alter(spec);assert.throws(()=>validateCircuitSpec(spec));}
 });

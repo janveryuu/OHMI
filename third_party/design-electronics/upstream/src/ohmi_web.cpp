@@ -37,22 +37,45 @@ void bounded(const Json& value, int depth = 0) {
     for (const auto& item : value.members()) bounded(item.second, depth + 1);
 }
 
-Json observe(Document& document, double seconds) {
-    if (!std::isfinite(seconds) || seconds < 0.05 || seconds > 5 || document.parts.size() > 100)
+Json observe(Document& document, double seconds, const Json& events = Json(), double interval = 0.05) {
+    if (!std::isfinite(seconds) || seconds < 0.05 || seconds > 20 || document.parts.size() > 100)
         throw std::runtime_error("Observation supports 0.05 to 5 seconds and up to 100 parts.");
     document.syncWireEnds();
     Connectivity connectivity; connectivity.build(document);
     Simulator simulator;
     Json samples = Json::array();
-    for (double time = 0; time < seconds - 0.000001; time += 0.05) {
-        const auto result = simulator.step(document, connectivity, {}, std::min(0.05, seconds - time));
+    size_t eventIndex = 0; std::set<int> pressed;
+    for (double time = 0; time < seconds - 0.000001;) {
+        while (eventIndex < events.size() && events[(int)eventIndex]["at"].num() <= time + 0.000001) {
+            pressed.clear(); for (const auto& id : events[(int)eventIndex]["pressed"].items()) pressed.insert(id.i()); ++eventIndex;
+        }
+        double dt = std::min(interval, seconds - time);
+        if (eventIndex < events.size()) dt = std::min(dt, events[(int)eventIndex]["at"].num() - time);
+        const auto result = simulator.step(document, connectivity, pressed, dt);
+        time += dt;
         Json sample = Json::object(), leds = Json::object(), activity = Json::object(), errors = Json::array(), warnings = Json::array(), damaged = Json::array();
+        Json segments = Json::object(), serial = Json::object();
+        for (const auto& value : result.segments) { Json values = Json::array(); for (const auto level : value.second) values.push(level); segments.set(std::to_string(value.first), values); }
+        for (const auto& value : result.serial) serial.set(std::to_string(value.first), value.second);
+        sample.set("segments", segments); sample.set("serial", serial);
+        Json voltages = Json::object();
+        for (const auto& part : document.parts) if (part.type == "arduino_uno") {
+            Json pins = Json::object();
+            for (int pin = 2; pin <= 12; ++pin) {
+                const auto name = "D" + std::to_string(pin); const int net = connectivity.netOf(part.id, part.def->pinIndex(name));
+                if (net >= 0 && net < (int)result.netVoltage.size()) pins.set(name, result.netVoltage[net]);
+            }
+            voltages.set(std::to_string(part.id), pins);
+        }
+        sample.set("voltages", voltages);
         for (const auto& value : result.brightness) leds.set(std::to_string(value.first), value.second);
         for (const auto& value : result.activity) activity.set(std::to_string(value.first), value.second);
         for (const auto& value : result.code) if (!value.second.error.empty()) {
             Json error = Json::object(); error.set("part", value.first); error.set("line", value.second.errorLine); error.set("message", value.second.error); errors.push(error);
         }
         for (const auto& value : result.warnings) warnings.push(value);
+        if (!result.ran || result.message.find("could not be solved") != std::string::npos) errors.push(result.message);
+        if (result.message.find("unstable") != std::string::npos) warnings.push(result.message);
         for (const auto& value : result.damaged) damaged.push(value);
         sample.set("time", result.time); sample.set("leds", leds); sample.set("activity", activity); sample.set("errors", errors); sample.set("warnings", warnings); sample.set("damaged", damaged);
         samples.push(sample);
@@ -77,7 +100,12 @@ Json prepare(Document& draft) {
     auto* board = draft.part(boardId);
     board->props["size"] = "full+"; board->refresh(); board->place[BB].pos = {0,0};
     // Ignore accidental geometric contacts in hand-authored input; explicit wiring is the specification.
-    for (size_t i = 0; i < originals.size(); ++i) draft.part(originals[i])->place[BB].pos = {-20000.f - 5000.f * i, -10000};
+    for (size_t i = 0; i < originals.size(); ++i) {
+        auto* part = draft.part(originals[i]);
+        part->place[BB].pos = {-20000.f - 5000.f * i, -10000};
+        // Touching schematic/PCB pins also join global nets; separate those views before capturing intent.
+        for (int view : {SCH, PCB}) part->place[view].pos = {2500.f * (i % 6), 3000.f * (i / 6)};
+    }
     draft.syncWireEnds();
     auto wire = [&](int a, const std::string& pa, int b, const std::string& pb, uint32_t color) {
         Wire w; w.id = draft.newId(); w.view = BB; w.color = color;
@@ -169,6 +197,10 @@ Json prepare(Document& draft) {
         w.pts = local ? std::vector<Vec2>{a, {b.x, a.y}, b} : std::vector<Vec2>{a, {a.x, track}, {b.x, track}, b};
     }
     draft.syncWireEnds();
+    Connectivity routed; routed.build(draft);
+    for (const auto& a : pins) for (const auto& b : pins)
+        if ((before.netOf(a.part,a.pin) == before.netOf(b.part,b.pin)) != (routed.netOf(a.part,a.pin) == routed.netOf(b.part,b.pin)))
+            throw std::runtime_error("Jumper routing changed an electrical net. Your active circuit is unchanged.");
     history::ensureUid(draft);
     Json result = Json::object(); result.set("document", draft.toJson(true));
     result.set("observations", observe(draft, 4)); result.set("mounted", mounted); return result;
@@ -211,6 +243,21 @@ Json dispatch(const Json& request) {
         const auto result = app->doc.toJson(true);
         if (result.dump().size() > maxBytes) throw std::runtime_error("This document exceeds the 1 MiB bridge limit. Use the native export menu.");
         return result;
+    }
+    if (operation == "probe") {
+        const auto& value = request["document"]; const auto& events = request["events"];
+        const double seconds = request["seconds"].num(), interval = request["sampleMs"].num() / 1000;
+        if (!events.isArray() || events.size() > 500 || seconds < 0.05 || seconds > 20 || interval < 0.001 || interval > 0.05 || seconds / interval + events.size() > 2000 || value["parts"].size() > 32 || value["wires"].size() > 256) throw std::runtime_error("Probe exceeds bounded time, sample or document limits.");
+        Document draft; std::string error;
+        if (!draft.fromJson(value, &error) || draft.parts.size() != value["parts"].size() || draft.wires.size() != value["wires"].size()) throw std::runtime_error("Invalid probe document.");
+        double previous = -1;
+        for (const auto& event : events.items()) {
+            const double at = event["at"].num(-1);
+            if (at < 0 || at <= previous || at > seconds || !event["pressed"].isArray() || event["pressed"].size() > 4) throw std::runtime_error("Invalid input timeline.");
+            for (const auto& id : event["pressed"].items()) { const auto* part = draft.part(id.i()); if (!part || part->type != "pushbutton") throw std::runtime_error("Probe input is not a button."); }
+            previous = at;
+        }
+        return observe(draft, seconds, events, interval);
     }
     if (operation == "prepare") {
         const auto& value = request["document"];

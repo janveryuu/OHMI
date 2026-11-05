@@ -17,31 +17,33 @@ try {
   const page=await context.newPage();page.on("pageerror",e=>report.errors.push(e.message));
   page.on("dialog",d=>d.accept());
   page.on("console",m=>{if(m.type()==="error")console.log("BROWSER",m.text());});
-  await page.goto(origin+"/app/ask/");
-  await page.locator('textarea[name="message"]').fill("Build Arduino with eight LEDs");
-  await page.getByRole("button",{name:"Send message",exact:true}).click();
-  await page.getByRole("button",{name:"Build in Playground",exact:true}).waitFor({timeout:30000});
-  await page.getByRole("button",{name:"Build in Playground",exact:true}).click();
-  await page.getByRole("status").filter({hasText:"Editable draft opened after native placement"}).waitFor({timeout:45000});
   const download=async()=>{const promise=page.waitForEvent("download");await page.getByRole("button",{name:"Download .dez",exact:true}).click();return JSON.parse(await readFile(await (await promise).path(),"utf8"));};
-  const doc=await download();assert.equal(doc.parts.filter(p=>p.type==="led").length,8);assert.equal(doc.parts.filter(p=>p.type==="breadboard").length,1);
-  report.checks.push("Ask OHMI Build in Playground opens actual prepared eight-LED breadboard, with no circuit-provider request");
-  const input=page.getByPlaceholder("Ask OHMI to build something...");
-  await input.fill("Build LDR automatic night light");await page.getByRole("button",{name:"Send circuit build request",exact:true}).click();
-  await page.getByRole("button",{name:"Replace & Build",exact:true}).click();
-  await page.getByText("Circuit built & simulation running",{exact:true}).waitFor({timeout:45000});
-  const night=await download();assert.equal(night.parts.filter(p=>p.type==="photocell").length,1);assert.ok(night.parts.some(p=>p.type==="breadboard"));
-  report.checks.push("Build with OHMI uses same prepare/verify path for real LDR circuit");
-  await input.fill("Build FMSS Uno with two 7-segment displays, two tactile buttons, four 1k resistors and counter 00 to 99");
+  for(const prompt of ["Build Arduino with five LEDs","Build Arduino with eight LEDs","Build Arduino traffic light","Build potentiometer-controlled LED brightness","Build 74HC595 eight LED running lights","Build two-digit 7-segment decimal counter 00 to 99"]){
+    fixture.state.ai.messages=[];
+    await page.goto(origin+"/app/ask/");
+    await page.locator('textarea[name="message"]').fill(prompt);
+    await page.getByRole("button",{name:"Send message",exact:true}).click();
+    await page.getByRole("button",{name:"Build in Playground",exact:true}).waitFor({timeout:30000});
+    await page.getByRole("button",{name:"Build in Playground",exact:true}).click();
+    await page.getByRole("status").filter({hasText:"Editable draft opened after native placement"}).waitFor({timeout:45000});
+    const ask=await download();assert.ok(ask.parts.some(p=>p.type === "breadboard"));
+    const input=page.getByPlaceholder("Ask OHMI to build something...");
+    await input.fill(prompt);await page.getByRole("button",{name:"Send circuit build request",exact:true}).click();
+    await page.getByRole("button",{name:"Replace & Build",exact:true}).click();
+    await page.getByText("Circuit built & simulation running",{exact:true}).waitFor({timeout:45000});
+    const direct=await download();assert.deepEqual(direct.parts.map(p=>[p.type,p.props,p.code]),ask.parts.map(p=>[p.type,p.props,p.code]));
+    report.checks.push({prompt,bothBuilders:true,parts:direct.parts.length,breadboard:true,identicalCodeAndParts:true});
+  }
+  const before=await download();
+  await page.getByPlaceholder("Ask OHMI to build something...").fill("Build common-anode two-digit 7-segment counter");
   await page.getByRole("button",{name:"Send circuit build request",exact:true}).click();
-  await page.getByText(/Seven-segment counter not qualified/).waitFor();
-  const after=await download();assert.deepEqual(after.parts,night.parts);assert.deepEqual(after.wires,night.wires);
-  report.checks.push("FMSS reports material/polarity limitation; active circuit remains byte-equivalent");
+  await page.getByText(/Automatic decimal counters currently qualify/).waitFor();
+  const after=await download();assert.deepEqual(after.parts,before.parts);assert.deepEqual(after.wires,before.wires);
+  report.checks.push("Unsupported common-anode request preserves existing counter");
   await page.getByText("Private projects",{exact:true}).click();
   await page.getByRole("button",{name:"Save snapshot",exact:true}).click();
   await page.getByRole("status").filter({hasText:/Captured circuit saved/}).waitFor({timeout:10000});
-  const saved=[...fixture.state.electronics.projects.values()][0];assert.ok(saved.document.parts.some(p=>p.type==="breadboard"));
-  report.checks.push("Prepared native document saves through existing private project workflow");
+  assert.ok([...fixture.state.electronics.projects.values()][0].document.parts.some(p=>p.type === "seg7_cc"));
   const headers={Origin:origin,"x-ohmi-account":testUser.id};
   const requestId=crypto.randomUUID(),body={requestId,conversationId,language:"english",message:"Build potentiometer-controlled LED brightness"};
   const api=(body,custom=headers)=>context.request.post(origin+"/app/api/playground/build/",{headers:custom,data:body});
@@ -49,11 +51,11 @@ try {
   assert.equal((await api(body)).status(),200);assert.equal((await api({...body,message:"changed"})).status(),409);
   assert.ok((await api(body,{...headers,"x-ohmi-account":"33333333-3333-4333-8333-333333333333"})).status()>=400);
   assert.ok((await api(body,{...headers,Origin:"https://foreign.invalid"})).status()>=400);
-  const blocked=await api({...body,requestId:crypto.randomUUID(),message:"Build two 7-segment displays counter from 00 to 99"});assert.ok(blocked.status()>=400);
+  const blocked=await api({...body,requestId:crypto.randomUUID(),message:"Build common-anode two-digit 7-segment counter"});assert.ok(blocked.status()>=400);
   assert.equal(fixture.state.ai.posts.filter(p=>p.operation==="circuit_build").length,0);
   report.checks.push("API uses shared local generator, honest provenance, replay conflict, CSRF/account guards, no paid inference or AI-ledger writes");
-  await page.screenshot({path:fileURLToPath(new URL("../../docs/playground-upgrade/evidence/advanced-builder-ui.png",import.meta.url)),fullPage:true});
+  await page.screenshot({path:fileURLToPath(new URL("../../docs/playground-upgrade/evidence/real-builder-ui.png",import.meta.url)),fullPage:true});
   assert.deepEqual(report.errors,[]);
   console.log(JSON.stringify(report));
   await context.unrouteAll({behavior:"wait"});await context.close();
-} finally {await browser.close();await fixture.close();await writeFile(new URL("../../docs/playground-upgrade/evidence/advanced-builder-ui.json",import.meta.url),JSON.stringify(report,null,2));}
+} finally {await browser.close();await fixture.close();await writeFile(new URL("../../docs/playground-upgrade/evidence/real-builder-ui.json",import.meta.url),JSON.stringify(report,null,2));}
