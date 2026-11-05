@@ -79,7 +79,7 @@ export function FloatingOhmi({
   const [attachment, setAttachment] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [isWide, setIsWide] = useState(false);
-  const [bannerCollapsed, setBannerCollapsed] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [context, setContext] = useState<WorkspaceContext>("Tinkercad Circuits");
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
@@ -606,110 +606,6 @@ export function FloatingOhmi({
         </div>
       )}
 
-      {/* Top Welcome Card (Matches Reference Image) */}
-      {!bannerCollapsed && (
-        <div className="floating-ohmi-welcome-card" data-testid="welcome-card">
-          <div className="floating-ohmi-welcome-circuit-bg" aria-hidden="true" />
-          <Image
-            src="/app/mascot.png"
-            width={44}
-            height={50}
-            alt="OHMI"
-            className="floating-ohmi-welcome-mascot mascot"
-            unoptimized
-          />
-          <div className="floating-ohmi-welcome-text">
-            <h4>Working on a circuit?</h4>
-            <p>
-              Ask me anything, send a screenshot, or paste your Arduino code. I'll
-              help right here!
-            </p>
-          </div>
-          {conversation.messages.length > 0 && (
-            <button
-              type="button"
-              className="floating-ohmi-icon-btn p-1 text-neutral-400 hover:text-white"
-              onClick={() => setBannerCollapsed(true)}
-              aria-label="Collapse banner"
-              title="Collapse banner"
-            >
-              <ChevronUp size={14} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {bannerCollapsed && conversation.messages.length > 0 && (
-        <div className="px-3.5 pt-1 flex justify-end">
-          <button
-            type="button"
-            className="text-[10px] text-teal-400/80 hover:text-teal-300 flex items-center gap-1"
-            onClick={() => setBannerCollapsed(false)}
-          >
-            <span>Show circuit buddy tip</span>
-            <ChevronDown size={12} />
-          </button>
-        </div>
-      )}
-
-      {/* Quick Context Action Pills (Section 3) */}
-      <div className="floating-ohmi-quick-actions" data-testid="quick-actions">
-        <button
-          type="button"
-          className="floating-ohmi-pill-btn"
-          onClick={triggerCheckWiring}
-          title="Analyze uploaded circuit screenshot"
-        >
-          <Camera size={13} className="text-teal-400" />
-          <span>Circuit screenshot</span>
-        </button>
-
-        <button
-          type="button"
-          className="floating-ohmi-pill-btn"
-          onClick={triggerCheckCode}
-          title="Debug Arduino sketch code"
-        >
-          <Code size={13} className="text-teal-400" />
-          <span>Check code</span>
-        </button>
-
-        <button
-          type="button"
-          className="floating-ohmi-pill-btn"
-          onClick={triggerFixError}
-          title="Troubleshoot circuit errors"
-        >
-          <Wrench size={13} className="text-teal-400" />
-          <span>Fix my error</span>
-        </button>
-
-        <button
-          type="button"
-          className="floating-ohmi-pill-btn"
-          onClick={triggerExplainCircuit}
-          title="Explain components and current flow"
-        >
-          <HelpCircle size={13} className="text-teal-400" />
-          <span>Explain circuit</span>
-        </button>
-
-        {/* Workspace platform selector */}
-        <div className="floating-ohmi-context-select" title="Active electronics workspace">
-          <span>Env:</span>
-          <select
-            value={context}
-            onChange={(e) => setContext(e.target.value as WorkspaceContext)}
-            aria-label="Target workspace environment"
-          >
-            <option value="Tinkercad Circuits">Tinkercad</option>
-            <option value="Arduino IDE">Arduino IDE</option>
-            <option value="CircuitVerse">CircuitVerse</option>
-            <option value="General Electronics">General</option>
-          </select>
-        </div>
-      </div>
-
       {/* Messages Stream */}
       <div
         className="floating-ohmi-messages-container"
@@ -718,15 +614,84 @@ export function FloatingOhmi({
         role="log"
         aria-live="polite"
       >
+        {/* Minimal Empty State (Replaces oversized welcome panel, disappears when chatting begins) */}
         {conversation.messages.length === 0 && !optimisticUser && (
-          <div className="my-auto py-6 text-center text-neutral-400 px-4">
-            <p className="text-xs text-neutral-300 mb-2 font-medium">
-              Ready whenever you are.
-            </p>
-            <p className="text-[11.5px] text-neutral-500 leading-relaxed">
-              Ask about resistor values, Tinkercad breadboard wiring, LED polarity,
-              or paste your Arduino sketch above.
-            </p>
+          <div className="floating-ohmi-empty-state" data-testid="welcome-card">
+            <div className="floating-ohmi-empty-mascot-wrap">
+              <Image
+                src="/app/mascot.png"
+                width={38}
+                height={44}
+                alt="OHMI"
+                className="floating-ohmi-welcome-mascot mascot"
+                unoptimized
+              />
+            </div>
+            <div className="floating-ohmi-welcome-text">
+              <h4>Working on a circuit?</h4>
+              <p>
+                Ask me anything, send a screenshot, or paste your Arduino code. I'll
+                help right here!
+              </p>
+            </div>
+
+            {/* Quick Context Action Pills (Section 3) */}
+            <div className="floating-ohmi-quick-actions" data-testid="quick-actions">
+              <button
+                type="button"
+                className="floating-ohmi-pill-btn"
+                onClick={triggerCheckWiring}
+                title="Analyze uploaded circuit screenshot"
+              >
+                <Camera size={13} className="quick-action-icon" />
+                <span>Circuit screenshot</span>
+              </button>
+
+              <button
+                type="button"
+                className="floating-ohmi-pill-btn"
+                onClick={triggerCheckCode}
+                title="Debug Arduino sketch code"
+              >
+                <Code size={13} className="quick-action-icon" />
+                <span>Check code</span>
+              </button>
+
+              <button
+                type="button"
+                className="floating-ohmi-pill-btn"
+                onClick={triggerFixError}
+                title="Troubleshoot circuit errors"
+              >
+                <Wrench size={13} className="quick-action-icon" />
+                <span>Fix my error</span>
+              </button>
+
+              <button
+                type="button"
+                className="floating-ohmi-pill-btn"
+                onClick={triggerExplainCircuit}
+                title="Explain components and current flow"
+              >
+                <HelpCircle size={13} className="quick-action-icon" />
+                <span>Explain circuit</span>
+              </button>
+
+              {/* Workspace platform selector */}
+              <div className="floating-ohmi-context-select" title="Active electronics workspace">
+                <span>Env:</span>
+                <select
+                  value={context}
+                  onChange={(e) => setContext(e.target.value as WorkspaceContext)}
+                  aria-label="Target workspace environment"
+                >
+                  <option value="Tinkercad Circuits">Tinkercad</option>
+                  <option value="Arduino IDE">Arduino IDE</option>
+                  <option value="CircuitVerse">CircuitVerse</option>
+                  <option value="General Electronics">General</option>
+                </select>
+              </div>
+            </div>
           </div>
         )}
 
@@ -926,6 +891,73 @@ export function FloatingOhmi({
         </div>
       )}
 
+      {/* Expandable Quick Actions Menu during active conversation */}
+      {conversation.messages.length > 0 && quickActionsOpen && (
+        <div className="floating-ohmi-quick-menu">
+          <div className="floating-ohmi-quick-menu-header">
+            <span>Quick actions</span>
+            <button
+              type="button"
+              className="floating-ohmi-icon-btn p-1"
+              onClick={() => setQuickActionsOpen(false)}
+              aria-label="Close quick actions"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <div className="floating-ohmi-quick-menu-pills">
+            <button
+              type="button"
+              className="floating-ohmi-pill-btn"
+              onClick={() => {
+                triggerCheckWiring();
+                setQuickActionsOpen(false);
+              }}
+              title="Analyze uploaded circuit screenshot"
+            >
+              <Camera size={12} className="quick-action-icon" />
+              <span>Circuit screenshot</span>
+            </button>
+            <button
+              type="button"
+              className="floating-ohmi-pill-btn"
+              onClick={() => {
+                triggerCheckCode();
+                setQuickActionsOpen(false);
+              }}
+              title="Debug Arduino sketch code"
+            >
+              <Code size={12} className="quick-action-icon" />
+              <span>Check code</span>
+            </button>
+            <button
+              type="button"
+              className="floating-ohmi-pill-btn"
+              onClick={() => {
+                triggerFixError();
+                setQuickActionsOpen(false);
+              }}
+              title="Troubleshoot circuit errors"
+            >
+              <Wrench size={12} className="quick-action-icon" />
+              <span>Fix my error</span>
+            </button>
+            <button
+              type="button"
+              className="floating-ohmi-pill-btn"
+              onClick={() => {
+                triggerExplainCircuit();
+                setQuickActionsOpen(false);
+              }}
+              title="Explain components and current flow"
+            >
+              <HelpCircle size={12} className="quick-action-icon" />
+              <span>Explain circuit</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chat Composer (Matches Reference Design) */}
       <form
         onSubmit={send}
@@ -948,7 +980,7 @@ export function FloatingOhmi({
         {/* Attachment chip */}
         {attachment && (
           <div className="floating-ohmi-attachment-chip">
-            <Paperclip size={12} className="text-teal-400" />
+            <Paperclip size={12} className="text-teal-600 dark:text-teal-400" />
             <span>{attachment.name}</span>
             <button
               type="button"
@@ -971,7 +1003,7 @@ export function FloatingOhmi({
               aria-label="Upload circuit screenshot or assignment"
               title="Attach screenshot or diagram"
             >
-              <Camera size={16} />
+              <Camera size={15} />
             </button>
 
             <button
@@ -981,7 +1013,7 @@ export function FloatingOhmi({
               aria-label="Upload Arduino code file"
               title="Attach Arduino sketch (.ino, .cpp)"
             >
-              <Code size={16} />
+              <Code size={15} />
             </button>
 
             <button
@@ -991,10 +1023,22 @@ export function FloatingOhmi({
               aria-label="Attach document or PDF"
               title="Attach PDF or image"
             >
-              <FileText size={16} />
+              <FileText size={15} />
             </button>
 
-            <span className="text-[10px] text-neutral-400 font-medium px-1.5 py-0.5 rounded bg-white/5 border border-white/5">
+            {conversation.messages.length > 0 && (
+              <button
+                type="button"
+                className={`floating-ohmi-tool-btn ${quickActionsOpen ? "active" : ""}`}
+                onClick={() => setQuickActionsOpen(!quickActionsOpen)}
+                aria-label="Quick actions"
+                title="Quick troubleshooting actions"
+              >
+                <Sparkles size={14} />
+              </button>
+            )}
+
+            <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
               {context === "Tinkercad Circuits"
                 ? "Tinkercad"
                 : context === "Arduino IDE"
@@ -1013,7 +1057,7 @@ export function FloatingOhmi({
                 onClick={stop}
                 aria-label="Stop waiting for answer"
               >
-                <Square size={10} fill="currentColor" />
+                <Square size={9} fill="currentColor" />
                 <span>Stop</span>
               </button>
             ) : (
@@ -1030,7 +1074,7 @@ export function FloatingOhmi({
                       : "Send question to OHMI"
                 }
               >
-                <ArrowUp size={18} strokeWidth={2.4} />
+                <ArrowUp size={15} strokeWidth={2.4} />
               </button>
             )}
           </div>
@@ -1067,12 +1111,6 @@ export function FloatingOhmi({
           }}
         />
       </form>
-
-      {/* Footer */}
-      <footer className="floating-ohmi-footer">
-        <Sparkles size={11} className="text-teal-400" />
-        <span>Powered by OHMI · Continue learning</span>
-      </footer>
     </div>
   );
 }

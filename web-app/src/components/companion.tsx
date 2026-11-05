@@ -56,12 +56,13 @@ export function Companion({
   useEffect(() => {
     if (!pip) return;
     try {
-      pip.document.documentElement.dataset.theme =
-        document.documentElement.dataset.theme || "light";
+      const isDark = document.documentElement.dataset.theme === "dark";
+      pip.document.documentElement.dataset.theme = isDark ? "dark" : "light";
       pip.document.documentElement.dataset.reduceMotion =
         document.documentElement.dataset.reduceMotion || "false";
       pip.document.documentElement.dataset.largeText =
         document.documentElement.dataset.largeText || "false";
+      pip.document.body.style.backgroundColor = isDark ? "#0d1117" : "#ffffff";
     } catch {}
   }, [pip, app.theme, app.reduceMotion, app.largeText]);
 
@@ -130,7 +131,8 @@ export function Companion({
         win.document.body.style.margin = "0";
         win.document.body.style.padding = "0";
         win.document.body.style.overflow = "hidden";
-        win.document.body.style.backgroundColor = "#091215";
+        win.document.body.style.backgroundColor =
+          document.documentElement.dataset.theme === "dark" ? "#0d1117" : "#ffffff";
 
         win.addEventListener(
           "pagehide",

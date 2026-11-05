@@ -2,14 +2,21 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { startAuthFixture, seedSession } from "./auth-fixture.mjs";
 
-const port = process.env.PORT || 3100;
+const port = process.env.PORT || 3115;
 const base = `http://127.0.0.1:${port}/app`;
 const outDir = new URL("../test-results/", import.meta.url);
 await mkdir(outDir, { recursive: true });
 
+const fixture = await startAuthFixture();
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await context.addInitScript(() => {
+  delete window.documentPictureInPicture;
+});
+await seedSession(context);
+const page = await context.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 
@@ -28,7 +35,7 @@ try {
     "Promotional card should have title 'Your circuit buddy, always nearby.'",
   );
   assert.ok(
-    await promoCard.getByText("Always nearby").isVisible(),
+    await promoCard.getByText("Always nearby", { exact: true }).isVisible(),
     "Promotional card should have 'Always nearby' badge",
   );
   assert.ok(
@@ -45,6 +52,7 @@ try {
 
   // 2. Launch Floating OHMI
   console.log("Launching Floating OHMI...");
+  await page.waitForTimeout(500);
   await launchBtn.click();
 
   const companion = page.locator("[aria-label='Floating OHMI Companion']");
@@ -100,12 +108,89 @@ try {
   await contextSelect.selectOption("Arduino IDE");
   assert.equal(await contextSelect.inputValue(), "Arduino IDE");
 
-  // 9. Take snapshot of Floating OHMI
-  const screenshotPath = fileURLToPath(new URL("../test-results/floating-ohmi-preview.png", import.meta.url));
-  await companion.screenshot({ path: screenshotPath });
-  console.log(`Saved screenshot to ${screenshotPath}`);
+  // 9. Take snapshot of Floating OHMI in Light mode
+  const lightScreenshotPath = fileURLToPath(new URL("../test-results/floating-ohmi-light.png", import.meta.url));
+  const previewScreenshotPath = fileURLToPath(new URL("../test-results/floating-ohmi-preview.png", import.meta.url));
+  await companion.screenshot({ path: lightScreenshotPath });
+  await companion.screenshot({ path: previewScreenshotPath });
+  console.log(`Saved light theme screenshot to ${lightScreenshotPath}`);
 
-  // 10. Test History Drawer
+  // 10. Test Appearance Toggle to Dark Mode
+  console.log("Testing Dark Mode toggle...");
+  const themeBtn = page.getByRole("button", { name: "Toggle appearance" });
+  if (await themeBtn.isVisible()) {
+    await themeBtn.click();
+    await page.waitForTimeout(300);
+    const darkScreenshotPath = fileURLToPath(new URL("../test-results/floating-ohmi-dark.png", import.meta.url));
+    await companion.screenshot({ path: darkScreenshotPath });
+    console.log(`Saved dark theme screenshot to ${darkScreenshotPath}`);
+    // Switch back to light for active chat test
+    await themeBtn.click();
+    await page.waitForTimeout(300);
+  }
+
+  // 11. Test Active Conversation: Sending Message & Conversation-First Layout
+  console.log("Testing active message conversation...");
+  const sampleReply = "Use Ohm's law to size your LED resistor: $V = I \\times R$.\n\n1. Connect Arduino pin 13 to the 220Ω resistor.\n2. Connect resistor to the LED anode (longer leg).\n3. Connect cathode to GND.\n\n```cpp\nvoid setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}\n```\n\nYour circuit will blink safely at ~15mA.";
+  fixture.state.ai = {
+    conversationId: "test-conv-1",
+    delayMs: 200,
+    posts: [],
+    jobs: [],
+    result: { status: "answer", mode: "ai", answer: sampleReply },
+    messages: [
+      { id: "m1", user_id: "test", role: "user", content: "How do I blink an LED?", position: 1 },
+      { id: "m2", user_id: "test", role: "assistant", content: sampleReply, position: 2 },
+    ],
+  };
+
+  await textarea.fill("How do I blink an LED?");
+  const sendBtn = companion.locator(".floating-ohmi-send-btn");
+  assert.ok(await sendBtn.isEnabled(), "Send button should be enabled when text is drafted");
+  await sendBtn.click();
+
+  // Wait for assistant reply bubble
+  const assistantBubble = companion.locator(".floating-ohmi-bubble").first();
+  await assistantBubble.waitFor({ timeout: 10000 });
+  assert.ok(await assistantBubble.isVisible(), "Assistant bubble should be rendered");
+  assert.ok(await companion.locator(".floating-ohmi-msg-user").isVisible(), "User message bubble should be rendered");
+
+  // Verify welcome-card is now hidden (conversation-first layout)
+  assert.equal(await companion.locator("[data-testid='welcome-card']").count(), 0, "Welcome card must disappear when conversation begins");
+
+  // Verify quick actions toggle button in toolbar
+  const quickActionsToggle = companion.locator("button[aria-label='Quick actions']");
+  assert.ok(await quickActionsToggle.isVisible(), "Quick actions toggle button should appear in toolbar during conversation");
+  await quickActionsToggle.click();
+  const quickMenu = companion.locator(".floating-ohmi-quick-menu");
+  assert.ok(await quickMenu.isVisible(), "Quick menu should expand when toggle is clicked");
+  await quickActionsToggle.click();
+
+  // Capture active chat screenshot in light mode
+  const chatLightPath = fileURLToPath(new URL("../test-results/floating-ohmi-chat-light.png", import.meta.url));
+  await companion.screenshot({ path: chatLightPath });
+  console.log(`Saved active chat light screenshot to ${chatLightPath}`);
+
+  // Switch to dark mode and capture active chat in dark mode
+  if (await themeBtn.isVisible()) {
+    await themeBtn.click();
+    await page.waitForTimeout(300);
+    const chatDarkPath = fileURLToPath(new URL("../test-results/floating-ohmi-chat-dark.png", import.meta.url));
+    await companion.screenshot({ path: chatDarkPath });
+    console.log(`Saved active chat dark screenshot to ${chatDarkPath}`);
+  }
+
+  // 12. Test Expand / Standard view toggle
+  console.log("Testing Expand view toggle...");
+  const expandBtn = header.getByLabel(/Expand view|Standard view/i);
+  await expandBtn.click();
+  await page.waitForTimeout(200);
+  assert.ok(await companion.evaluate((el) => el.classList.contains("wide")), "Window should have 'wide' class when expanded");
+  await expandBtn.click();
+  await page.waitForTimeout(200);
+  assert.ok(await companion.evaluate((el) => !el.classList.contains("wide")), "Window should remove 'wide' class when returned to standard");
+
+  // 13. Test History Drawer
   console.log("Testing History Drawer...");
   const historyBtn = header.getByLabel("Conversation history");
   await historyBtn.click();
@@ -116,7 +201,7 @@ try {
   await drawer.getByRole("button", { name: "Close History" }).click();
   await drawer.waitFor({ state: "hidden", timeout: 5000 });
 
-  // 11. Test Minimize & Restore
+  // 13. Test Minimize & Restore
   console.log("Testing Minimize & Restore...");
   const minBtn = header.getByLabel("Minimize companion");
   await minBtn.click();
@@ -131,7 +216,7 @@ try {
   await companion.waitFor({ timeout: 5000 });
   assert.ok(await companion.isVisible(), "Companion window should be restored");
 
-  // 12. Test Close
+  // 14. Test Close
   console.log("Testing Close companion...");
   const closeBtn = companion.locator("header").getByLabel("Close companion");
   await closeBtn.click();
@@ -139,7 +224,8 @@ try {
 
   // Assert no fatal errors
   assert.deepEqual(errors, [], "There should be no page errors during Floating OHMI execution");
-  console.log("🎉 All Floating OHMI 2.0 browser tests passed successfully!");
+  console.log("🎉 All Floating OHMI 2.1 browser tests passed successfully!");
 } finally {
   await browser.close();
+  await fixture.close();
 }
