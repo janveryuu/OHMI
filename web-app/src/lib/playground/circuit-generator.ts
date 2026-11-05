@@ -83,6 +83,10 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
     };
   }
 
+  if (/7[ -]?segment|seven[ -]?segment|two[ -]?digit|FMSS|CpE\s*413/i.test(cleanUser) && hasExplicitBuildCommand) {
+    return { isCircuitRequest:true, circuitType:"standard_led",controller:"arduino",ledCount:0,colors:[],hasBattery:false,batteryVoltage:"5V",hasSwitch:false,resistorOhms:1000,behavior:"dc",rawPrompt };
+  }
+
   // Combined string for extracting parameters (count, colors, voltage)
   const combined = cleanUser ? lowerUser : `${userText || ""} ${assistantText || ""}`.toLowerCase();
 
@@ -244,7 +248,7 @@ export function parseCircuitIntent(userText: string, assistantText?: string): Ci
 
   // Extract explicit LED count
   let count = 0;
-  const numMatch = combined.match(/\b([1-9]|10)\s*(?:x\s*)?leds?\b/i) || combined.match(/\bleds?\s*:\s*([1-9]|10)\b/i);
+  const numMatch = combined.match(/\b(\d+)\s*(?:x\s*)?(?:(?:red|yellow|green|blue|white)\s+)?leds?\b/i) || combined.match(/\bleds?\s*:\s*([1-9]|10)\b/i);
   if (numMatch) {
     count = parseInt(numMatch[1], 10);
   } else {
@@ -558,7 +562,7 @@ function generateNightLightCircuit(intent: CircuitIntent): GeneratedCircuit {
   const sketch = `// Arduino Uno Automatic Night Light (LDR Photoresistor)
 const int LDR_PIN = A0;          // Voltage divider ambient light reading
 const int LED_PIN = 9;           // White night light LED
-const int DARK_THRESHOLD = 500;  // Threshold (<500 is dark, >=500 is bright)
+const int DARK_THRESHOLD = 500;  // Threshold (>500 is dark, <=500 is bright)
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
@@ -568,7 +572,7 @@ void loop() {
   int lightLevel = analogRead(LDR_PIN);
   
   // Turn ON LED when ambient light drops below threshold (darkness)
-  if (lightLevel < DARK_THRESHOLD) {
+  if (lightLevel > DARK_THRESHOLD) {
     digitalWrite(LED_PIN, HIGH);
   } else {
     digitalWrite(LED_PIN, LOW);
@@ -720,7 +724,7 @@ void loop() {
 
   const wiring = [
     { label: "Pushbutton Signal", detail: "Pushbutton Pin 1 → Arduino Digital Pin D2 (INPUT_PULLUP)" },
-    { label: "Pushbutton Ground", detail: "Pushbutton Pin 3 → Arduino GND" },
+    { label: "Pushbutton Ground", detail: "Pushbutton Pin 2 → Arduino GND" },
     { label: "Alarm Buzzer Signal", detail: "Buzzer Plus (+) → Arduino Digital Pin D8" },
     { label: "Alarm Buzzer Ground", detail: "Buzzer Minus (−) → Arduino GND" },
     { label: "Red LED Signal", detail: "Arduino Pin D9 → 220 Ω Resistor (pin0)" },
@@ -773,8 +777,8 @@ void loop() {
     wires: [
       { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" } },
       { id: 102, view: "breadboard", points: [[1740, 100], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" }, color: "#22c55e" },
-      { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" } },
-      { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+      { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin2" }, to: { part: 1, pin: "GND" } },
+      { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin2" }, to: { part: 1, pin: "GND" }, color: "#222222" },
       { id: 105, view: "schematic", points: [[0, 200], [2400, 400]], from: { part: 1, pin: "D8" }, to: { part: 3, pin: "plus" } },
       { id: 106, view: "breadboard", points: [[1740, 100], [2400, 400]], from: { part: 1, pin: "D8" }, to: { part: 3, pin: "plus" }, color: "#f97316" },
       { id: 107, view: "schematic", points: [[2400, 400], [0, 300]], from: { part: 3, pin: "minus" }, to: { part: 1, pin: "GND_2" } },
@@ -803,7 +807,7 @@ void loop() {
     ],
     connections: [
       { from: { part: "uno", pin: "D2" }, to: { part: "btn", pin: "pin1" } },
-      { from: { part: "btn", pin: "pin3" }, to: { part: "uno", pin: "GND" } },
+      { from: { part: "btn", pin: "pin2" }, to: { part: "uno", pin: "GND" } },
       { from: { part: "uno", pin: "D8" }, to: { part: "bz", pin: "plus" } },
       { from: { part: "bz", pin: "minus" }, to: { part: "uno", pin: "GND_2" } },
       { from: { part: "uno", pin: "D9" }, to: { part: "r1", pin: "pin0" } },
@@ -866,7 +870,7 @@ void loop() {
     { label: "Control Pins", detail: "Data (DS) → Arduino D11, Latch (ST_CP) → Arduino D8, Clock (SH_CP) → Arduino D12" },
     { label: "IC Power", detail: "VCC (pin 16) & Master Reset /MR (pin 10) → Arduino 5V" },
     { label: "IC Ground", detail: "GND (pin 8) & Output Enable /OE (pin 13) → Arduino GND" },
-    { label: "8 LEDs Output", detail: "Outputs Q0–Q7 (pins 15, 1..7) → 8x 220 Ω Resistors → 8x Red LEDs Anodes (+)" },
+    { label: "8 LEDs Output", detail: "Outputs Q0–Q7 (pins 15, 1..7) → 8x 1000 Ω Resistors → 8x Red LEDs Anodes (+)" },
     { label: "LED Grounds", detail: "All 8 LED Cathodes (−) → Arduino GND" },
   ];
 
@@ -934,7 +938,7 @@ void loop() {
         id: resId,
         type: "resistor",
         label: `R${i + 1}`,
-        props: { power: "1/4W", resistance: "220Ω", tolerance: "±5%" },
+        props: { power: "1/4W", resistance: "1000Ω", tolerance: "±5%" },
         views: { breadboard: { at: [3000, i * 400] }, schematic: { at: [3000, i * 400] }, pcb: { at: [3000, i * 400] } },
       },
       {
@@ -959,7 +963,7 @@ void loop() {
     );
 
     specParts.push(
-      { id: resKey, type: "resistor", properties: [{ key: "resistance", value: "220" }], sketch: "" },
+      { id: resKey, type: "resistor", properties: [{ key: "resistance", value: "1000" }], sketch: "" },
       { id: ledKey, type: "led", properties: [{ key: "color", value: "Red" }], sketch: "" }
     );
 
@@ -1026,7 +1030,7 @@ function generateModifiedCircuit(intent: CircuitIntent): GeneratedCircuit {
   const wiring = [
     { label: "Preserved Existing Circuit", detail: "All original components, wires, and pin assignments preserved" },
     { label: "New Pushbutton Signal", detail: "Pushbutton Pin 1 → Arduino Digital Pin D2 (INPUT_PULLUP)" },
-    { label: "New Pushbutton Ground", detail: "Pushbutton Pin 3 → Arduino GND" },
+    { label: "New Pushbutton Ground", detail: "Pushbutton Pin 2 → Arduino GND" },
     { label: "Pause Code Added", detail: "Animation pauses when button is held down; resumes when released" },
   ];
 
@@ -1044,7 +1048,7 @@ function generateModifiedCircuit(intent: CircuitIntent): GeneratedCircuit {
     ],
     connections: [
       { from: { part: "uno", pin: "D2" }, to: { part: "btn", pin: "pin1" } },
-      { from: { part: "btn", pin: "pin3" }, to: { part: "uno", pin: "GND" } },
+      { from: { part: "btn", pin: "pin2" }, to: { part: "uno", pin: "GND" } },
       { from: { part: "uno", pin: "D8" }, to: { part: "r1", pin: "pin0" } },
       { from: { part: "r1", pin: "pin1" }, to: { part: "led1", pin: "anode" } },
       { from: { part: "led1", pin: "cathode" }, to: { part: "uno", pin: "GND_2" } },
@@ -1094,7 +1098,7 @@ void loop() {
 
   const wiring = [
     { label: "Pushbutton Input", detail: "Pushbutton Pin 1 → Arduino Digital Pin D2 (INPUT_PULLUP)" },
-    { label: "Pushbutton Ground", detail: "Pushbutton Pin 3 → Arduino GND" },
+    { label: "Pushbutton Ground", detail: "Pushbutton Pin 2 → Arduino GND" },
     { label: "Red LED Signal", detail: "Arduino Digital Pin D9 → 220 Ω Resistor (pin0)" },
     { label: "Red LED Anode", detail: "220 Ω Resistor (pin1) → Red LED Anode (+)" },
     { label: "Red LED Ground", detail: "Red LED Cathode (−) → Arduino GND_2" },
@@ -1137,8 +1141,8 @@ void loop() {
     { id: 101, view: "schematic", points: [[0, 0], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" } },
     { id: 102, view: "breadboard", points: [[1740, 100], [1400, 400]], from: { part: 1, pin: "D2" }, to: { part: 2, pin: "pin1" }, color: "#22c55e" },
     // Button GND
-    { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" } },
-    { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin3" }, to: { part: 1, pin: "GND" }, color: "#222222" },
+    { id: 103, view: "schematic", points: [[1400, 400], [0, 100]], from: { part: 2, pin: "pin2" }, to: { part: 1, pin: "GND" } },
+    { id: 104, view: "breadboard", points: [[1400, 400], [1300, 100]], from: { part: 2, pin: "pin2" }, to: { part: 1, pin: "GND" }, color: "#222222" },
     // LED D9 -> Resistor pin0
     { id: 105, view: "schematic", points: [[200, 0], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" } },
     { id: 106, view: "breadboard", points: [[1740, 200], [2400, 200]], from: { part: 1, pin: "D9" }, to: { part: 3, pin: "pin0" }, color: "#418ce1" },
@@ -1172,7 +1176,7 @@ void loop() {
     ],
     connections: [
       { from: { part: "uno", pin: "D2" }, to: { part: "btn", pin: "pin1" } },
-      { from: { part: "btn", pin: "pin3" }, to: { part: "uno", pin: "GND" } },
+      { from: { part: "btn", pin: "pin2" }, to: { part: "uno", pin: "GND" } },
       { from: { part: "uno", pin: "D9" }, to: { part: "r1", pin: "pin0" } },
       { from: { part: "r1", pin: "pin1" }, to: { part: "led1", pin: "anode" } },
       { from: { part: "led1", pin: "cathode" }, to: { part: "uno", pin: "GND_2" } },
@@ -1480,7 +1484,7 @@ export function validateCircuitAgainstRequirements(
 // ----------------------------------------------------
 // Main Circuit Generator Switch
 // ----------------------------------------------------
-export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
+function generateCircuitDraft(intent: CircuitIntent): GeneratedCircuit {
   if (intent.circuitType === "pushbutton_led") {
     return generatePushbuttonLedCircuit(intent);
   }
@@ -1917,4 +1921,88 @@ function generateStandardLedCircuit(intent: CircuitIntent): GeneratedCircuit {
     spec: validatedSpec,
     intent,
   };
+}
+
+
+/** Reject unqualified requirements before choosing any recipe. No silent substitute. */
+export function assertSupportedRequest(intent: CircuitIntent) {
+  const prompt = intent.rawPrompt;
+  if (/7[ -]?segment|seven[ -]?segment|two[ -]?digit|FMSS|00\s*(?:to|[-–])\s*99|CpE\s*413/i.test(prompt)) {
+    throw new Error("Seven-segment counter not qualified for automatic building. Confirm each display's part number and common-anode/common-cathode pinout. Conventional two-digit multiplexing needs seven separate segment resistors (eight with decimal points); the activity lists only four 1 kΩ resistors. Confirm corrected materials and digit-driver current limits. No substitute circuit was built.");
+  }
+  if (/\b(?:esp32|esp8266|raspberry|servo|motor|lcd|oled|ultrasonic|relay|dht\d*|neopixel|ws2812)\b/i.test(prompt))
+    throw new Error("This component or controller is not qualified for automatic building. Use the manual catalog; no substitute circuit was built.");
+  const families = [/\b(?:potentiometer|pot)\b/i, /\b(?:ldr|photocell|photoresistor)\b/i, /\b(?:buzzer|alarm|piezo)\b/i, /\b(?:74hc595|shift\s*register)\b/i].filter(pattern=>pattern.test(prompt));
+  if (families.length > 1) throw new Error("That combination of sensor/output requirements is not qualified together. No partial circuit was built.");
+  const count = prompt.match(/\b(\d+)\s*(?:x\s*)?(?:(?:red|yellow|green|blue|white)\s+)?leds?\b/i);
+  if (count && Number(count[1]) !== intent.ledCount)
+    throw new Error("The requested LED quantity is not supported by this circuit recipe. No components were dropped.");
+  if (intent.circuitType === "modification") return;
+  if (intent.controller === "arduino" && /\b(?:without|no)\s+(?:a\s+)?breadboard\b/i.test(prompt))
+    throw new Error("Physical Arduino builds use a breadboard. Use the manual editor for a different construction style.");
+  if (/\b(?:two|three|four|[2-9])\s+(?:potentiometers?|buttons?|pushbuttons?|buzzers?|ldrs?|photocells?)\b/i.test(prompt))
+    throw new Error("This recipe cannot preserve the requested component quantity. No partial circuit was built.");
+}
+
+export function generateCircuit(intent: CircuitIntent): GeneratedCircuit {
+  if (!intent.isCircuitRequest) throw new Error("Describe a supported circuit and its intended behavior before building.");
+  assertSupportedRequest(intent);
+  const circuit = generateCircuitDraft(intent);
+  const requestedPins = [...intent.rawPrompt.matchAll(/\b([DA]\d{1,2})\b/gi)].map(match=>match[1].toUpperCase());
+  const connectedPins = new Set(circuit.spec.connections.flatMap(wire=>[wire.from,wire.to]).filter(endpoint=>circuit.spec.parts.find(part=>part.id === endpoint.part)?.type === "arduino_uno").map(endpoint=>endpoint.pin));
+  if (requestedPins.some(pin=>!connectedPins.has(pin)))
+    throw new Error("The requested Arduino pin mapping does not match this qualified recipe. No alternative pins were silently substituted.");
+  const colors = [...new Set([...intent.rawPrompt.matchAll(/\b(red|green|blue|yellow|white)\b/gi)].map(match=>match[1].toLowerCase()))];
+  if (colors.length === 1) {
+    const color = colors[0][0].toUpperCase() + colors[0].slice(1);
+    circuit.tag = circuit.tag.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color);
+    circuit.wiring = circuit.wiring.map(w=>({label:w.label.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color),detail:w.detail.replace(/\b(?:Red|Yellow|Green|Blue|White)\b/g,color)}));
+    for (const part of circuit.spec.parts.filter(part=>part.type === "led")) part.properties = [{key:"color",value:color}];
+    for (const part of circuit.document.parts as {type:string;props?:Record<string,string>}[]) if (part.type === "led") part.props = {...part.props,color};
+  }
+  if (["pushbutton_led", "security_alarm"].includes(intent.circuitType)) {
+    const debounce = `int lastButtonReading = HIGH;
+int stableButtonReading = HIGH;
+unsigned long buttonChangedAt = 0;
+
+bool buttonPressed() {
+  int reading = digitalRead(BUTTON_PIN);
+  if (reading != lastButtonReading) {
+    buttonChangedAt = millis();
+    lastButtonReading = reading;
+  }
+  if (millis() - buttonChangedAt >= 30) stableButtonReading = reading;
+  return stableButtonReading == LOW;
+}
+
+`;
+    circuit.arduinoCode = circuit.arduinoCode.replace("void setup()", debounce + "void setup()").replace("if (digitalRead(BUTTON_PIN) == LOW)", "if (buttonPressed())");
+    for (const part of circuit.document.parts as {type:string;code?:string}[]) if (part.type === "arduino_uno") part.code = circuit.arduinoCode;
+    circuit.spec.parts.find(p=>p.type === "arduino_uno")!.sketch = circuit.arduinoCode;
+  }
+  const series = intent.rawPrompt.match(/\b(\d+(?:\.\d+)?)\s*(k)?\s*(?:ohms?|Ω)\s*(?:series\s+)?resistors?\b/i);
+  if (series) {
+    const ohms = Number(series[1]) * (series[2] ? 1000 : 1);
+    // In an LDR recipe, a 10 kΩ request describes its divider, not the LED resistor.
+    if (!(intent.circuitType === "night_light" && ohms >= 5000)) {
+      for (const part of circuit.spec.parts.filter(p=>p.type === "resistor" && Number(p.properties.find(x=>x.key === "resistance")?.value) < 5000))
+        part.properties.find(x=>x.key === "resistance")!.value = String(ohms);
+      for (const part of circuit.document.parts as {type:string;props?:Record<string,string>}[])
+        if(part.type === "resistor" && part.props && parseFloat(part.props.resistance) * (/k/i.test(part.props.resistance) ? 1000 : /M/.test(part.props.resistance) ? 1000000 : 1) < 5000) part.props.resistance = ohms + "Ω";
+      circuit.wiring = circuit.wiring.map(w=>({...w,detail:w.detail.replace(/(?:220|1000) Ω/g,ohms + " Ω")}));
+      circuit.tag = circuit.tag.replace(/(?:220|1000) Ω/g,ohms + " Ω");
+      circuit.spec = validateCircuitSpec(circuit.spec);
+    }
+  }
+  const resistorCount = intent.rawPrompt.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+resistors?\b/i);
+  if (resistorCount) {
+    const words = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+    const count = /^\d+$/.test(resistorCount[1]) ? Number(resistorCount[1]) : words.indexOf(resistorCount[1].toLowerCase());
+    if (count !== circuit.spec.parts.filter(part=>part.type === "resistor").length)
+      throw new Error("The specified resistor quantity cannot provide this recipe's required current limiting or divider. No partial circuit was built.");
+  }
+  circuit.spec = validateCircuitSpec(circuit.spec);
+  const check = validateCircuitAgainstRequirements(circuit, intent);
+  if (!check.valid) throw new Error(check.errors.join("; "));
+  return circuit;
 }

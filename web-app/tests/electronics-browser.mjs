@@ -118,7 +118,7 @@ try {
     assert.ok(await app.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+" horizontal overflow");
   }
   report.checks.push("authenticated OHMI route, controls, download, desktop/tablet/mobile layouts, theme sync");
-  const previousFrame=app.frames().find(frame=>frame.url().includes("vendor/design-electronics/index.html"));
+  const previousFrame=await app.locator('iframe[title="designElectronics circuit editor"]').elementHandle().then(element=>element.contentFrame());
   app.on("dialog",dialog=>dialog.accept());
   await ui.clearCookies(); await seedSession(ui,otherUser); await app.reload();
   await app.waitForFunction(()=>!Array.from(document.querySelectorAll("button")).find(button=>button.textContent==="Download .dez")?.disabled,{timeout:45000});
@@ -128,7 +128,7 @@ try {
   app.once("dialog",dialog=>dialog.accept());
   await app.locator('input[type="file"]').setInputFiles(fileURLToPath(new URL("uno-blink.dez",evidence)));
   await app.getByRole("status").filter({hasText:"Circuit opened"}).waitFor();
-  const retainedFrame=app.frames().find(frame=>frame.url().includes("vendor/design-electronics/index.html"));
+  const retainedFrame=await app.locator('iframe[title="designElectronics circuit editor"]').elementHandle().then(element=>element.contentFrame());
   const retainedDocument=await retainedFrame.evaluate(()=>JSON.parse(Module.ccall("de_ohmi_dispatch","string",["string"],['{"operation":"snapshot"}'])).result);
   await app.getByRole("link",{name:"Ask OHMI",exact:true}).click();
   await app.getByRole("button",{name:"Keep building",exact:true}).click();

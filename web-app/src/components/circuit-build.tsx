@@ -8,10 +8,6 @@ import {
   validateCircuitBuildResult,
   type CircuitBuildResult,
 } from "@/lib/playground/circuit-spec";
-import {
-  parseCircuitIntent,
-  generateCircuit,
-} from "@/lib/playground/circuit-generator";
 
 export function CircuitBuild({ conversationId }: { conversationId: string }) {
   const app = useApp();
@@ -120,7 +116,7 @@ function Builder({
       const data = await response.json();
       if (!alive.current || abort.signal.aborted) return;
       if (!response.ok) {
-        if (recover && response.status === 404) resolved();
+        if ((recover && response.status === 404) || [400,401,403,422].includes(response.status)) resolved();
         throw new Error(
           data.error ||
             "Build unavailable. Check this request before trying again.",
@@ -131,12 +127,9 @@ function Builder({
       if (data.result) {
         const validated = validateCircuitBuildResult(data.result);
         setResult(validated);
-        try {
-          const generated = generateCircuit(parseCircuitIntent(prompt));
-          if (generated?.document) {
-            sessionStorage.setItem("ohmi_active_circuit_doc", JSON.stringify(generated.document));
-          }
-        } catch {}
+        if (validated.document) {
+          try { sessionStorage.setItem("ohmi-build-result:" + accountId + ":" + id, JSON.stringify(validated)); } catch {}
+        }
         resolved();
         if (conversation) await app.refreshConversation(conversation);
       } else {
@@ -167,8 +160,8 @@ function Builder({
     <details className={styles.builder}>
       <summary>Build a circuit with OHMI</summary>
       <p className="small muted">
-        Qualified preview: Uno or battery, 1–10 LEDs with dedicated resistors.
-        The full manual catalog remains available.
+        Free local circuit recipes: Uno LEDs, potentiometer, LDR, piezo alarm and 74HC595.
+        Breadboard placement and native checks run when opening the draft.
       </p>
       {!enabled && (
         <p className="small muted">

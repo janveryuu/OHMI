@@ -61,7 +61,7 @@ $noticeSources = @(
 )
 $notices = "OHMI local electronics preview`nBased on designElectronics $($lock.commit), with OHMI browser/presentation changes.`nPortions of this software are copyright (C) The FreeType Project (www.freetype.org). All rights reserved.`nLato: Copyright (c) 2010-2011 by tyPoland Lukasz Dziedzic, with Reserved Font Name Lato. Licensed under SIL OFL 1.1 below.`n"
 foreach ($item in $noticeSources) {
-    $notices += "`n========== $($item[0]) ==========`n" + (Get-Content -LiteralPath $item[1] -Raw) + "`n"
+    $notices += "`n========== $($item[0]) ==========`n" + (Get-Content -LiteralPath $item[1] -Raw -Encoding UTF8) + "`n"
 }
 [IO.File]::WriteAllText((Join-Path $destination 'THIRD-PARTY-NOTICES.txt'), $notices)
 [ordered]@{ upstream = $lock.commit; emscripten = $lock.emscripten; protocol = 1; patchedSources = $patches; artifacts = $artifacts } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $destination 'engine-manifest.json')

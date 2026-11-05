@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "Ask OHMI Build in Playground opens actual prepared eight-LED breadboard, with no circuit-provider request",
+    "Build with OHMI uses same prepare/verify path for real LDR circuit",
+    "FMSS reports material/polarity limitation; active circuit remains byte-equivalent",
+    "Prepared native document saves through existing private project workflow",
+    "API uses shared local generator, honest provenance, replay conflict, CSRF/account guards, no paid inference or AI-ledger writes"
+  ],
+  "errors": []
+}

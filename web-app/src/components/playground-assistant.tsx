@@ -17,6 +17,7 @@ import {
 import type { ElectronicsBridge, EngineStatus } from "@/lib/playground/bridge";
 import {
   parseCircuitIntent,
+  assertSupportedRequest,
   generateCircuit,
   validateCircuitAgainstRequirements,
   type GeneratedCircuit,
@@ -28,6 +29,7 @@ import {
   modifyExistingCircuit,
 } from "@/lib/playground/circuit-modifier";
 import styles from "./playground-assistant.module.css";
+import { prepareCircuit, BUILD_CHECK_SUMMARY } from "@/lib/playground/build-verification";
 
 export interface AssistantTurn {
   id: string;
@@ -186,6 +188,8 @@ export function PlaygroundAssistant({
     setBusy(true);
 
     try {
+      const intent = parseCircuitIntent(text);
+      assertSupportedRequest(intent);
       // Check if this is a modification of existing circuit
       const isMod = isModificationRequest(text);
       let currentSnapshot: Record<string, unknown> | null = null;
@@ -218,11 +222,10 @@ export function PlaygroundAssistant({
             ),
           );
 
-          // Stage 3: Apply to Canvas & Start Simulation
-          await bridge.current.request({
-            operation: "open",
-            document: modResult.document,
-          });
+          // Preserve existing geometry, but verify the modified sketch before replacement.
+          const prepared = await prepareCircuit(bridge.current, modResult.document, false);
+          modResult.document = prepared.document;
+          await bridge.current.request({ operation: "open", document: prepared.document });
 
           await bridge.current
             .request({ operation: "zoom", direction: "fit" })
@@ -322,7 +325,6 @@ export function PlaygroundAssistant({
       }
 
       // New Circuit Generation Pipeline
-      const intent = parseCircuitIntent(text);
       if (!intent.isCircuitRequest) {
         setTurns((prev) =>
           prev.map((t) =>
@@ -362,11 +364,12 @@ export function PlaygroundAssistant({
         ),
       );
 
-      // Stage 3: Building on canvas & verifying simulation
-      await bridge.current.request({
-        operation: "open",
-        document: circuit.document,
-      });
+      // Stage in a scratch document; never replace student work with a failed build.
+      const session = bridge.current;
+      const prepared = await prepareCircuit(session, circuit.document);
+      if (bridge.current !== session) throw new Error("The account or engine changed during the build.");
+      circuit.document = prepared.document;
+      await session.request({ operation: "open", document: prepared.document });
 
       await bridge.current
         .request({ operation: "zoom", direction: "fit" })
@@ -401,6 +404,7 @@ export function PlaygroundAssistant({
                   code: circuit.arduinoCode,
                   hasCode: Boolean(circuit.arduinoCode),
                   isModification: false,
+                  summary: BUILD_CHECK_SUMMARY,
                 },
               }
             : t,
@@ -573,6 +577,7 @@ export function PlaygroundAssistant({
                   <span className={styles.resultTitle}>{turn.result.title}</span>
                 </div>
                 <p className={styles.resultTag}>{turn.result.tag}</p>
+                {turn.result.summary && <p className="small muted">{turn.result.summary}</p>}
                 <div className={styles.badgesRow}>
                   <span className={`${styles.badge} ${styles.badgeActive}`}>Editable</span>
                   {turn.result.hasCode && (

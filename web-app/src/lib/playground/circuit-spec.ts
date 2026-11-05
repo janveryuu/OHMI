@@ -1,4 +1,4 @@
-import { electronicsPins } from "./electronics-document.ts";
+import { electronicsPins, validateElectronicsDocument } from "./electronics-document.ts";
 import { boundedJson } from "../../../public/vendor/design-electronics/protocol.mjs";
 
 export const CIRCUIT_BUILD_MODEL = "openai/gpt-oss-120b";
@@ -40,9 +40,10 @@ export type CircuitBuildResult = {
   status: "draft" | "unsupported";
   answer: string;
   circuitSpec: CircuitSpec;
-  provider: "groq";
-  model: typeof CIRCUIT_BUILD_MODEL;
+  provider: "groq" | "local";
+  model: typeof CIRCUIT_BUILD_MODEL | "ohmi-recipes-v2";
   prompt_version: typeof CIRCUIT_BUILD_VERSION;
+  document?: Record<string, unknown>;
 };
 export function validateCircuitBuildResult(value: unknown): CircuitBuildResult {
   const result = value as CircuitBuildResult;
@@ -50,8 +51,8 @@ export function validateCircuitBuildResult(value: unknown): CircuitBuildResult {
     !result ||
     result.kind !== "circuit_build" ||
     result.version !== 1 ||
-    result.model !== CIRCUIT_BUILD_MODEL ||
-    result.provider !== "groq" ||
+    !((result.model === CIRCUIT_BUILD_MODEL && result.provider === "groq") ||
+      (result.model === "ohmi-recipes-v2" && result.provider === "local")) ||
     result.prompt_version !== CIRCUIT_BUILD_VERSION
   )
     invalid("saved result has incompatible provenance.");
@@ -62,9 +63,10 @@ export function validateCircuitBuildResult(value: unknown): CircuitBuildResult {
     status: spec.status,
     answer: spec.explanation,
     circuitSpec: spec,
-    provider: "groq",
-    model: CIRCUIT_BUILD_MODEL,
+    provider: result.provider,
+    model: result.model,
     prompt_version: CIRCUIT_BUILD_VERSION,
+    ...(result.document ? { document: validateElectronicsDocument(result.document) } : {}),
   };
 }
 const string = { type: "string" };
@@ -330,12 +332,8 @@ function validateElectricalSpec(
       join(part.id + ":common", part.id + ":b");
     }
     if (part.type === "pushbutton") {
-      join(part.id + ":pin1", part.id + ":pin2");
-      join(part.id + ":pin3", part.id + ":pin4");
-    }
-    if (part.type === "74hc595") {
-      join(part.id + ":pin16", part.id + ":pin10");
-      join(part.id + ":pin8", part.id + ":pin13");
+      join(part.id + ":pin1", part.id + ":pin3");
+      join(part.id + ":pin2", part.id + ":pin4");
     }
     if (part.type === "breadboard") {
       const groups = new Map<string, string>();
@@ -460,12 +458,44 @@ function validateElectricalSpec(
         if (total > 0.0200001)
           invalid("combined output-pin current bound exceeds 20 mA.");
         gpioCurrent.set(path.source.key, total);
+        const owner = spec.parts.find((part) => path.source.key.startsWith(part.id + ":"));
+        if (owner?.type === "74hc595" && total > 0.006)
+          invalid("74HC595 outputs need a conservative 6 mA current bound; use at least 1 kΩ per LED at 5 V.");
       }
   }
-  const hasAdvancedParts = spec.parts.some((p) =>
-    ["potentiometer", "photocell", "buzzer", "74hc595", "pushbutton"].includes(p.type),
-  );
-  if (!hasAdvancedParts && resistors.some((part) => !used.has(part.id)))
+  const uno = unos[0];
+  const same = (part: string, pin: string, other: string, target: string) => root(part + ":" + pin) === root(other + ":" + target);
+  const requireNet = (part: string, pin: string, target: string) => {
+    if (!uno || !same(part, pin, uno.id, target)) invalid("missing or incorrect " + part + "." + pin + " connection to " + target + ".");
+  };
+  for (const part of spec.parts) {
+    if (part.type === "74hc595") {
+      requireNet(part.id, "pin16", "5V"); requireNet(part.id, "pin10", "5V");
+      requireNet(part.id, "pin8", "GND"); requireNet(part.id, "pin13", "GND");
+      for (const pin of ["pin14", "pin11", "pin12"])
+        if (!uno || !Array.from({length:12},(_,i)=>"D"+(i+2)).some(p=>same(part.id,pin,uno.id,p))) invalid("shift-register control pin is not connected to the Uno.");
+      const total = [...gpioCurrent].filter(([key])=>key.startsWith(part.id+":")).reduce((sum,[,value])=>sum+value,0);
+      if (total > 0.05) invalid("shift-register aggregate LED current exceeds the conservative 50 mA budget.");
+    }
+    if (part.type === "potentiometer") {
+      requireNet(part.id,"leg1","5V"); requireNet(part.id,"leg2","GND");
+      if (!uno || !Array.from({length:6},(_,i)=>"A"+i).some(pin=>same(part.id,"wiper",uno.id,pin))) invalid("potentiometer wiper needs an Uno analog input.");
+    }
+    if (part.type === "buzzer") {
+      requireNet(part.id,"minus","GND");
+      if (!uno || !Array.from({length:12},(_,i)=>"D"+(i+2)).some(pin=>same(part.id,"plus",uno.id,pin))) invalid("piezo buzzer needs a dedicated Uno digital output; magnetic alarms need a driver.");
+    }
+  }
+  // Only a real LDR divider may consume a resistor outside an LED branch.
+  for (const resistor of resistors.filter(part=>!used.has(part.id))) {
+    const validDivider = spec.parts.some(ldr=>ldr.type === "photocell" && uno &&
+      ["pin0","pin1"].some(pin=>same(ldr.id,pin,uno.id,"5V") || same(ldr.id,pin,uno.id,"GND")) &&
+      ["pin0","pin1"].some(pin=>["pin0","pin1"].some(rpin=>same(ldr.id,pin,resistor.id,rpin) &&
+        Array.from({length:6},(_,i)=>"A"+i).some(apin=>same(ldr.id,pin,uno.id,apin)))) &&
+      ["pin0","pin1"].some(pin=>same(resistor.id,pin,uno.id,"GND") || same(resistor.id,pin,uno.id,"5V")) && Number(buildProperties(resistor).resistance) >= 1000);
+    if (validDivider) used.add(resistor.id);
+  }
+  if (resistors.some((part) => !used.has(part.id)))
     invalid(
       "this qualified builder requires every resistor to be part of a dedicated LED path; use the manual editor for other networks.",
     );

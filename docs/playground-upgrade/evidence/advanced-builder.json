@@ -1,0 +1,41 @@
+[
+  {
+    "prompt": "Build Arduino with eight LEDs",
+    "parts": 18,
+    "mounted": 16,
+    "samples": 80,
+    "passed": true
+  },
+  {
+    "prompt": "Build potentiometer-controlled LED brightness",
+    "parts": 5,
+    "mounted": 3,
+    "samples": 80,
+    "passed": true
+  },
+  {
+    "prompt": "Build LDR automatic night light",
+    "parts": 6,
+    "mounted": 4,
+    "samples": 80,
+    "passed": true
+  },
+  {
+    "prompt": "Build pushbutton-controlled alarm",
+    "parts": 6,
+    "mounted": 4,
+    "samples": 80,
+    "passed": true
+  },
+  {
+    "prompt": "Build 74HC595 eight LED running lights",
+    "parts": 19,
+    "mounted": 17,
+    "samples": 80,
+    "passed": true
+  },
+  {
+    "benchmark": "FMSS",
+    "status": "blocked: unspecified display and insufficient conventional segment resistors; no substitute"
+  }
+]

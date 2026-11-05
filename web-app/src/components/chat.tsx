@@ -68,7 +68,7 @@ export function CircuitActionCard({
       <div className="circuit-action-header">
         <div className="circuit-action-badge">
           <CircuitBoard size={12} strokeWidth={2.2} />
-          <span>Circuit Ready</span>
+          <span>Circuit plan</span>
         </div>
         <span className="circuit-action-tag">{activeCircuit.tag}</span>
       </div>
@@ -218,16 +218,15 @@ export function Chat() {
     }
   }
   function handleDirectToPlayground(circuit?: GeneratedCircuit | null) {
+    if (!circuit) { setError("No complete supported circuit is available. Your request was not replaced with a template."); return; }
     try {
-      if (circuit) {
-        sessionStorage.setItem("ohmi_active_circuit_doc", JSON.stringify(circuit.document));
-        sessionStorage.setItem("ohmi_active_circuit_spec", JSON.stringify(circuit.spec));
+      {
+        sessionStorage.setItem("ohmi_active_circuit_doc:" + (app.user?.id || "guest"), JSON.stringify(circuit.document));
+        sessionStorage.setItem("ohmi_active_circuit_spec:" + (app.user?.id || "guest"), JSON.stringify(circuit.spec));
         sessionStorage.setItem("ohmi_playground_template", "custom");
-      } else {
-        sessionStorage.setItem("ohmi_playground_template", "arduino-traffic-light");
       }
-    } catch {}
-    const templateParam = circuit ? "custom" : "arduino-traffic-light";
+    } catch { setError("Could not transfer the circuit. Your chat and circuit are unchanged."); return; }
+    const templateParam = "custom";
     if (router && typeof router.push === "function") {
       router.push("/playground/?template=" + templateParam);
     } else {
@@ -268,13 +267,10 @@ export function Chat() {
       setDraft("");
       let resolvedCircuit: GeneratedCircuit | null = null;
       try {
-        resolvedCircuit = generateCircuit(
-          activeCircuitIntent.isCircuitRequest
-            ? activeCircuitIntent
-            : parseCircuitIntent("traffic light")
-        );
+        resolvedCircuit = generateCircuit(activeCircuitIntent);
       } catch (err) {
-        console.warn("Failed to generate circuit on playground command:", err);
+        setError(err instanceof Error ? err.message : "This circuit is not supported.");
+        return;
       }
       handleDirectToPlayground(resolvedCircuit);
       return;
@@ -288,13 +284,10 @@ export function Chat() {
       setDraft("");
       let resolvedCircuit: GeneratedCircuit | null = null;
       try {
-        resolvedCircuit = generateCircuit(
-          activeCircuitIntent.isCircuitRequest
-            ? activeCircuitIntent
-            : parseCircuitIntent("traffic light")
-        );
+        resolvedCircuit = generateCircuit(activeCircuitIntent);
       } catch (err) {
-        console.warn("Failed to generate circuit on playground command:", err);
+        setError(err instanceof Error ? err.message : "This circuit is not supported.");
+        return;
       }
       handleDirectToPlayground(resolvedCircuit);
       return;
@@ -508,11 +501,12 @@ export function Chat() {
                 Boolean(circuitIntent?.isCircuitRequest);
 
               let dynamicCircuit: GeneratedCircuit | null = null;
+              let circuitIssue = "";
               if (isCircuitMatch && circuitIntent) {
                 try {
                   dynamicCircuit = generateCircuit(circuitIntent);
                 } catch (err) {
-                  console.warn("Failed to generate dynamic circuit for message:", err);
+                  circuitIssue = err instanceof Error ? err.message : "This circuit is not supported.";
                 }
               }
               return (
@@ -531,6 +525,7 @@ export function Chat() {
                 ) : (
                   <p className="user-text">{message.text}</p>
                 )}
+                {circuitIssue && <p className="small" role="status">{circuitIssue}</p>}
                 {/* Circuit Ready card at the bottom of its associated response */}
                 {isCircuitMatch && dynamicCircuit && (
                   <CircuitActionCard

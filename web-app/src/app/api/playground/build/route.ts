@@ -7,7 +7,6 @@ import {
 import { readBoundedBody, requireUuid } from "@/lib/backend/guards.mjs";
 import {
   validateCircuitBuildResult,
-  CIRCUIT_BUILD_MODEL,
   CIRCUIT_BUILD_VERSION,
   type CircuitBuildResult,
 } from "@/lib/playground/circuit-spec";
@@ -25,6 +24,7 @@ interface CachedBuild {
   status: string;
   result: CircuitBuildResult;
   createdAt: number;
+  input: string;
 }
 
 const buildCache = new Map<string, CachedBuild>();
@@ -84,7 +84,8 @@ export async function GET(request: Request) {
 
     // Check memory cache fallback
     const cached = buildCache.get(id);
-    if (cached && cached.userId === user.id) {
+    if (cached && Date.now() - cached.createdAt > 30 * 60 * 1000) buildCache.delete(id);
+    if (cached && Date.now() - cached.createdAt <= 30 * 60 * 1000 && cached.userId === user.id) {
       return Response.json(
         {
           accountId: user.id,
@@ -134,63 +135,25 @@ export async function POST(request: Request) {
     requireUuid(body.requestId);
     requireUuid(body.conversationId);
 
-    let buildResult: CircuitBuildResult | null = null;
-
-    // 1. Try edge function if configured and enabled
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.OHMI_USE_EDGE_BUILD === "true"
-    ) {
-      try {
-        const session = await client.auth.getSession();
-        if (session.data.session?.access_token) {
-          const response = await fetch(
-            process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/ohmi-web",
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${session.data.session.access_token}`,
-                apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                ...body,
-                version: 1,
-                operation: "circuit_build",
-                accountId: user.id,
-              }),
-              cache: "no-store",
-              signal: AbortSignal.any([
-                request.signal,
-                AbortSignal.timeout(10000),
-              ]),
-            },
-          );
-          if (response.ok) {
-            const data = await response.json();
-            if (data.ok && data.result) {
-              buildResult = validateCircuitBuildResult(data.result);
-            }
-          }
-        }
-      } catch {}
+    const input = JSON.stringify([body.conversationId, body.language, body.message]);
+    const cached = buildCache.get(body.requestId);
+    if (cached) {
+      if (cached.userId !== user.id || cached.input !== input)
+        return Response.json({ error: "This request ID belongs to different inputs." }, { status: 409, headers: PRIVATE_HEADERS });
+      return Response.json({ ok: true, accountId: user.id, requestId: body.requestId, status: "completed", result: cached.result }, { headers: PRIVATE_HEADERS });
     }
-
-    // 2. Synthesize with deterministic generator
-    if (!buildResult) {
-      const intent = parseCircuitIntent(body.message);
-      const generated = generateCircuit(intent);
-      buildResult = {
-        kind: "circuit_build",
-        version: 1,
-        status: "draft",
-        answer: generated.spec.explanation,
-        circuitSpec: generated.spec,
-        provider: "groq",
-        model: CIRCUIT_BUILD_MODEL,
-        prompt_version: CIRCUIT_BUILD_VERSION,
-      };
-    }
+    // Local recipes are free and explicit. Never disguise a fallback as a provider response.
+    let generated;
+    try { generated = generateCircuit(parseCircuitIntent(body.message)); }
+    catch (cause) { return Response.json({ error: cause instanceof Error ? cause.message : "Circuit requirements are not supported." }, { status: 422, headers: PRIVATE_HEADERS }); }
+    const buildResult = validateCircuitBuildResult({
+      kind: "circuit_build", version: 1, status: "draft",
+      answer: generated.spec.explanation,
+      circuitSpec: generated.spec, document: generated.document,
+      provider: "local", model: "ohmi-recipes-v2", prompt_version: CIRCUIT_BUILD_VERSION,
+    });
+    for (const [id, entry] of buildCache) if (Date.now() - entry.createdAt > 30 * 60 * 1000) buildCache.delete(id);
+    if (buildCache.size >= 128) buildCache.delete(buildCache.keys().next().value!);
 
     // 3. Cache in memory
     buildCache.set(body.requestId, {
@@ -199,23 +162,11 @@ export async function POST(request: Request) {
       status: "completed",
       result: buildResult,
       createdAt: Date.now(),
+      input,
     });
 
-    // 4. Try saving to database table if available
-    try {
-      await client.from("ohmi_ai_requests").upsert({
-        id: body.requestId,
-        user_id: user.id,
-        kind: "circuit_build",
-        operation: "circuit_build",
-        input_hash: "direct_" + body.requestId.slice(0, 8),
-        language: body.language,
-        reserved_tokens: 0,
-        status: "completed",
-        result_payload: buildResult,
-        conversation_id: body.conversationId,
-      });
-    } catch {}
+    // Durable saving remains the existing owner-scoped private-project workflow.
+    // Do not write client-generated completions into the privileged AI accounting ledger.
 
     return Response.json(
       {

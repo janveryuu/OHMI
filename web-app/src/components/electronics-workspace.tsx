@@ -13,6 +13,7 @@ import { validateCircuitBuildResult } from "@/lib/playground/circuit-spec";
 import { validateElectronicsDocument } from "@/lib/playground/electronics-document";
 import { getTrafficLightElectronicsDocument } from "@/lib/playground/traffic-light-template";
 import { PlaygroundAssistant } from "./playground-assistant";
+import { prepareCircuit, BUILD_CHECK_SUMMARY } from "@/lib/playground/build-verification";
 import type { GeneratedCircuit } from "@/lib/playground/circuit-generator";
 import { Bot, Package } from "lucide-react";
 import { TinkercadExportModal } from "./tinkercad-export-modal";
@@ -87,9 +88,9 @@ function Editor({
     // Check for custom dynamically generated circuit from Ask OHMI
     let customDoc: Record<string, unknown> | null = null;
     try {
-      const stored = typeof window !== "undefined" ? sessionStorage.getItem("ohmi_active_circuit_doc") : null;
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem("ohmi_active_circuit_doc:" + (accountId || "guest")) : null;
       if (stored) {
-        sessionStorage.removeItem("ohmi_active_circuit_doc");
+        sessionStorage.removeItem("ohmi_active_circuit_doc:" + (accountId || "guest"));
         customDoc = validateElectronicsDocument(JSON.parse(stored));
       }
     } catch (err) {
@@ -97,11 +98,13 @@ function Editor({
     }
 
     if (customDoc) {
+      const session = bridge.current;
       lastLoadedTemplate.current = "custom";
       const doc = customDoc;
-      bridge.current
-        ?.request({ operation: "open", document: doc })
-        .then(async () => {
+      prepareCircuit(session, doc)
+        .then(async (prepared) => {
+          if (bridge.current !== session) return;
+          await session.request({ operation: "open", document: prepared.document });
           cloud.detach();
           await bridge.current
             ?.request({ operation: "zoom", direction: "fit" })
@@ -119,7 +122,7 @@ function Editor({
             .catch(() => null);
           if (status) setEngineState(status);
           setMessage(
-            `${doc.title || "Custom circuit"} loaded. Simulation running.`,
+            BUILD_CHECK_SUMMARY,
           );
         })
         .catch((err) => {
@@ -140,7 +143,7 @@ function Editor({
       } catch {}
     }
     const isArduinoTrafficTemplate =
-      templateName === "custom" || // Fallback if custom doc was missing/invalid
+      // A missing custom handoff must never load an unrelated traffic-light circuit.
       templateName === "arduino-traffic-light" ||
       templateName === "traffic-light" ||
       templateName === "arduino" ||
@@ -206,7 +209,7 @@ function Editor({
 
   const handleAssistantCircuitBuilt = (circuit: GeneratedCircuit) => {
     cloud.detach();
-    setMessage(circuit.title + " loaded. Simulation running.");
+    setMessage(BUILD_CHECK_SUMMARY);
     setEngineState({ running: true, view: 0 });
     setError("");
   };
@@ -256,8 +259,12 @@ function Editor({
           signal: AbortSignal.any([abort.signal, AbortSignal.timeout(20000)]),
         },
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Build unavailable.");
+      let data = await response.json();
+      if (!response.ok) {
+        const saved = sessionStorage.getItem("ohmi-build-result:" + accountId + ":" + buildId);
+        if (response.status === 404 && saved) data = { accountId, requestId: buildId, status: "completed", result: JSON.parse(saved) };
+        else throw new Error(data.error || "Build unavailable.");
+      }
       if (
         data.accountId !== accountId ||
         data.requestId !== buildId ||
@@ -281,6 +288,12 @@ function Editor({
         )
       )
         return;
+      if (result.document) {
+        const prepared = await prepareCircuit(session, result.document);
+        if (abort.signal.aborted || bridge.current !== session) return;
+        await session.request({ operation: "open", document: prepared.document });
+        cloud.detach(); setObservations(prepared.samples); setMessage(BUILD_CHECK_SUMMARY); return;
+      }
       const compiled = await session.request<{
         document: unknown;
         observations: {

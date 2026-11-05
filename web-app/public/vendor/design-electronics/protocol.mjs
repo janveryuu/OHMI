@@ -27,12 +27,13 @@ export function validateRequest(request) {
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Invalid bridge request.");
   const fields = {
     status: [], catalog: ["presets"], zoom: ["direction"], capture: [], snapshot: [], undo: [], redo: [],
-    tool: ["name", "arguments"], open: ["document"], observe: ["seconds"], compile: ["spec"],
+    tool: ["name", "arguments"], open: ["document"], prepare: ["document", "layout"], observe: ["seconds"], compile: ["spec"],
     theme: ["theme"], view: ["view"], running: ["running"], export: ["format", "view"],
   };
   if (!Object.hasOwn(fields, request.operation) || Object.keys(request).some(key => !["operation", ...fields[request.operation]].includes(key))) throw new Error("Unsupported bridge operation or field.");
   if (request.operation === "tool" && (!TOOLS.has(request.name) || !request.arguments || typeof request.arguments !== "object" || Array.isArray(request.arguments))) throw new Error("Tool is not allowed.");
   if (request.operation === "compile" && (!request.spec || request.spec.version !== 1 || request.spec.status !== "draft" || !Array.isArray(request.spec.parts) || request.spec.parts.length > 24 || !Array.isArray(request.spec.connections) || request.spec.connections.length > 64)) throw new Error("Invalid circuit specification.");
+  if (request.operation === "prepare" && request.layout !== undefined && typeof request.layout !== "boolean") throw new Error("Invalid placement option.");
   if (request.operation === "theme" && !["light", "dark"].includes(request.theme)) throw new Error("Invalid theme.");
   if (request.operation === "catalog" && request.presets !== undefined && typeof request.presets !== "boolean") throw new Error("Invalid catalog options.");
   if (request.operation === "zoom" && !["in", "out", "fit"].includes(request.direction)) throw new Error("Invalid zoom direction.");
@@ -40,7 +41,7 @@ export function validateRequest(request) {
   if (request.operation === "running" && typeof request.running !== "boolean") throw new Error("Invalid simulation state.");
   if (request.operation === "observe" && (typeof request.seconds !== "number" || request.seconds < 0.05 || request.seconds > 5)) throw new Error("Observation must be 0.05 to 5 seconds.");
   if (request.operation === "export" && (!["svg", "bom", "netlist", "spice", "gerber"].includes(request.format) || !["breadboard", "schematic", "pcb"].includes(request.view))) throw new Error("Invalid export options.");
-  if (request.operation === "open") {
+  if (["open", "prepare"].includes(request.operation)) {
     const doc = request.document;
     if (!doc || doc.format !== "designElectronics" || doc.version !== 1 || !Array.isArray(doc.parts) || !Array.isArray(doc.wires) || doc.parts.length > 200 || doc.wires.length > 800) throw new Error("Unsupported or oversized .dez document.");
   }

@@ -17,7 +17,7 @@ export function isModificationRequest(prompt: string): boolean {
   const p = prompt.toLowerCase();
   return (
     /\b(?:add|insert|attach|connect|put|change|modify|replace|update|switch|pushbutton|button|another\s+led|more\s+leds?|lagyan|dagdagan)\b/i.test(p) &&
-    !/\b(?:from\s+scratch|brand\s+new|start\s+over|create\s+new)\b/i.test(p)
+    !/\b(?:build|create|generate|make|from\s+scratch|brand\s+new|start\s+over)\b/i.test(p)
   );
 }
 

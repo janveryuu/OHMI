@@ -22,6 +22,8 @@ void replaced(bool newDocument = true) {
     if (newDocument) ++documentGeneration;
     app->simOn = false;
     app->simulator.reset();
+    // Fresh documents may reuse a revision number; cached nets must never survive replacement.
+    app->connRev = -1; app->simRev = -1; app->drcRev = -1;
     for (auto& camera : app->cam) camera.valid = false;
     app->selParts.clear(); app->selWires.clear(); app->selNotes.clear();
     app->codeOpen = false;
@@ -44,17 +46,132 @@ Json observe(Document& document, double seconds) {
     Json samples = Json::array();
     for (double time = 0; time < seconds - 0.000001; time += 0.05) {
         const auto result = simulator.step(document, connectivity, {}, std::min(0.05, seconds - time));
-        Json sample = Json::object(), leds = Json::object(), errors = Json::array(), warnings = Json::array(), damaged = Json::array();
+        Json sample = Json::object(), leds = Json::object(), activity = Json::object(), errors = Json::array(), warnings = Json::array(), damaged = Json::array();
         for (const auto& value : result.brightness) leds.set(std::to_string(value.first), value.second);
+        for (const auto& value : result.activity) activity.set(std::to_string(value.first), value.second);
         for (const auto& value : result.code) if (!value.second.error.empty()) {
             Json error = Json::object(); error.set("part", value.first); error.set("line", value.second.errorLine); error.set("message", value.second.error); errors.push(error);
         }
         for (const auto& value : result.warnings) warnings.push(value);
         for (const auto& value : result.damaged) damaged.push(value);
-        sample.set("time", result.time); sample.set("leds", leds); sample.set("errors", errors); sample.set("warnings", warnings); sample.set("damaged", damaged);
+        sample.set("time", result.time); sample.set("leds", leds); sample.set("activity", activity); sample.set("errors", errors); sample.set("warnings", warnings); sample.set("damaged", damaged);
         samples.push(sample);
     }
     Json output = Json::object(); output.set("samples", samples); output.set("engine", "designElectronics interpreter; not hardware verification"); return output;
+}
+
+// Stage on native pin geometry, refusing any placement that changes the circuit's nets.
+Json prepare(Document& draft) {
+    std::vector<int> originals;
+    int boardId = -1, unoId = -1;
+    for (auto& p : draft.parts) {
+        if (p.type == "breadboard") boardId = p.id;
+        else originals.push_back(p.id);
+        if (p.type == "arduino_uno") unoId = p.id;
+    }
+    if (unoId < 0) {
+        Json result = Json::object(); result.set("document", draft.toJson(true));
+        result.set("observations", observe(draft, 4)); result.set("mounted", 0); return result;
+    }
+    if (boardId < 0) boardId = draft.addPart("breadboard", {{"size", "full+"}}, {0,0}).id;
+    auto* board = draft.part(boardId);
+    board->props["size"] = "full+"; board->refresh(); board->place[BB].pos = {0,0};
+    // Ignore accidental geometric contacts in hand-authored input; explicit wiring is the specification.
+    for (size_t i = 0; i < originals.size(); ++i) draft.part(originals[i])->place[BB].pos = {-20000.f - 5000.f * i, -10000};
+    draft.syncWireEnds();
+    auto wire = [&](int a, const std::string& pa, int b, const std::string& pb, uint32_t color) {
+        Wire w; w.id = draft.newId(); w.view = BB; w.color = color;
+        w.ends[0] = {a, draft.part(a)->def->pinIndex(pa)}; w.ends[1] = {b, draft.part(b)->def->pinIndex(pb)};
+        w.pts = {draft.part(a)->pinPos(w.ends[0].pin, BB), draft.part(b)->pinPos(w.ends[1].pin, BB)};
+        draft.wires.push_back(w);
+    };
+    wire(unoId, "5V", boardId, "tp1", rgba(217,67,67));
+    wire(unoId, "GND", boardId, "tn1", rgba(34,34,34));
+    wire(boardId, "tp1", boardId, "bp1", rgba(217,67,67));
+    wire(boardId, "tn1", boardId, "bn1", rgba(34,34,34));
+    Connectivity before; before.build(draft);
+    std::vector<PinRef> pins;
+    for (int id : originals) {
+        const auto* p = draft.part(id);
+        for (int i = 0; i < (int)p->def->pins.size(); ++i) pins.push_back({id, i});
+    }
+    auto group = [](const std::string& hole) { return std::string(hole[0] <= 'e' ? "top" : "bottom") + hole.substr(1); };
+    std::map<std::string, int> occupiedGroups;
+    std::set<std::string> occupiedHoles;
+    std::vector<Rect> bodies;
+    int mounted = 0;
+    // Large ICs first, then controls, then passives; preserve electrical identity independently of packing.
+    auto order = originals;
+    std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return draft.part(a)->def->pins.size() > draft.part(b)->def->pins.size(); });
+    for (int id : order) {
+        auto* p = draft.part(id);
+        if (p->type == "arduino_uno") { p->place[BB].pos = {-3300, 0}; continue; }
+        if (p->type == "battery") { p->place[BB].pos = {-3300, 2800}; continue; }
+        bool placed = false;
+        for (int rotation : {0, 1, 2, 3}) {
+            if (placed) break;
+            for (char row : std::string("efchajbdgi")) {
+                if (placed) break;
+                for (int col = 1; col <= 63 && !placed; ++col) {
+                    p->place[BB].rot = rotation; p->place[BB].pos = {0,0};
+                    const auto target = board->pinPos(board->def->pinIndex(std::string(1,row) + std::to_string(col)), BB);
+                    p->place[BB].pos = target - p->pinPos(0, BB);
+                    const auto body = p->worldBounds(BB);
+                    if (std::any_of(bodies.begin(), bodies.end(), [&](const Rect& other) { return body.overlaps(other); })) continue;
+                    std::vector<std::string> holes;
+                    std::map<std::string, int> candidate;
+                    bool ok = true;
+                    for (int pin = 0; pin < (int)p->def->pins.size() && ok; ++pin) {
+                        const auto pos = p->pinPos(pin, BB);
+                        std::string hole;
+                        for (int h = 0; h < (int)board->def->pins.size(); ++h) {
+                            const auto& name = board->def->pins[h].id;
+                            if (name[0] >= 'a' && name[0] <= 'j' && name[1] >= '0' && name[1] <= '9' && dist(pos, board->pinPos(h, BB)) < 1) { hole = name; break; }
+                        }
+                        if (hole.empty() || occupiedHoles.count(hole)) { ok = false; break; }
+                        const auto g = group(hole); const auto net = before.netOf(id, pin);
+                        if ((occupiedGroups.count(g) && occupiedGroups.at(g) != net) || (candidate.count(g) && candidate.at(g) != net)) { ok = false; break; }
+                        candidate[g] = net; holes.push_back(hole);
+                    }
+                    if (!ok) continue;
+                    occupiedGroups.insert(candidate.begin(), candidate.end());
+                    occupiedHoles.insert(holes.begin(), holes.end()); bodies.push_back(body); placed = true; ++mounted;
+                }
+            }
+        }
+        if (!placed) throw std::runtime_error("No safe breadboard placement for " + p->label + ". Your active circuit is unchanged.");
+    }
+    draft.syncWireEnds();
+    Connectivity after; after.build(draft);
+    for (const auto& a : pins) for (const auto& b : pins)
+        if ((before.netOf(a.part,a.pin) == before.netOf(b.part,b.pin)) != (after.netOf(a.part,a.pin) == after.netOf(b.part,b.pin)))
+            throw std::runtime_error("Breadboard placement changed an electrical net. Your active circuit is unchanged.");
+    const auto ground = after.netOf(unoId, draft.part(unoId)->def->pinIndex("GND"));
+    const auto power = after.netOf(unoId, draft.part(unoId)->def->pinIndex("5V"));
+    int lane = 0;
+    for (auto& w : draft.wires) if (w.view == BB) {
+        const auto net = after.netOf(w.ends[0].part, w.ends[0].pin);
+        w.color = net == ground ? rgba(34,34,34) : net == power ? rgba(217,67,67) : rgba(65,140,225);
+        // Distribute ground/power returns along rails instead of converging at the Uno header.
+        if (net == ground || net == power) for (int side = 0; side < 2; ++side) if (w.ends[side].part == unoId && w.ends[1-side].part != boardId) {
+            const auto other = draft.part(w.ends[1-side].part)->pinPos(w.ends[1-side].pin, BB);
+            int closest = -1; float distance = 1e20f;
+            for (int pin = 0; pin < (int)board->def->pins.size(); ++pin) {
+                if (board->def->pins[pin].id.rfind(net == ground ? "bn" : "bp", 0) != 0) continue;
+                const float d = std::abs(board->pinPos(pin, BB).x - other.x);
+                if (d < distance) { distance = d; closest = pin; }
+            }
+            w.ends[side] = {boardId, closest};
+        }
+        const auto a = draft.part(w.ends[0].part)->pinPos(w.ends[0].pin, BB), b = draft.part(w.ends[1].part)->pinPos(w.ends[1].pin, BB);
+        const float track = -500.f - (lane++ % 24) * 50.f;
+        const bool local = dist(a,b) < 1000 || (w.ends[0].part != unoId && w.ends[1].part != unoId && (net == ground || net == power));
+        w.pts = local ? std::vector<Vec2>{a, {b.x, a.y}, b} : std::vector<Vec2>{a, {a.x, track}, {b.x, track}, b};
+    }
+    draft.syncWireEnds();
+    history::ensureUid(draft);
+    Json result = Json::object(); result.set("document", draft.toJson(true));
+    result.set("observations", observe(draft, 4)); result.set("mounted", mounted); return result;
 }
 
 Json dispatch(const Json& request) {
@@ -94,6 +211,19 @@ Json dispatch(const Json& request) {
         const auto result = app->doc.toJson(true);
         if (result.dump().size() > maxBytes) throw std::runtime_error("This document exceeds the 1 MiB bridge limit. Use the native export menu.");
         return result;
+    }
+    if (operation == "prepare") {
+        const auto& value = request["document"];
+        if (value["format"].str() != "designElectronics" || value["version"].i() != 1 || value["parts"].size() > 32 || value["wires"].size() > 256)
+            throw std::runtime_error("Unsupported or oversized generated circuit.");
+        Document draft; std::string error;
+        if (!draft.fromJson(value, &error) || draft.parts.size() != value["parts"].size() || draft.wires.size() != value["wires"].size())
+            throw std::runtime_error("Could not stage the complete generated circuit.");
+        if (request.has("layout") && !request["layout"].boolean()) {
+            Json result = Json::object(); result.set("document", draft.toJson(true));
+            result.set("observations", observe(draft, 4)); result.set("mounted", 0); return result;
+        }
+        return prepare(draft);
     }
     if (operation == "open") {
         const auto& value = request["document"];

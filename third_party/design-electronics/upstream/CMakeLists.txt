@@ -125,8 +125,10 @@ elseif(EMSCRIPTEN)
   target_compile_options(${DE_TARGET} PRIVATE -fexceptions)
   # Web build: designElectronics.js/.wasm/.data, started by docs/app and docs/embed pages.
   # INVOKE_RUN=0: the page writes the design into the virtual FS first, then calls callMain(args).
+  # Larger generated breadboards exceed the default 64 KiB stack during JSON round-trip.
   target_link_options(${DE_TARGET} PRIVATE
-    -fexceptions -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sINVOKE_RUN=0 -sEXIT_RUNTIME=0 -sDYNAMIC_EXECUTION=0
+    --emit-symbol-map
+    -fexceptions -sSTACK_SIZE=1048576 -sSTACK_OVERFLOW_CHECK=2 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sINVOKE_RUN=0 -sEXIT_RUNTIME=0 -sDYNAMIC_EXECUTION=0
     "-sEXPORTED_RUNTIME_METHODS=['FS','ccall','callMain']"
     "-sEXPORTED_FUNCTIONS=['_main','_de_web_opened','_de_ohmi_dispatch']"
     "--preload-file=${CMAKE_SOURCE_DIR}/assets/fonts@/assets/fonts")

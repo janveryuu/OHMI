@@ -1,52 +1,52 @@
 {
-  "upstream": "4d9cb373bd06afb2d99b1548e6c3a0c86992bd56",
-  "emscripten": "5.0.7",
-  "protocol": 1,
-  "patchedSources": [
-    {
-      "file": "CMakeLists.txt",
-      "sha256": "ee0377a9f8a7770f817792a9007e9cc13e289d58e7de074ca6740e1b041a2c30"
-    },
-    {
-      "file": "src/web.cpp",
-      "sha256": "c791de6a9728776b10d988532804d73b275a4110fa124a9f6506bd682266f351"
-    },
-    {
-      "file": "src/ohmi_web.cpp",
-      "sha256": "c9399f0c083e8e8272387b7559ee7b7dfd51beb0ccaa0c8358901f4c494a7f68"
-    },
-    {
-      "file": "src/panels.cpp",
-      "sha256": "839013866b3e3226b5bb9b962fbffa7c58a1b90464de1ac704981f82c293f6eb"
-    },
-    {
-      "file": "src/app.h",
-      "sha256": "3601d29d0e857b39af2588afa55c85befc04baf31d57185d9c2c708c8da74f93"
-    },
-    {
-      "file": "src/app.cpp",
-      "sha256": "ebfab840082321b99bb1f893ba7bf5f71e3f87d885f2696a93562c30d20433f6"
-    },
-    {
-      "file": "src/app_history.cpp",
-      "sha256": "19b58a630b2be323908ff85954f5cbf67ae7234db6e9cb5765b78e9e43d95056"
-    }
-  ],
-  "artifacts": [
-    {
-      "file": "designElectronics.js",
-      "bytes": 217525,
-      "sha256": "081ca72e315904d0fb22b50426cf7d911a53d0fae3ff2f26e0e4308e16dd82c6"
-    },
-    {
-      "file": "designElectronics.wasm",
-      "bytes": 5328049,
-      "sha256": "1d03cea99157cc7ba158f8a83be4a995ee0f4966643d8ea8d96c53ddf85e9803"
-    },
-    {
-      "file": "designElectronics.data",
-      "bytes": 239771,
-      "sha256": "1f292efc591e36c4623501e3b5bc771124d7ba58dda06aadea229f752ff283b3"
-    }
-  ]
+    "upstream":  "4d9cb373bd06afb2d99b1548e6c3a0c86992bd56",
+    "emscripten":  "5.0.7",
+    "protocol":  1,
+    "patchedSources":  [
+                           {
+                               "file":  "CMakeLists.txt",
+                               "sha256":  "1df4cfb0b620fa7626ea4d9951685bdde9b4dda88557d4ccdfe40f699055428c"
+                           },
+                           {
+                               "file":  "src/web.cpp",
+                               "sha256":  "c791de6a9728776b10d988532804d73b275a4110fa124a9f6506bd682266f351"
+                           },
+                           {
+                               "file":  "src/ohmi_web.cpp",
+                               "sha256":  "c00dd583e433becebb13bcc6d226e51b8336affb53191f7659f4f4613d1d80a9"
+                           },
+                           {
+                               "file":  "src/panels.cpp",
+                               "sha256":  "839013866b3e3226b5bb9b962fbffa7c58a1b90464de1ac704981f82c293f6eb"
+                           },
+                           {
+                               "file":  "src/app.h",
+                               "sha256":  "3601d29d0e857b39af2588afa55c85befc04baf31d57185d9c2c708c8da74f93"
+                           },
+                           {
+                               "file":  "src/app.cpp",
+                               "sha256":  "ebfab840082321b99bb1f893ba7bf5f71e3f87d885f2696a93562c30d20433f6"
+                           },
+                           {
+                               "file":  "src/app_history.cpp",
+                               "sha256":  "19b58a630b2be323908ff85954f5cbf67ae7234db6e9cb5765b78e9e43d95056"
+                           }
+                       ],
+    "artifacts":  [
+                      {
+                          "file":  "designElectronics.js",
+                          "bytes":  219998,
+                          "sha256":  "dfaca8a9fbe21574df0faf2efb1fcfa2ad249247749b5a0554d0d4078f339d23"
+                      },
+                      {
+                          "file":  "designElectronics.wasm",
+                          "bytes":  5434237,
+                          "sha256":  "ff1e006093bb0ee1b24575cf2614cdbf9389151b6057f86fa62ad15b40d49ee7"
+                      },
+                      {
+                          "file":  "designElectronics.data",
+                          "bytes":  239771,
+                          "sha256":  "1f292efc591e36c4623501e3b5bc771124d7ba58dda06aadea229f752ff283b3"
+                      }
+                  ]
 }
