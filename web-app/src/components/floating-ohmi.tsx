@@ -27,7 +27,7 @@ import {
   Paperclip,
   Plus,
   RotateCcw,
-  Sparkles,
+  ListChecks,
   Square,
   Trash2,
   Wrench,
@@ -481,7 +481,6 @@ export function FloatingOhmi({
           <div className="floating-ohmi-brand-text">
             <span className="floating-ohmi-brand-title">OHMI</span>
             <span className="floating-ohmi-brand-sub">
-              <span className="floating-ohmi-status-dot" aria-hidden="true" />
               <span>Your circuit buddy</span>
             </span>
           </div>
@@ -1034,7 +1033,7 @@ export function FloatingOhmi({
                 aria-label="Quick actions"
                 title="Quick troubleshooting actions"
               >
-                <Sparkles size={14} />
+                <ListChecks size={14} />
               </button>
             )}
 

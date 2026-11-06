@@ -81,3 +81,18 @@ Remediation was executed in accordance with the owner's instruction and the laun
   - `PLAYGROUND_REMEDIATION_REPORT.md`
   - `PLAYGROUND_DEVICE_MATRIX.md` (Chromium PASS across 12 viewports; untested browsers/hardware labeled BLOCKED/NOT RUN)
   - `PLAYGROUND_AI_QUALIFICATION.md` (12 canonical cases qualified without electrical solver mutation)
+
+## 6 November 2026 — Ask OHMI → Build in Playground blank canvas
+
+Report: after "Build in Playground", the canvas stayed on "Loading electronics engine…". The handoff and generator were sound: locally (headless Chromium, real Chrome, and the desktop app's browser against production engine assets) the 5-LED Uno circuit rendered in about 2 s. The owner's signed-in production session was not available for inspection, so the exact trigger there is unconfirmed. The start-up path had four defects that each produce that symptom:
+
+- The bridge connected only from the iframe's React `onLoad`. A server-rendered frame that finishes before hydration (refresh) never connected. It now connects from an effect and retries until the loader answers.
+- The bridge abandoned start-up after a fixed 30 s and ignored a later `ready`, so a slow ~6 MB download left a permanently dead canvas. The timeout is now 45 s of loader *silence*, and download progress resets it.
+- `loader.mjs` swallowed exceptions from `callMain`, which left the in-frame status on "Loading…" forever. Start-up failures are now reported to the host with the reason.
+- The editor remounted when auth resolved (guest → user key), which restarted the engine download. The editor now remounts only when one account is replaced by another.
+
+The canvas now shows download progress, and on failure it shows the reason and a **Retry engine** button that keeps the handed-off circuit. Regression: `npm run test:handoff`. It covers handoff, refresh, sidebar return, two repeat handoffs, and a blocked-engine failure followed by recovery.
+
+UI cleanup in the same change: removed the sidebar "Always nearby" pill and its green dot, the decorative green "online" dots in the Floating OHMI header and launcher, and the sparkle icon on Quick actions (now a checklist icon). Meaningful status indicators (sending dot, simulation state) are kept.
+
+Pre-existing suite drift, not caused by this change: `playground-browser.mjs` and `playground-interactions.mjs` target the legacy SVG playground retired in `11c7bb5`. `playground-smoke.mjs` expects a "Playground" heading. `electronics-accessibility-browser.mjs` expects an empty canvas but the Traffic Light template auto-loads. `browser.mjs` waits for the removed "Waiting for OHMI…" text.

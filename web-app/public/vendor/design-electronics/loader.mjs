@@ -3,6 +3,21 @@ import { PROTOCOL, MAX_BYTES, boundedJson, validateRequest } from "./protocol.mj
 const status = document.getElementById("status");
 let ready = false, channel = null, lastId = 0;
 const emit = message => channel?.postMessage(message);
+const announce = (kind, detail) => { try { parent?.postMessage({ kind, protocol: PROTOCOL, ...detail }, "*"); } catch {} };
+let failed = false;
+const sentence = text => { const t = String(text || "").trim().replace(/\s+/g, " ").slice(0, 160); return t ? ": " + t.replace(/[.!]$/, "") + "." : "."; };
+const fail = text => {
+  if (failed || ready) return;
+  failed = true;
+  status.hidden = false;
+  status.textContent = text;
+  emit({ kind: "failed", protocol: PROTOCOL, reason: text });
+  announce("ohmi-loader-failed", { reason: text });
+};
+// Record (do not act on) early errors; they explain a later start-up failure.
+let lastError = "";
+window.addEventListener("error", event => { if (!ready) lastError = String(event.message || "").slice(0, 160); });
+window.addEventListener("unhandledrejection", event => { if (!ready) lastError = String(event.reason?.message || event.reason || "").slice(0, 160); });
 const engine = request => {
   validateRequest(request);
   const response = JSON.parse(Module.ccall("de_ohmi_dispatch", "string", ["string"], [JSON.stringify(request)]));
@@ -39,6 +54,7 @@ window.addEventListener("message", event => {
   };
   channel.start();
   emit({ kind: "connected", protocol: PROTOCOL, nonce, ready });
+  if (failed) emit({ kind: "failed", protocol: PROTOCOL, reason: status.textContent });
   if (ready) emit({ kind: "ready", protocol: PROTOCOL, nonce, result: engine({ operation: "status" }) });
 });
 try {
@@ -49,13 +65,32 @@ window.Module = {
   locateFile: name => new URL(name, import.meta.url).href,
   print: () => {},
   printErr: () => {},
-  onAbort() {
-    status.hidden = false;
-    status.textContent = "The engine stopped. Reload it from OHMI; your saved projects are unchanged.";
-    emit({ kind: "failed", protocol: PROTOCOL });
+  setStatus(text) {
+    // Emscripten reports "Downloading data... (loaded/total)" while fetching the engine.
+    const match = /\((\d+)\/(\d+)\)/.exec(text || "");
+    const progress = match && Number(match[2]) > 0 ? Math.min(1, Number(match[1]) / Number(match[2])) : null;
+    if (!ready && !failed && progress !== null) status.textContent = "Downloading electronics engine… " + Math.round(progress * 100) + "%";
+    announce("ohmi-loader-progress", { stage: "download", progress });
+  },
+  monitorRunDependencies(left) {
+    announce("ohmi-loader-progress", { stage: left ? "download" : "starting", remaining: left });
+  },
+  onAbort(reason) {
+    if (ready) {
+      status.hidden = false;
+      status.textContent = "The engine stopped. Reload it from OHMI; your saved projects are unchanged.";
+      emit({ kind: "failed", protocol: PROTOCOL });
+      announce("ohmi-loader-failed", { reason: "stopped" });
+      return;
+    }
+    fail("The engine stopped while starting" + sentence(reason) + " Reload it from OHMI.");
   },
   onRuntimeInitialized() {
-    try { Module.callMain([]); } catch (error) { if (error !== "unwind") throw error; }
+    if (!ready && !failed) status.textContent = "Starting electronics engine…";
+    announce("ohmi-loader-progress", { stage: "starting" });
+    try { Module.callMain([]); } catch (error) {
+      if (error !== "unwind" && error?.name !== "ExitStatus") { fail("The engine could not start" + sentence(error?.message || error) + " Reload it from OHMI."); return; }
+    }
     const started = performance.now();
     const check = () => {
       try {
@@ -63,11 +98,12 @@ window.Module = {
         if (result.ready) {
           ready = true; status.hidden = true;
           emit({ kind: "ready", protocol: PROTOCOL, result });
+          announce("ohmi-loader-ready-engine");
           return;
         }
       } catch { /* SDL may still be setting up its application callbacks. */ }
       if (performance.now() - started < 15000) setTimeout(check, 40);
-      else { status.textContent = "The engine did not start. Reload it from OHMI."; emit({ kind: "failed", protocol: PROTOCOL }); }
+      else fail("The engine did not start" + sentence(lastError) + " Reload it from OHMI.");
     };
     check();
   },
@@ -75,5 +111,5 @@ window.Module = {
 const script = document.createElement("script");
 script.src = new URL("designElectronics.js", import.meta.url).href;
 script.crossOrigin = "anonymous";
-script.onerror = () => { status.textContent = "The engine could not download. Check your connection and reload."; emit({ kind: "failed", protocol: PROTOCOL }); };
+script.onerror = () => fail("The engine could not download. Check your connection and reload.");
 document.body.appendChild(script);

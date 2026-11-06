@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "./app-provider";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
-import { ElectronicsBridge, type EngineRequest } from "@/lib/playground/bridge";
+import { ElectronicsBridge, type EngineProgress, type EngineRequest } from "@/lib/playground/bridge";
 import { useElectronicsProject } from "@/lib/playground/use-electronics-project";
 import styles from "./electronics-workspace.module.css";
 import { ElectronicsTools } from "./electronics-tools";
@@ -47,9 +47,14 @@ export function ElectronicsWorkspace({
   initialTemplate?: string;
 }) {
 const { user } = useApp();
+  // Remount only when one signed-in account is replaced by another. The first
+  // auth resolution (null -> user) must not restart a 5 MB engine download.
+  const accountKey = useRef<string | null>(null);
+  if (user?.id && accountKey.current === null) accountKey.current = user.id;
+  if (user?.id && accountKey.current !== user.id) accountKey.current = user.id;
   return (
     <Editor
-      key={user?.id || "guest"}
+      key={accountKey.current || "workspace"}
       accountId={user?.id || ""}
       buildId={buildId}
       initialTemplate={initialTemplate}
@@ -70,6 +75,7 @@ function Editor({
   const bridge = useRef<ElectronicsBridge | null>(null);
   const [generation, setGeneration] = useState(0);
   const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState<EngineProgress | null>(null);
   const [leaveOpen,setLeaveOpen]=useState(false);
   const leaveAction=useRef<(()=>void)|null>(null);
   const [canvasFocus, setCanvasFocus] = useState(false);
@@ -540,12 +546,15 @@ function Editor({
   }, []);
 
   const connect = () => {
-    bridge.current?.close();
     if (!frame.current) return;
+    if (bridge.current && bridge.current.frame === frame.current) return;
+    bridge.current?.close();
+    setProgress(null);
     const session = new ElectronicsBridge(
       frame.current,
       (status) => {
         setReady(true);
+        setProgress(null);
         setEngineState(status);
         setError("");
         setMessage(
@@ -565,10 +574,32 @@ function Editor({
       },
       (reason) => {
         setReady(false);
+        setProgress(null);
         setError(reason);
+        setMessage("Use Retry engine below; your circuit is kept.");
+      },
+      (next) => {
+        if (bridge.current === session) setProgress(next);
       },
     );
     bridge.current = session;
+  };
+  // Connect from an effect, not only the iframe's load event: after a refresh the
+  // server-rendered frame can finish loading before React attaches onLoad.
+  useEffect(() => {
+    connect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generation]);
+  const restartEngine = () => {
+    bridge.current?.close();
+    bridge.current = null;
+    cloud.detach();
+    lastLoadedTemplate.current = null;
+    setReady(false);
+    setProgress(null);
+    setError("");
+    setMessage("Reloading the local engine…");
+    setGeneration((value) => value + 1);
   };
 
   useEffect(() => {
@@ -799,7 +830,9 @@ function Editor({
       <p role="status" className={styles.status}>
         <strong>
           {!ready
-            ? "Engine loading"
+            ? error
+              ? "Engine unavailable"
+              : "Engine loading"
             : engineState?.running
               ? "Simulation running"
               : "Simulation paused"}
@@ -885,6 +918,29 @@ function Editor({
           sandbox="allow-scripts allow-downloads"
           onLoad={connect}
         />
+        {!ready && (
+          <div className={styles.engineOverlay} data-state={error ? "error" : "loading"} role={error ? "alert" : "status"} aria-live="polite">
+            {error ? (
+              <>
+                <strong>The electronics engine didn’t start</strong>
+                <p>{error}</p>
+                <p className={styles.engineOverlayHint}>Your handed-off circuit is kept and will open once the engine is ready.</p>
+                <Button size="sm" onClick={restartEngine}>Retry engine</Button>
+              </>
+            ) : (
+              <>
+                <strong>
+                  {progress?.stage === "starting"
+                    ? "Starting the electronics engine…"
+                    : progress?.progress != null
+                      ? `Downloading the electronics engine… ${Math.round(progress.progress * 100)}%`
+                      : "Loading the electronics engine…"}
+                </strong>
+                <p>The first load downloads about 6 MB. Later visits are faster.</p>
+              </>
+            )}
+          </div>
+        )}
         {isAssistantCollapsed && (
           <PlaygroundAssistant
             bridge={bridge}
@@ -1062,16 +1118,12 @@ function Editor({
           disabled={cloud.busy}
           onClick={() => {
             if (
+              !ready ||
               window.confirm(
                 "Reload the engine? Unsaved local changes will be lost.",
               )
             ) {
-              bridge.current?.close();
-              cloud.detach();
-              setReady(false);
-              setError("");
-              setMessage("Reloading the local engine…");
-              setGeneration((value) => value + 1);
+              restartEngine();
             }
           }}
         >

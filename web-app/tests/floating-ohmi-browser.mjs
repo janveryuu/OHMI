@@ -34,9 +34,10 @@ try {
     await promoCard.getByText("Your circuit buddy, always nearby.").isVisible(),
     "Promotional card should have title 'Your circuit buddy, always nearby.'",
   );
-  assert.ok(
-    await promoCard.getByText("Always nearby", { exact: true }).isVisible(),
-    "Promotional card should have 'Always nearby' badge",
+  assert.equal(
+    await promoCard.getByText("Always nearby", { exact: true }).count(),
+    0,
+    "Promotional card must not show the decorative 'Always nearby' badge",
   );
   assert.ok(
     await promoCard

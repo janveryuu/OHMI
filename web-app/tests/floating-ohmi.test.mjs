@@ -22,7 +22,8 @@ test("Floating OHMI 2.0: Component and CSS File Integrity", () => {
 
   // Verify Header elements
   assert.ok(compContent.includes("Your circuit buddy"), "Header must include 'Your circuit buddy'");
-  assert.ok(compContent.includes("floating-ohmi-status-dot"), "Header must include status dot");
+  assert.ok(!compContent.includes("floating-ohmi-status-dot"), "Header must not include a decorative status dot");
+  assert.ok(!compContent.includes("Sparkles"), "Floating OHMI must not use decorative sparkle icons");
   assert.ok(compContent.includes("floating-ohmi-avatar-squircle"), "Header must include squircle mascot avatar");
 
   // Verify Welcome card matching reference image
@@ -86,8 +87,8 @@ test("Floating OHMI 2.0: Promotional Card in App Shell", () => {
     "Must render Companion trigger button",
   );
   assert.ok(
-    appShellContent.includes("companion-promo-badge"),
-    "Must include status badge",
+    !appShellContent.includes("companion-promo-badge") && !appShellContent.includes("Always nearby</span>"),
+    "Sidebar promo must not include the decorative 'Always nearby' badge",
   );
 });
 

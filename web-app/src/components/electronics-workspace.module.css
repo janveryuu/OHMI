@@ -205,3 +205,39 @@
     margin-bottom: 16px;
   }
 }
+
+/* Engine start-up state shown over the canvas until the engine reports ready. */
+.engineOverlay {
+  position: absolute;
+  inset: 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--foreground);
+}
+.engineOverlay strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.engineOverlay p {
+  max-width: 44ch;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.engineOverlay[data-state="error"] strong {
+  color: var(--destructive, #b42318);
+}
+.engineOverlay button {
+  margin-top: 10px;
+}
+.engineOverlayHint {
+  font-size: 12px !important;
+}

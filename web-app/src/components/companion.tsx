@@ -188,7 +188,6 @@ export function Companion({
         />
       </div>
       <strong>OHMI</strong>
-      <span className="floating-ohmi-status-dot" aria-hidden="true" />
       <span className="text-xs text-neutral-400">Ask question</span>
       <button
         type="button"

@@ -164,10 +164,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <div className="sidebar-bottom">
           <div className="companion-promo" data-testid="companion-promo-card">
-            <div className="companion-promo-badge">
-              <span className="promo-status-dot" aria-hidden="true" />
-              <span>Always nearby</span>
-            </div>
             <h3>Your circuit buddy, always nearby.</h3>
             <p>Keep OHMI beside your workspace. Ask questions, check your wiring, and debug code without switching tabs.</p>
             <Companion trigger="Launch Floating OHMI" globalLauncher />
