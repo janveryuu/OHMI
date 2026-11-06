@@ -244,12 +244,12 @@ export function CodeBlock({
       <pre
         tabIndex={0}
         aria-label={`${displayLanguage} code snippet`}
-        className="m-0 p-4 overflow-x-auto text-xs leading-relaxed font-mono whitespace-pre selection:bg-teal-500/30 selection:text-white"
+        className="ohmi-code-pre m-0 p-4 overflow-x-auto text-xs leading-relaxed font-mono whitespace-pre selection:bg-teal-500/30 selection:text-white"
         style={{
           fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         }}
       >
-        <code>
+        <code className="ohmi-code">
           {tokens.map((token, idx) => {
             let color = "text-[#e4e4e7]";
 

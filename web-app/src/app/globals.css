@@ -1198,6 +1198,27 @@ progress::-moz-progress-bar {
 .rich-text pre code {
   padding: 0;
 }
+/* The syntax-highlighted CodeBlock is always a dark card; generic markdown
+   pre/code backgrounds (light in light mode) must not paint over it. */
+.rich-text pre.ohmi-code-pre,
+.floating-ohmi-bubble pre.ohmi-code-pre,
+pre.ohmi-code-pre {
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  background: #121418;
+  color: #e4e4e7;
+}
+.rich-text pre.ohmi-code-pre code.ohmi-code,
+.floating-ohmi-bubble pre.ohmi-code-pre code.ohmi-code,
+pre.ohmi-code-pre code.ohmi-code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
 .incomplete-continuation-card {
   margin-top: 14px;
   padding: 12px 14px;
